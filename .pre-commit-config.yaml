@@ -1,0 +1,31 @@
+repos:
+- repo: local
+  hooks:
+  - id: clang-format
+    name: clang-format
+    language: system
+    files: \.(c|cc|cxx|cpp|h|hpp|hxx)$
+    verbose: true
+    entry: clang-format
+    args: [-i,'-style={IndentWidth: 4, ColumnLimit: 100}']
+  - id: cppcheck
+    name: cppcheck
+    language: system
+    files: \.(c|cc|cxx|cpp|h|hpp|hxx)$
+    verbose: true
+    entry: cppcheck
+    args: [-q,--std=c++11]
+  - id: black
+    name: black
+    language: system
+    files: \.py$
+    verbose: true
+    entry: black
+    args: [-l,'100']
+  - id: pylint
+    name: pylint
+    language: system
+    files: \.py$
+    verbose: true
+    entry: pylint
+    args: [-d, "bad-continuation,global-statement,missing-docstring,missing-module-docstring,line-too-long,too-many-arguments"]
