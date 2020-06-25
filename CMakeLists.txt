@@ -31,10 +31,18 @@ set(CMAKE_CXX_STANDARD 11)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_EXTENSIONS OFF)
 
+execute_process(COMMAND git describe --tags --long --always
+                OUTPUT_VARIABLE GIT_REVISION OUTPUT_STRIP_TRAILING_WHITESPACE)
+                set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -DGIT_REVISION=\"\\\"${GIT_REVISION}\\\"\"")
+
 include_directories(${CMAKE_CURRENT_SOURCE_DIR}/include)
 add_library(genomicsqlite SHARED src/genomicsqlite.cc include/genomicsqlite.h)
 target_link_libraries(genomicsqlite PRIVATE SQLiteCpp zstd)
 
-include(CTest)
-enable_testing()
-add_test(NAME pytest COMMAND env PYTHONPATH=$PYTHONPATH:${CMAKE_CURRENT_SOURCE_DIR}/bindings/python LD_LIBRARY_PATH=$LD_LIBRARY_PATH:${CMAKE_BINARY_DIR} python3 -m pytest -sv ${CMAKE_CURRENT_SOURCE_DIR}/test)
+add_subdirectory(loaders)
+
+if(CMAKE_PROJECT_NAME STREQUAL PROJECT_NAME)
+    include(CTest)
+    enable_testing()
+    add_test(NAME pytest COMMAND env PYTHONPATH=$PYTHONPATH:${CMAKE_CURRENT_SOURCE_DIR}/bindings/python LD_LIBRARY_PATH=$LD_LIBRARY_PATH:${CMAKE_BINARY_DIR} python3 -m pytest -sv --tb=short ${CMAKE_CURRENT_SOURCE_DIR}/test)
+endif()

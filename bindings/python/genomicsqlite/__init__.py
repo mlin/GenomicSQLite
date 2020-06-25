@@ -19,11 +19,6 @@ def connect(
     assert isinstance(page_cache_size, int)
     assert isinstance(threads, int)
 
-    check_version = _link("GenomicSQLiteVersionCheck")
-    check_version.restype = c_char_p
-    version_msg = check_version()
-    assert not version_msg, version_msg
-
     assert not (read_only and unsafe_load)
     uri = _uri(dbfile, zstd_level, threads, unsafe_load)
     if read_only:
@@ -231,12 +226,17 @@ def _sqlite3_cptr_selftest(con):
     assert lib.sqlite3_last_insert_rowid(c_int(_sqlite3_cptr(con))) == 0xBADF00D
 
 
-_CON = sqlite3.connect(":memory:")
+def _init():
+    # load C extension
+    con = sqlite3.connect(":memory:")
+    _sqlite3_cptr_selftest(con)
+    con.enable_load_extension(True)
+    con.load_extension(find_library("genomicsqlite"))
+    # check SQLite version
+    check_version = _link("GenomicSQLiteVersionCheck")
+    check_version.restype = c_char_p
+    version_msg = check_version()
+    assert not version_msg, version_msg
 
-_sqlite3_cptr_selftest(_CON)
 
-
-_CON.enable_load_extension(True)
-_CON.load_extension(find_library("genomicsqlite"))
-
-del _CON
+_init()

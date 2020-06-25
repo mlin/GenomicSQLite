@@ -106,28 +106,27 @@ extern "C" int sqlite3_genomicsqlite_init(sqlite3 *db, char **pzErrMsg,
  * connection & tuning helpers
  **************************************************************************************************/
 
+string _version_msg;
 extern "C" const char *GenomicSQLiteVersionCheck() {
     // The newest SQLite feature currently required is "Generated Columns"
     const int MIN_SQLITE_VERSION_NUMBER = 3031000;
     const string MIN_SQLITE_VERSION = "3.31.0";
-    static string msg;
     if (sqlite3_libversion_number() < MIN_SQLITE_VERSION_NUMBER) {
-        if (msg.empty()) {
-            msg = "SQLite library version (" + string(sqlite3_libversion()) +
-                  ") is older than required by the GenomicSQLite extension (" + MIN_SQLITE_VERSION +
-                  ")";
+        if (_version_msg.empty()) {
+            _version_msg = "SQLite library version (" + string(sqlite3_libversion()) +
+                           ") is older than required by the GenomicSQLite extension (" +
+                           MIN_SQLITE_VERSION + ")";
         }
-        return msg.c_str();
+        return _version_msg.c_str();
     }
     return nullptr;
 }
-extern "C" int GenomicSQLiteMinVersionNumber() { return 3031000; }
 
 string GenomicSQLiteURI(const string &dbfile, int zstd_level, int threads, bool unsafe_load) {
     ostringstream out;
     out << "file:" << dbfile << "?vfs=zstd&outer_page_size=32768&level=" << zstd_level;
     if (unsafe_load) {
-        out << "?outer_unsafe";
+        out << "&outer_unsafe";
     }
     return out.str();
 }
@@ -184,14 +183,36 @@ extern "C" char *GenomicSQLiteTuning(sqlite3_int64 page_cache_size, int threads,
 
 int GenomicSQLiteOpen(const string &dbfile, sqlite3 **ppDb, int flags, int zstd_level,
                       sqlite3_int64 page_cache_size, int threads, bool unsafe_load) {
+    // ensure extension is registered
+    int ret;
+    static bool loaded = false;
     *ppDb = nullptr;
-    int ret = sqlite3_open_v2(GenomicSQLiteURI(dbfile, zstd_level, threads, unsafe_load).c_str(),
-                              ppDb, SQLITE_OPEN_URI | flags, nullptr);
+    if (!loaded) {
+        ret =
+            sqlite3_open_v2(":memory:", ppDb, SQLITE_OPEN_READWRITE | SQLITE_OPEN_CREATE, nullptr);
+        if (ret != SQLITE_OK) {
+            return ret;
+        }
+        ret = sqlite3_load_extension(*ppDb, "libgenomicsqlite", nullptr, nullptr);
+        if (ret != SQLITE_OK) {
+            return ret;
+        }
+        ret = sqlite3_close_v2(*ppDb);
+        *ppDb = nullptr;
+        if (ret != SQLITE_OK) {
+            return ret;
+        }
+        if (GenomicSQLiteVersionCheck()) {
+            return SQLITE_RANGE;
+        }
+        loaded = true;
+    }
+
+    // open as requested
+    ret = sqlite3_open_v2(GenomicSQLiteURI(dbfile, zstd_level, threads, unsafe_load).c_str(), ppDb,
+                          SQLITE_OPEN_URI | flags, nullptr);
     if (ret != SQLITE_OK) {
         return ret;
-    }
-    if (sqlite3_libversion_number() < GenomicSQLiteMinVersionNumber()) {
-        return SQLITE_RANGE;
     }
     return sqlite3_exec(*ppDb, GenomicSQLiteTuning(page_cache_size, threads, unsafe_load).c_str(),
                         nullptr, nullptr, nullptr);
@@ -219,10 +240,9 @@ static string gri_refseq_ddl(const char *schema) {
         schema_prefix += ".";
     }
     ostringstream out;
-    out << "CREATE TABLE IF NOT EXISTS " << schema_prefix
-        << "_gri_refseq_meta(rid INTEGER NOT NULL PRIMARY "
-           "KEY, name TEXT NOT NULL, assembly TEXT, refget_id TEXT,"
-           "length INTEGER NOT NULL, UNIQUE(assembly,name))"
+    out << "CREATE TABLE IF NOT EXISTS " << schema_prefix << "_gri_refseq_meta"
+        << "(rid INTEGER NOT NULL PRIMARY KEY, name TEXT NOT NULL, assembly TEXT,"
+        << " refget_id TEXT, length INTEGER NOT NULL, UNIQUE(assembly,name))"
         << ";\nCREATE INDEX IF NOT EXISTS " << schema_prefix << "_gri_refseq_meta_name ON "
         << schema_prefix << "_gri_refseq_meta(name)";
     return out.str();
@@ -234,6 +254,12 @@ static pair<string, string> split_schema_table(const string &qtable) {
         return make_pair(string(), qtable);
     }
     return make_pair(qtable.substr(0, p + 1), qtable.substr(p + 1));
+}
+
+static string remove_table_prefixes(const string &expr, const string &table) {
+    // TODO: escape table as needed
+    std::regex table_prefix(table + "\\.", regex::ECMAScript);
+    return regex_replace(expr, table_prefix, "");
 }
 
 string CreateGenomicRangeIndex(const string &schema_table, const char *assembly, int max_level,
@@ -248,10 +274,10 @@ string CreateGenomicRangeIndex(const string &schema_table, const char *assembly,
     }
     size_t p;
 #define COL(s)                                                                                     \
-    ((p = s.find('.')) != string::npos                                                             \
-         ? s.substr(p + 1)                                                                         \
+    ((p = s.find(table + ".")) != string::npos                                                     \
+         ? remove_table_prefixes(s, table)                                                         \
          : (throw invalid_argument(                                                                \
-               "CreateGenomicRangeIndex: rid/beg/expr column names must include table. prefix")))
+               "CreateGenomicRangeIndex: beg/end column names must include table. prefix")))
     ostringstream out;
     out << gri_refseq_ddl(nullptr) << ";\nALTER TABLE " << schema << table
         << " ADD COLUMN _gri_bin INTEGER AS (genomic_range_bin((" << COL(beg) << "),(" << COL(end)
@@ -262,8 +288,7 @@ string CreateGenomicRangeIndex(const string &schema_table, const char *assembly,
         << "_gri_meta(indexed_table TEXT NOT NULL PRIMARY KEY, "
            "rid_col "
            "TEXT NOT NULL, beg_expr TEXT NOT NULL, end_expr TEXT NOT NULL, assembly TEXT"
-           ", max_level INTEGER NOT NULL)"
-           " WITHOUT ROWID"
+           ", max_level INTEGER NOT NULL) WITHOUT ROWID"
         << ";\nINSERT INTO " << schema
         << "_gri_meta(indexed_table,rid_col,beg_expr,end_expr,assembly,max_level) "
            "VALUES("

@@ -45,10 +45,10 @@ char *PutReferenceSequence(const char *name, const char *assembly, const char *r
 
 #include <string>
 
-int GenomicSQLiteOpen(const std::string &dbfile, sqlite3 **ppDb, int flags, int zstd_level = 3,
+int GenomicSQLiteOpen(const std::string &dbfile, sqlite3 **ppDb, int flags, int zstd_level = 8,
                       sqlite3_int64 page_cache_size = 0, int threads = -1,
                       bool unsafe_load = false);
-std::string GenomicSQLiteURI(const std::string &dbfile, int zstd_level = 3, int threads = -1,
+std::string GenomicSQLiteURI(const std::string &dbfile, int zstd_level = 8, int threads = -1,
                              bool unsafe_load = false);
 std::string GenomicSQLiteTuning(sqlite3_int64 page_cache_size = 0, int threads = -1,
                                 bool unsafe_load = false, const char *attached_schema = nullptr);
