@@ -17,9 +17,9 @@
 
 using namespace std;
 
-// split s on delim & return strlen(s). s is damaged by side-effect
+// split s on delim; s is damaged by side-effect
 template <typename Out>
-size_t split(char *s, char delim, Out result, uint64_t maxsplit = ULLONG_MAX) {
+void split(char *s, char delim, Out result, uint64_t maxsplit = ULLONG_MAX) {
     string delims("\n");
     delims[0] = delim;
     char *cursor = s;
@@ -37,12 +37,11 @@ size_t split(char *s, char delim, Out result, uint64_t maxsplit = ULLONG_MAX) {
             break;
         }
     }
-    return last_token ? (last_token + strlen(last_token) - s) : 0;
 }
 
 template <typename Out>
-size_t split(string &s, char delim, Out result, uint64_t maxsplit = ULLONG_MAX) {
-    return split(&s[0], delim, result, maxsplit);
+void split(string &s, char delim, Out result, uint64_t maxsplit = ULLONG_MAX) {
+    split(&s[0], delim, result, maxsplit);
 }
 
 // because std::ostringstream is too slow :(

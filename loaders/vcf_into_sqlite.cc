@@ -8,6 +8,7 @@
 #include <set>
 #include <sstream>
 #include <thread>
+#include <unistd.h>
 #include <vector>
 
 // unpack each bcf_hrec_t with the key type (e.g. INFO, FORMAT) into an easier-to-use map
@@ -595,7 +596,8 @@ class BCFReader {
 
 void help() {
     cout
-        << "vcf_into_sqlite: import .vcf, .vcf.gz, or .bcf into GenomicSQLite database" << '\n'
+        << "vcf_into_sqlite: import .vcf, .vcf.gz, or .bcf into GenomicSQLite database with all fields unpacked"
+        << '\n'
         << GIT_REVISION << "   " << __DATE__ << '\n'
         << '\n'
         << "vcf_into_sqlite [options] in.vcf|- out.db" << '\n'
@@ -603,7 +605,7 @@ void help() {
         << "  --table-prefix PREFIX  prefix to the name of each table created" << '\n'
         << "  --assembly NAME        set reference genome assembly name (e.g. GRCh38) if not supplied by VCF header contig lines"
         << '\n'
-        << "  --ploidy N             set max ploidy => # GT columns (default 2)"
+        << "  --ploidy N             set max ploidy => # GT columns (default 2)" << '\n'
         << "  --no-gri               skip genomic range indexing" << '\n'
         << "  -l,--level LEVEL       database compression level (-7 to 22, default 8)" << '\n'
         << "  -q,--quiet             suppress progress information on standard error" << '\n'
@@ -672,6 +674,11 @@ int main(int argc, char *argv[]) {
 
     infilename = argv[argc - 2];
     outfilename = argv[argc - 1];
+
+    if (infilename == "-" && isatty(STDIN_FILENO)) {
+        help();
+        return -1;
+    }
 
     // open infilename & read VCF header
     unique_ptr<vcfFile, void (*)(vcfFile *)> vcf(bcf_open(infilename.c_str(), "r"),
