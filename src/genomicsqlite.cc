@@ -1,9 +1,11 @@
 #include <map>
+#include <memory>
 #include <regex>
 #include <sqlite3ext.h>
 #include <sstream>
 #include <thread>
 SQLITE_EXTENSION_INIT1
+#include "SQLiteCpp/SQLiteCpp.h"
 #include "genomicsqlite.h"
 #include "zstd_vfs.h"
 
@@ -182,13 +184,13 @@ extern "C" char *GenomicSQLiteTuning(sqlite3_int64 page_cache_size, int threads,
     C_WRAPPER(GenomicSQLiteTuning(page_cache_size, threads, unsafe_load != 0, schema));
 }
 
+bool _ext_loaded = false;
 int GenomicSQLiteOpen(const string &dbfile, sqlite3 **ppDb, int flags, int zstd_level,
-                      sqlite3_int64 page_cache_size, int threads, bool unsafe_load) {
+                      sqlite3_int64 page_cache_size, int threads, bool unsafe_load) noexcept {
     // ensure extension is registered
     int ret;
-    static bool loaded = false;
     *ppDb = nullptr;
-    if (!loaded) {
+    if (!_ext_loaded) {
         ret =
             sqlite3_open_v2(":memory:", ppDb, SQLITE_OPEN_READWRITE | SQLITE_OPEN_CREATE, nullptr);
         if (ret != SQLITE_OK) {
@@ -206,7 +208,7 @@ int GenomicSQLiteOpen(const string &dbfile, sqlite3 **ppDb, int flags, int zstd_
         if (GenomicSQLiteVersionCheck()) {
             return SQLITE_RANGE;
         }
-        loaded = true;
+        _ext_loaded = true;
     }
 
     // open as requested
@@ -223,6 +225,30 @@ extern "C" int GenomicSQLiteOpen(const char *filename, sqlite3 **ppDb, int flags
                                  sqlite3_int64 page_cache_size, int threads, int unsafe_load) {
     return GenomicSQLiteOpen(string(filename), ppDb, flags, zstd_level, page_cache_size, threads,
                              unsafe_load != 0);
+}
+
+unique_ptr<SQLite::Database> GenomicSQLiteOpen(const string &dbfile, int flags, int zstd_level,
+                                               sqlite3_int64 page_cache_size, int threads,
+                                               bool unsafe_load) {
+    unique_ptr<SQLite::Database> db;
+    if (!_ext_loaded) {
+        db.reset(new SQLite::Database(":memory:", SQLite::OPEN_READWRITE | SQLite::OPEN_CREATE));
+        try {
+            db->loadExtension("libgenomicsqlite", nullptr);
+        } catch (std::exception &exn) {
+            throw std::runtime_error("failed loading libgenomicsqlite shared library: " +
+                                     string(exn.what()));
+        }
+        auto msg = GenomicSQLiteVersionCheck();
+        if (msg) {
+            throw runtime_error(msg);
+        }
+        _ext_loaded = true;
+    }
+    db.reset(new SQLite::Database(GenomicSQLiteURI(dbfile, zstd_level, threads, unsafe_load),
+                                  SQLITE_OPEN_URI | flags));
+    db->exec(GenomicSQLiteTuning(page_cache_size, threads, unsafe_load));
+    return db;
 }
 
 /**************************************************************************************************

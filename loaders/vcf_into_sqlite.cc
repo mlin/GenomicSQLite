@@ -702,6 +702,8 @@ int main(int argc, char *argv[]) {
         }
 
         // open output database
+        sqlite3_config(SQLITE_CONFIG_MEMSTATUS, 0);
+        sqlite3_config(SQLITE_CONFIG_LOOKASIDE, 2048, 128);
         auto db = GenomicSQLiteOpen(
             outfilename, SQLITE_OPEN_CREATE | SQLITE_OPEN_READWRITE | SQLITE_OPEN_NOMUTEX, level, 0,
             -1, true);

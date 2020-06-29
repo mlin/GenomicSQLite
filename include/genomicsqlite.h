@@ -40,6 +40,9 @@ char *PutReferenceSequence(const char *name, const char *assembly, const char *r
                            sqlite3_int64 length, int first, sqlite3_int64 rid,
                            const char *attached_schema);
 
+/*
+ * C++ bindings: are liable to throw exceptions except where marked
+ */
 #ifdef __cplusplus
 }
 
@@ -47,7 +50,19 @@ char *PutReferenceSequence(const char *name, const char *assembly, const char *r
 
 int GenomicSQLiteOpen(const std::string &dbfile, sqlite3 **ppDb, int flags, int zstd_level = 6,
                       sqlite3_int64 page_cache_size = 0, int threads = -1,
-                      bool unsafe_load = false);
+                      bool unsafe_load = false) noexcept;
+#ifdef SQLITECPP_VERSION
+/*
+ * For use with SQLiteCpp -- https://github.com/SRombauts/SQLiteCpp
+ * (include SQLiteCpp/SQLiteCpp.h first)
+ */
+#include <memory>
+std::unique_ptr<SQLite::Database> GenomicSQLiteOpen(const std::string &dbfile, int flags,
+                                                    int zstd_level = 6,
+                                                    sqlite3_int64 page_cache_size = -1,
+                                                    int threads = -1, bool unsafe_load = false);
+#endif
+
 std::string GenomicSQLiteURI(const std::string &dbfile, int zstd_level = 6, int threads = -1,
                              bool unsafe_load = false);
 std::string GenomicSQLiteTuning(sqlite3_int64 page_cache_size = 0, int threads = 1,

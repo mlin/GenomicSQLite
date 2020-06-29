@@ -119,28 +119,3 @@ class OStringStream {
     unique_ptr<char[]> buf_;
     size_t buf_size_, cursor_;
 };
-
-unique_ptr<SQLite::Database> GenomicSQLiteOpen(const string &dbfile, int flags, int zstd_level = 6,
-                                               sqlite3_int64 page_cache_size = -1, int threads = -1,
-                                               bool unsafe_load = false) {
-    static bool loaded = false;
-    unique_ptr<SQLite::Database> db;
-    if (!loaded) {
-        db.reset(new SQLite::Database(":memory:", SQLite::OPEN_READWRITE | SQLite::OPEN_CREATE));
-        try {
-            db->loadExtension("libgenomicsqlite", nullptr);
-        } catch (std::exception &exn) {
-            throw std::runtime_error("failed loading libgenomicsqlite shared library: " +
-                                     string(exn.what()));
-        }
-        auto msg = GenomicSQLiteVersionCheck();
-        if (msg) {
-            throw runtime_error(msg);
-        }
-        loaded = true;
-    }
-    db.reset(new SQLite::Database(GenomicSQLiteURI(dbfile, zstd_level, threads, unsafe_load),
-                                  SQLITE_OPEN_URI | flags));
-    db->exec(GenomicSQLiteTuning(page_cache_size, threads, unsafe_load));
-    return db;
-}
