@@ -120,7 +120,7 @@ class OStringStream {
     size_t buf_size_, cursor_;
 };
 
-unique_ptr<SQLite::Database> GenomicSQLiteOpen(const string &dbfile, int flags, int zstd_level = 3,
+unique_ptr<SQLite::Database> GenomicSQLiteOpen(const string &dbfile, int flags, int zstd_level = 6,
                                                sqlite3_int64 page_cache_size = -1, int threads = -1,
                                                bool unsafe_load = false) {
     static bool loaded = false;

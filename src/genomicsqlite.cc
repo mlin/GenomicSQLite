@@ -124,7 +124,8 @@ extern "C" const char *GenomicSQLiteVersionCheck() {
 
 string GenomicSQLiteURI(const string &dbfile, int zstd_level, int threads, bool unsafe_load) {
     ostringstream out;
-    out << "file:" << dbfile << "?vfs=zstd&outer_page_size=32768&level=" << zstd_level;
+    out << "file:" << dbfile << "?vfs=zstd&outer_page_size=32768&level=" << zstd_level
+        << "&threads=" << threads;
     if (unsafe_load) {
         out << "&outer_unsafe";
     }

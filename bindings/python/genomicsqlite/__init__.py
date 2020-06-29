@@ -7,7 +7,7 @@ from ctypes.util import find_library
 def connect(
     dbfile: str,
     read_only: bool = False,
-    zstd_level: int = 3,
+    zstd_level: int = 6,
     page_cache_size: int = 0,
     threads: int = -1,
     unsafe_load: bool = False,

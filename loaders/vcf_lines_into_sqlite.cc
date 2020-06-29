@@ -53,7 +53,7 @@ void help() {
         << "Options: " << '\n'
         << "  --table NAME           table name (default: vcf_lines)" << '\n'
         << "  --no-gri               skip genomic range indexing" << '\n'
-        << "  -l,--level LEVEL       database compression level (-7 to 22, default 8)" << '\n'
+        << "  -l,--level LEVEL       database compression level (-7 to 22, default 6)" << '\n'
         << "  -q,--quiet             suppress progress information on standard error" << '\n'
         << "  -h,--help              show this help message" << '\n'
         << '\n';
@@ -62,7 +62,7 @@ void help() {
 int main(int argc, char *argv[]) {
     string table("vcf_lines"), outfilename;
     bool gri = true, progress = true;
-    int level = 8;
+    int level = 6;
 
     static struct option long_options[] = {
         {"help", no_argument, 0, 'h'},        {"quiet", no_argument, 0, 'q'},

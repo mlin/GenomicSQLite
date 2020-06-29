@@ -28,4 +28,4 @@ repos:
     files: \.py$
     verbose: true
     entry: pylint
-    args: [-d, "bad-continuation,global-statement,missing-docstring,missing-module-docstring,line-too-long,too-many-arguments"]
+    args: [-d, "bad-continuation,global-statement,missing-docstring,missing-module-docstring,line-too-long,too-many-arguments,duplicate-code"]
