@@ -7,35 +7,43 @@ from ctypes.util import find_library
 def connect(
     dbfile: str,
     read_only: bool = False,
-    zstd_level: int = 6,
-    page_cache_size: int = 0,
-    threads: int = -1,
     unsafe_load: bool = False,
+    page_cache_size: int = -1048576,
+    threads: int = -1,
+    zstd_level: int = 6,
+    inner_page_size=16384,
+    outer_page_size=32768,
     **kwargs
 ) -> sqlite3.Connection:
     assert isinstance(dbfile, str)
     assert isinstance(zstd_level, int)
-    assert -5 <= zstd_level <= 22
+    assert -7 <= zstd_level <= 22
     assert isinstance(page_cache_size, int)
     assert isinstance(threads, int)
+    assert isinstance(inner_page_size, int)
+    assert isinstance(outer_page_size, int)
 
     assert not (read_only and unsafe_load)
-    uri = _uri(dbfile, zstd_level, threads, unsafe_load)
+    uri = _uri(dbfile, unsafe_load, threads, zstd_level, outer_page_size)
     if read_only:
         uri += "&mode=ro"
     conn = sqlite3.connect(uri, uri=True, **kwargs)
-    conn.executescript(_tuning(page_cache_size, threads, unsafe_load))
+    conn.executescript(_tuning(unsafe_load, page_cache_size, threads, inner_page_size))
     return conn
 
 
-def _uri(dbfile, zstd_level, threads, unsafe_load) -> str:
+def _uri(dbfile, unsafe_load, threads, zstd_level, outer_page_size) -> str:
     dbfile = dbfile.encode()
 
     func = _link("GenomicSQLiteURI")
     func.restype = c_void_p  # char* that we need to free
 
     buffer = func(
-        c_char_p(dbfile), c_int(zstd_level), c_int(threads), c_int(1 if unsafe_load else 0)
+        c_char_p(dbfile),
+        c_int(1 if unsafe_load else 0),
+        c_int(threads),
+        c_int(zstd_level),
+        c_int(outer_page_size),
     )
     try:
         return _decodestr(buffer)
@@ -43,12 +51,16 @@ def _uri(dbfile, zstd_level, threads, unsafe_load) -> str:
         _sqlite3_free(buffer)
 
 
-def _tuning(page_cache_size, threads, unsafe_load, schema=None):
+def _tuning(unsafe_load, page_cache_size, threads, inner_page_size, schema=None):
     func = _link("GenomicSQLiteTuning")
     func.restype = c_void_p  # char* that we need to free
 
     buffer = func(
-        c_int(page_cache_size), c_int(threads), c_int(1 if unsafe_load else 0), c_char_p(schema)
+        c_char_p(schema),
+        c_int(1 if unsafe_load else 0),
+        c_int(page_cache_size),
+        c_int(threads),
+        c_int(inner_page_size),
     )
     try:
         return _decodestr(buffer)

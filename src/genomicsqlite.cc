@@ -124,14 +124,17 @@ extern "C" const char *GenomicSQLiteVersionCheck() {
     return nullptr;
 }
 
-string GenomicSQLiteURI(const string &dbfile, int zstd_level, int threads, bool unsafe_load) {
-    ostringstream out;
-    out << "file:" << dbfile << "?vfs=zstd&outer_page_size=32768&level=" << zstd_level
-        << "&threads=" << threads;
+string GenomicSQLiteURI(const string &dbfile, bool unsafe_load, int threads, int zstd_level,
+                        int outer_page_size) {
+    ostringstream uri;
+    uri << "file:" << dbfile << "?vfs=zstd";
+    uri << "&threads=" << to_string(threads);
+    uri << "&outer_page_size=" << to_string(outer_page_size);
+    uri << "&level=" << to_string(zstd_level);
     if (unsafe_load) {
-        out << "&outer_unsafe";
+        uri << "&unsafe_load";
     }
-    return out.str();
+    return uri.str();
 }
 
 #define C_WRAPPER(call)                                                                            \
@@ -148,17 +151,17 @@ string GenomicSQLiteURI(const string &dbfile, int zstd_level, int threads, bool 
     }                                                                                              \
     return sql;
 
-extern "C" char *GenomicSQLiteURI(const char *dbfile, int zstd_level, int threads,
-                                  int unsafe_load) {
-    C_WRAPPER(GenomicSQLiteURI(string(dbfile), zstd_level, threads, unsafe_load != 0));
+extern "C" char *GenomicSQLiteURI(const char *dbfile, int unsafe_load, int threads, int zstd_level,
+                                  int outer_page_size) {
+    C_WRAPPER(
+        GenomicSQLiteURI(string(dbfile), unsafe_load != 0, threads, zstd_level, outer_page_size));
 }
 
-string GenomicSQLiteTuning(sqlite3_int64 page_cache_size, int threads, bool unsafe_load,
-                           const char *schema) {
+string GenomicSQLiteTuning(const string &schema, bool unsafe_load, int page_cache_size, int threads,
+                           int inner_page_size) {
     string schema_prefix;
-    if (schema) {
-        schema_prefix = schema;
-        schema_prefix += ".";
+    if (!schema.empty()) {
+        schema_prefix = schema + ".";
     }
     map<string, string> pragmas;
     pragmas[schema_prefix + "cache_size"] =
@@ -172,21 +175,24 @@ string GenomicSQLiteTuning(sqlite3_int64 page_cache_size, int threads, bool unsa
         pragmas[schema_prefix + "journal_mode"] = "MEMORY";
     }
     ostringstream out;
-    out << "PRAGMA " << schema_prefix << "page_size=16384"; // must go first
+    // must go first:
+    out << "PRAGMA " << schema_prefix << "page_size=" << to_string(inner_page_size);
     for (const auto &p : pragmas) {
         out << ";\nPRAGMA " << p.first << "=" << p.second;
     }
     return out.str();
 }
 
-extern "C" char *GenomicSQLiteTuning(sqlite3_int64 page_cache_size, int threads, int unsafe_load,
-                                     const char *schema) {
-    C_WRAPPER(GenomicSQLiteTuning(page_cache_size, threads, unsafe_load != 0, schema));
+extern "C" char *GenomicSQLiteTuning(const char *schema, int unsafe_load, int page_cache_size,
+                                     int threads, int inner_page_size) {
+    C_WRAPPER(GenomicSQLiteTuning(schema ? string(schema) : string(), unsafe_load != 0,
+                                  page_cache_size, threads, inner_page_size));
 }
 
 bool _ext_loaded = false;
-int GenomicSQLiteOpen(const string &dbfile, sqlite3 **ppDb, int flags, int zstd_level,
-                      sqlite3_int64 page_cache_size, int threads, bool unsafe_load) noexcept {
+int GenomicSQLiteOpen(const string &dbfile, sqlite3 **ppDb, int flags, bool unsafe_load,
+                      int page_cache_size, int threads, int zstd_level, int inner_page_size,
+                      int outer_page_size) noexcept {
     // ensure extension is registered
     int ret;
     *ppDb = nullptr;
@@ -212,24 +218,29 @@ int GenomicSQLiteOpen(const string &dbfile, sqlite3 **ppDb, int flags, int zstd_
     }
 
     // open as requested
-    ret = sqlite3_open_v2(GenomicSQLiteURI(dbfile, zstd_level, threads, unsafe_load).c_str(), ppDb,
-                          SQLITE_OPEN_URI | flags, nullptr);
+    ret = sqlite3_open_v2(
+        GenomicSQLiteURI(dbfile, unsafe_load, threads, zstd_level, outer_page_size).c_str(), ppDb,
+        SQLITE_OPEN_URI | flags, nullptr);
     if (ret != SQLITE_OK) {
         return ret;
     }
-    return sqlite3_exec(*ppDb, GenomicSQLiteTuning(page_cache_size, threads, unsafe_load).c_str(),
-                        nullptr, nullptr, nullptr);
+    return sqlite3_exec(
+        *ppDb,
+        GenomicSQLiteTuning(string(), unsafe_load, page_cache_size, threads, inner_page_size)
+            .c_str(),
+        nullptr, nullptr, nullptr);
 }
 
-extern "C" int GenomicSQLiteOpen(const char *filename, sqlite3 **ppDb, int flags, int zstd_level,
-                                 sqlite3_int64 page_cache_size, int threads, int unsafe_load) {
-    return GenomicSQLiteOpen(string(filename), ppDb, flags, zstd_level, page_cache_size, threads,
-                             unsafe_load != 0);
+extern "C" int GenomicSQLiteOpen(const char *filename, sqlite3 **ppDb, int flags, int unsafe_load,
+                                 int page_cache_size, int threads, int zstd_level,
+                                 int inner_page_size, int outer_page_size) {
+    return GenomicSQLiteOpen(string(filename), ppDb, flags, unsafe_load != 0, page_cache_size,
+                             threads, zstd_level, inner_page_size, outer_page_size);
 }
 
-unique_ptr<SQLite::Database> GenomicSQLiteOpen(const string &dbfile, int flags, int zstd_level,
-                                               sqlite3_int64 page_cache_size, int threads,
-                                               bool unsafe_load) {
+unique_ptr<SQLite::Database> GenomicSQLiteOpen(const string &dbfile, int flags, bool unsafe_load,
+                                               int page_cache_size, int threads, int zstd_level,
+                                               int inner_page_size, int outer_page_size) {
     unique_ptr<SQLite::Database> db;
     if (!_ext_loaded) {
         db.reset(new SQLite::Database(":memory:", SQLite::OPEN_READWRITE | SQLite::OPEN_CREATE));
@@ -245,9 +256,10 @@ unique_ptr<SQLite::Database> GenomicSQLiteOpen(const string &dbfile, int flags, 
         }
         _ext_loaded = true;
     }
-    db.reset(new SQLite::Database(GenomicSQLiteURI(dbfile, zstd_level, threads, unsafe_load),
-                                  SQLITE_OPEN_URI | flags));
-    db->exec(GenomicSQLiteTuning(page_cache_size, threads, unsafe_load));
+    db.reset(new SQLite::Database(
+        GenomicSQLiteURI(dbfile, unsafe_load, threads, zstd_level, outer_page_size),
+        SQLITE_OPEN_URI | flags));
+    db->exec(GenomicSQLiteTuning(string(), unsafe_load, page_cache_size, threads, inner_page_size));
     return db;
 }
 

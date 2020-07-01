@@ -134,8 +134,8 @@ int main(int argc, char *argv[]) {
         sqlite3_config(SQLITE_CONFIG_MEMSTATUS, 0);
         sqlite3_config(SQLITE_CONFIG_LOOKASIDE, 2048, 128);
         auto db = GenomicSQLiteOpen(
-            outfilename, SQLITE_OPEN_CREATE | SQLITE_OPEN_READWRITE | SQLITE_OPEN_NOMUTEX, level, 0,
-            -1, true);
+            outfilename, SQLITE_OPEN_CREATE | SQLITE_OPEN_READWRITE | SQLITE_OPEN_NOMUTEX, true, 0,
+            -1, level);
         SQLite::Transaction txn(*db);
 
         db->exec("CREATE TABLE " + table + "(CHROM TEXT, POS INTEGER, rlen INTEGER, line TEXT)");

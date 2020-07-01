@@ -7,7 +7,7 @@ repos:
     files: \.(c|cc|cxx|cpp|h|hpp|hxx)$
     verbose: true
     entry: clang-format
-    args: [-i,'-style={IndentWidth: 4, ColumnLimit: 100, BreakStringLiterals: false}']
+    args: [-i,'-style={IndentWidth: 4, ColumnLimit: 100, BreakStringLiterals: false, ReflowComments: false}']
   - id: cppcheck
     name: cppcheck
     language: system

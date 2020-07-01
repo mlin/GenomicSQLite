@@ -9,17 +9,19 @@ extern "C" {
 /*
  * Wrap sqlite3_open() and initialize the "connection" for use with GenomicSQLite.
  */
-int GenomicSQLiteOpen(const char *dbfile, sqlite3 **ppDb, int flags, int zstd_level,
-                      sqlite3_int64 page_cache_size, int threads, int unsafe_load);
+int GenomicSQLiteOpen(const char *dbfile, sqlite3 **ppDb, int flags, int unsafe_load,
+                      int page_cache_size, int threads, int zstd_level, int inner_page_size,
+                      int outer_page_size);
 
 /*
  * Subroutines of GenomicSQLiteOpen() exposed to support equivalent idiomatic bindings for other
  * programming languages.
  */
 const char *GenomicSQLiteVersionCheck();
-char *GenomicSQLiteURI(const char *dbfile, int zstd_level, int threads, int unsafe_load);
-char *GenomicSQLiteTuning(sqlite3_int64 page_cache_size, int threads, int unsafe_load,
-                          const char *attached_schema);
+char *GenomicSQLiteURI(const char *dbfile, int unsafe_load, int threads, int zstd_level,
+                       int outer_page_size);
+char *GenomicSQLiteTuning(const char *attached_schema, int unsafe_load, int page_cache_size,
+                          int threads, int inner_page_size);
 
 /*
  * Genomic range indexing routines
@@ -48,25 +50,27 @@ char *PutReferenceSequence(const char *name, const char *assembly, const char *r
 
 #include <string>
 
-int GenomicSQLiteOpen(const std::string &dbfile, sqlite3 **ppDb, int flags, int zstd_level = 6,
-                      sqlite3_int64 page_cache_size = 0, int threads = -1,
-                      bool unsafe_load = false) noexcept;
+int GenomicSQLiteOpen(const std::string &dbfile, sqlite3 **ppDb, int flags,
+                      bool unsafe_load = false, int page_cache_size = -1048576, int threads = -1,
+                      int zstd_level = 6, int inner_page_size = 16384,
+                      int outer_page_size = 32768) noexcept;
 #ifdef SQLITECPP_VERSION
 /*
  * For use with SQLiteCpp -- https://github.com/SRombauts/SQLiteCpp
  * (include SQLiteCpp/SQLiteCpp.h first)
  */
 #include <memory>
-std::unique_ptr<SQLite::Database> GenomicSQLiteOpen(const std::string &dbfile, int flags,
-                                                    int zstd_level = 6,
-                                                    sqlite3_int64 page_cache_size = -1,
-                                                    int threads = -1, bool unsafe_load = false);
+std::unique_ptr<SQLite::Database>
+GenomicSQLiteOpen(const std::string &dbfile, int flags, bool unsafe_load = false,
+                  int page_cache_size = -1048576, int threads = -1, int zstd_level = 6,
+                  int inner_page_size = 16384, int outer_page_size = 32768);
 #endif
 
-std::string GenomicSQLiteURI(const std::string &dbfile, int zstd_level = 6, int threads = -1,
-                             bool unsafe_load = false);
-std::string GenomicSQLiteTuning(sqlite3_int64 page_cache_size = 0, int threads = 1,
-                                bool unsafe_load = false, const char *attached_schema = nullptr);
+std::string GenomicSQLiteURI(const std::string &dbfile, bool unsafe_load = false, int threads = -1,
+                             int outer_page_size = 32768, int zstd_level = 6);
+std::string GenomicSQLiteTuning(const std::string &attached_schema = "", bool unsafe_load = false,
+                                int page_cache_size = 0, int threads = -1,
+                                int inner_page_size = 16384);
 
 std::string CreateGenomicRangeIndex(const std::string &table, const char *assembly, int max_level,
                                     const char *rid_col, const char *beg_expr,
