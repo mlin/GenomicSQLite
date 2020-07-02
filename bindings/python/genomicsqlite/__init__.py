@@ -240,10 +240,12 @@ def _sqlite3_cptr_selftest(con):
 
 def _init():
     # load C extension
+    dll = find_library("genomicsqlite")
+    assert dll, "couldn't locate shared-library file for genomicsqlite"
     con = sqlite3.connect(":memory:")
     _sqlite3_cptr_selftest(con)
     con.enable_load_extension(True)
-    con.load_extension(find_library("genomicsqlite"))
+    con.load_extension(dll)
     # check SQLite version
     check_version = _link("GenomicSQLiteVersionCheck")
     check_version.restype = c_char_p
