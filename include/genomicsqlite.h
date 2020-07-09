@@ -26,21 +26,20 @@ char *GenomicSQLiteTuning(const char *attached_schema, int unsafe_load, int page
 /*
  * Genomic range indexing routines
  */
-char *CreateGenomicRangeIndex(const char *table, const char *assembly, int max_level,
-                              const char *rid_col, const char *beg_expr, const char *end_expr);
+char *CreateGenomicRangeIndex(const char *table, const char *rid, const char *beg, const char *end,
+                              int max_depth);
 
-char *OverlappingGenomicRanges(sqlite3 *dbconn, const char *indexed_table, const char *qrid,
+char *OverlappingGenomicRanges(const char *indexed_table, sqlite3 *dbconn, const char *qrid,
                                const char *qbeg, const char *qend);
-char *OnOverlappingGenomicRanges(sqlite3 *dbconn, const char *indexed_right_table,
-                                 const char *left_rid, const char *left_beg, const char *left_end);
+char *OnOverlappingGenomicRanges(const char *left_rid, const char *left_beg, const char *left_end,
+                                 const char *indexed_right_table, sqlite3 *dbconn);
 
 /*
  * Optional storage of refrence sequence metadata
  */
 char *PutReferenceAssembly(const char *assembly, const char *attached_schema);
-char *PutReferenceSequence(const char *name, const char *assembly, const char *refget_id,
-                           sqlite3_int64 length, int first, sqlite3_int64 rid,
-                           const char *attached_schema);
+char *PutReferenceSequence(const char *name, sqlite3_int64 length, const char *assembly,
+                           const char *refget_id, sqlite3_int64 rid, const char *attached_schema);
 
 /*
  * C++ bindings: are liable to throw exceptions except where marked
@@ -48,6 +47,7 @@ char *PutReferenceSequence(const char *name, const char *assembly, const char *r
 #ifdef __cplusplus
 }
 
+#include <map>
 #include <string>
 
 int GenomicSQLiteOpen(const std::string &dbfile, sqlite3 **ppDb, int flags,
@@ -72,19 +72,33 @@ std::string GenomicSQLiteTuning(const std::string &attached_schema = "", bool un
                                 int page_cache_size = 0, int threads = -1,
                                 int inner_page_size = 16384);
 
-std::string CreateGenomicRangeIndex(const std::string &table, const char *assembly, int max_level,
-                                    const char *rid_col, const char *beg_expr,
-                                    const char *end_expr);
+std::string CreateGenomicRangeIndex(const std::string &table, const std::string &rid,
+                                    const std::string &beg, const std::string &end,
+                                    int max_depth = -1);
 
-std::string OverlappingGenomicRanges(sqlite3 *dbconn, const std::string &indexed_table,
-                                     const char *qrid, const char *qbeg, const char *qend);
-std::string OnOverlappingGenomicRanges(sqlite3 *dbconn, const std::string &indexed_right_table,
-                                       const char *left_rid, const char *left_beg,
-                                       const char *left_end);
+std::string OverlappingGenomicRanges(const std::string &indexed_table, sqlite3 *dbconn = nullptr,
+                                     const std::string &qrid = "?1", const std::string &qbeg = "?2",
+                                     const std::string &qend = "?3");
+std::string OnOverlappingGenomicRanges(const std::string &left_rid, const std::string &left_beg,
+                                       const std::string &left_end,
+                                       const std::string &indexed_right_table,
+                                       sqlite3 *dbconn = nullptr);
 
 std::string PutReferenceAssembly(const std::string &assembly,
-                                 const char *attached_schema = nullptr);
-std::string PutReferenceSequence(const std::string &name, const std::string &assembly,
-                                 const char *refget_id, sqlite3_int64 length, bool first = true,
-                                 sqlite3_int64 rid = -1, const char *attached_schema = nullptr);
+                                 const std::string &attached_schema = "");
+std::string PutReferenceSequence(const std::string &name, sqlite3_int64 length,
+                                 const std::string &assembly = "",
+                                 const std::string &refget_id = "", sqlite3_int64 rid = -1,
+                                 const std::string &attached_schema = "");
+
+struct gri_refseq_t {
+    unsigned long long rid, length;
+    std::string name, assembly, refget_id;
+};
+std::map<unsigned long long, gri_refseq_t>
+GetReferenceSequencesByRid(sqlite3 *dbconn, const std::string &assembly = "",
+                           const std::string &attached_schema = "");
+std::map<std::string, gri_refseq_t>
+GetReferenceSequencesByName(sqlite3 *dbconn, const std::string &assembly = "",
+                            const std::string &attached_schema = "");
 #endif

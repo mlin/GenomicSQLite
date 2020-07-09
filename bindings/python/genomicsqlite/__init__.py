@@ -1,5 +1,5 @@
 import sqlite3
-from typing import Optional
+from typing import Optional, NamedTuple, Dict
 from ctypes import cdll, cast, c_int, c_char_p, c_void_p, byref, memmove
 from ctypes.util import find_library
 
@@ -13,7 +13,7 @@ def connect(
     zstd_level: int = 6,
     inner_page_size=16384,
     outer_page_size=32768,
-    **kwargs
+    **kwargs,
 ) -> sqlite3.Connection:
     assert isinstance(dbfile, str)
     assert isinstance(zstd_level, int)
@@ -69,32 +69,18 @@ def _tuning(unsafe_load, page_cache_size, threads, inner_page_size, schema=None)
 
 
 def create_genomic_range_index(
-    table: str,
-    assembly: Optional[str] = None,
-    max_level: int = -1,
-    rid_col: Optional[str] = None,
-    beg_col: Optional[str] = None,
-    end_col: Optional[str] = None,
+    table: str, rid: str, beg: str, end: str, max_depth: int = -1,
 ) -> str:
-    assert isinstance(table, str)
-    table = table.encode()
-    assert isinstance(max_level, int)
-    assembly = _encodestr(assembly)
-    rid_col = _encodestr(rid_col)
-    beg_col = _encodestr(beg_col)
-    end_col = _encodestr(end_col)
+    table = _encodestr(table, True)
+    rid = _encodestr(rid, True)
+    beg = _encodestr(beg, True)
+    end = _encodestr(end, True)
+    assert isinstance(max_depth, int)
 
     func = _link("CreateGenomicRangeIndex")
     func.restype = c_void_p  # char* that we need to free
 
-    buffer = func(
-        c_char_p(table),
-        c_char_p(assembly),
-        c_int(max_level),
-        c_char_p(rid_col),
-        c_char_p(beg_col),
-        c_char_p(end_col),
-    )
+    buffer = func(c_char_p(table), c_char_p(rid), c_char_p(beg), c_char_p(end), c_int(max_depth))
     try:
         return _decodestr(buffer)
     finally:
@@ -102,25 +88,23 @@ def create_genomic_range_index(
 
 
 def overlapping_genomic_ranges(
-    con: sqlite3.Connection,
     indexed_table: str,
+    con: Optional[sqlite3.Connection] = None,
     qrid: Optional[str] = None,
     qbeg: Optional[str] = None,
     qend: Optional[str] = None,
-    _join: bool = False,
 ) -> str:
-    assert isinstance(con, sqlite3.Connection)
-    assert indexed_table and isinstance(indexed_table, str)
+    indexed_table = _encodestr(indexed_table, True)
     qrid = _encodestr(qrid)
     qbeg = _encodestr(qbeg)
     qend = _encodestr(qend)
 
-    func = _link(("On" if _join else "") + "OverlappingGenomicRanges")
+    func = _link("OverlappingGenomicRanges")
     func.restype = c_void_p  # char* that we need to free
 
     buffer = func(
+        c_char_p(indexed_table),
         c_int(_sqlite3_cptr(con)),
-        c_char_p(indexed_table.encode()),
         c_char_p(qrid),
         c_char_p(qbeg),
         c_char_p(qend),
@@ -132,16 +116,36 @@ def overlapping_genomic_ranges(
 
 
 def on_overlapping_genomic_ranges(
-    con: sqlite3.Connection, indexed_right_table: str, left_rid: str, left_beg: str, left_end: str,
+    left_rid: str,
+    left_beg: str,
+    left_end: str,
+    indexed_right_table: str,
+    con: Optional[sqlite3.Connection] = None,
 ) -> str:
-    return overlapping_genomic_ranges(
-        con, indexed_right_table, left_rid, left_beg, left_end, _join=True
+    left_rid = _encodestr(left_rid)
+    left_beg = _encodestr(left_beg)
+    left_end = _encodestr(left_end)
+    indexed_right_table = _encodestr(indexed_right_table)
+
+    func = _link("OnOverlappingGenomicRanges")
+    func.restype = c_void_p  # char* that we need to free
+
+    buffer = func(
+        c_char_p(left_rid),
+        c_char_p(left_beg),
+        c_char_p(left_end),
+        c_char_p(indexed_right_table),
+        c_int(_sqlite3_cptr(con)),
     )
+    try:
+        return _decodestr(buffer)
+    finally:
+        _sqlite3_free(buffer)
 
 
 def put_reference_assembly(assembly: str, schema: Optional[str] = None) -> str:
-    assert isinstance(assembly, str)
-    assembly = assembly.encode()
+    assembly = _encodestr(assembly, True)
+    schema = _encodestr(schema)
 
     func = _link("PutReferenceAssembly")
     func.restype = c_void_p
@@ -158,18 +162,14 @@ def put_reference_assembly(assembly: str, schema: Optional[str] = None) -> str:
 
 def put_reference_sequence(
     name: str,
-    assembly: str,
     length: int,
+    assembly: Optional[str] = None,
     refget_id: Optional[str] = None,
-    first: bool = True,
     rid: int = -1,
     schema: Optional[str] = None,
 ):
-    assert isinstance(name, str)
-    name = name.encode()
-    assert isinstance(assembly, str)
-    assembly = assembly.encode()
-    assert length >= 0
+    name = _encodestr(name, True)
+    assembly = _encodestr(assembly)
     refget_id = _encodestr(refget_id)
 
     func = _link("PutReferenceSequence")
@@ -177,10 +177,9 @@ def put_reference_sequence(
 
     buffer = func(
         c_char_p(name),
+        c_int(length),
         c_char_p(assembly),
         c_char_p(refget_id),
-        c_int(length),
-        c_int(1 if first else 0),
         c_int(rid),
         c_char_p(schema),
     )
@@ -190,14 +189,56 @@ def put_reference_sequence(
         _sqlite3_free(buffer)
 
 
+class ReferenceSequence(NamedTuple):
+    rid: int
+    name: str
+    length: int
+    assembly: Optional[str]
+    refget_id: Optional[str]
+
+
+def get_reference_sequences_by_rid(
+    con: sqlite3.Connection, assembly: Optional[str] = None, schema: Optional[str] = None
+) -> Dict[int, ReferenceSequence]:
+    table = "__gri_refseq"
+    if schema:
+        table = f"{schema}.{table}"
+    sql = "SELECT rid, name, length, assembly, refget_id FROM " + table
+    params = []
+    if assembly:
+        sql += " WHERE assembly = ?"
+        params = (assembly,)
+    ans = {}
+    for row in con.execute(sql, params):
+        assert (
+            isinstance(row[0], int) and row[0] not in ans
+        ), "genomicsqlite: invalid or duplicate reference sequence rid"
+        ans[row[0]] = ReferenceSequence(
+            rid=row[0], name=row[1], length=row[2], assembly=row[3], refget_id=row[4]
+        )
+    return ans
+
+
+def get_reference_sequences_by_name(
+    con: sqlite3.Connection, assembly: Optional[str] = None, schema: Optional[str] = None
+) -> Dict[str, ReferenceSequence]:
+    ans = {}
+    for _, item in get_reference_sequences_by_rid(con, assembly, schema).items():
+        assert item.name not in ans, "genomicsqlite: non-unique reference sequence names"
+        ans[item.name] = item
+    return ans
+
+
 def _sqlite3_free(buf):
     _link("sqlite3_free", dll="sqlite3")(buf)
 
 
-def _encodestr(str_or_none):
+def _encodestr(str_or_none, required=False):
     if str_or_none is not None:
         assert isinstance(str_or_none, str)
         str_or_none = str_or_none.encode()
+    else:
+        assert not required
     return str_or_none
 
 
@@ -221,14 +262,16 @@ def _link(func_name, dll="genomicsqlite"):
     return _LINK_TABLE[func_name]
 
 
-def _sqlite3_cptr(con: sqlite3.Connection) -> int:
-    assert isinstance(con, sqlite3.Connection)
-    cptr = c_int(-1)
-    # read the sqlite3* from ((char*)&con)+sizeof(PyObject_HEAD)
-    # https://github.com/python/cpython/blob/ba1c2c85b39fbcb31584c20f8a63fb87f9cb9c02/Modules/_sqlite/connection.h#L36-L39
-    # this is horrible...but succinct!
-    memmove(byref(cptr), id(con) + 16, 8)
-    return cptr.value
+def _sqlite3_cptr(con: Optional[sqlite3.Connection]) -> int:
+    if con:
+        assert isinstance(con, sqlite3.Connection)
+        cptr = c_int(-1)
+        # read the sqlite3* from ((char*)&con)+sizeof(PyObject_HEAD)
+        # https://github.com/python/cpython/blob/ba1c2c85b39fbcb31584c20f8a63fb87f9cb9c02/Modules/_sqlite/connection.h#L36-L39
+        # this is horrible...but succinct!
+        memmove(byref(cptr), id(con) + 16, 8)
+        return cptr.value
+    return 0
 
 
 def _sqlite3_cptr_selftest(con):

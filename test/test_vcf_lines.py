@@ -25,12 +25,16 @@ def test_gnomad_sites_small(tmp_path):
 
     con = genomicsqlite.connect(dbfile, read_only=True)
     query = "SELECT rowid, line FROM" + genomicsqlite.overlapping_genomic_ranges(
-        con, "gnomad_vcf_lines"
+        "gnomad_vcf_lines", con
     )
     rs671 = ("chr12", 111803912, 111804012)
     print(query)
+    indexed = 0
     for expl in con.execute("EXPLAIN QUERY PLAN " + query, rs671):
         print(expl[3])
+        if "USING INDEX gnomad_vcf_lines__gri" in expl[3]:
+            indexed += 1
+    assert indexed == 3
     results = list(con.execute(query, rs671))
     results_rowids = set(vt[0] for vt in results)
     assert next(vt for vt in results if vt[1] and "rs671" in vt[1])

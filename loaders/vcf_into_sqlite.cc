@@ -67,7 +67,7 @@ string schemaDDL(const string &table_prefix, vector<map<string, string>> &info_h
             out << ",Description=" << desc->second;
         }
     }
-    out << "\n, FOREIGN KEY (rid) REFERENCES _gri_refseq_meta(rid))";
+    out << "\n, FOREIGN KEY (rid) REFERENCES __gri_refseq(rid))";
 
     if (!format_hrecs.empty()) {
         // TODO: include metadata from SAMPLE header lines
@@ -603,8 +603,6 @@ void help() {
         << "vcf_into_sqlite [options] in.vcf|- out.db" << '\n'
         << "Options: " << '\n'
         << "  --table-prefix PREFIX  prefix to the name of each table created" << '\n'
-        << "  --assembly NAME        set reference genome assembly name (e.g. GRCh38) if not supplied by VCF header contig lines"
-        << '\n'
         << "  --ploidy N             set max ploidy => # GT columns (default 2)" << '\n'
         << "  --no-gri               skip genomic range indexing" << '\n'
         << "  -l,--level LEVEL       database compression level (-7 to 22, default 6)" << '\n'
@@ -614,7 +612,7 @@ void help() {
 }
 
 int main(int argc, char *argv[]) {
-    string table_prefix, assembly, infilename, outfilename;
+    string table_prefix, infilename, outfilename;
     bool gri = true, progress = true;
     int level = 6, ploidy = 2;
 
@@ -624,11 +622,10 @@ int main(int argc, char *argv[]) {
                                            {"ploidy", required_argument, 0, 'p'},
                                            {"table-prefix", required_argument, 0, 't'},
                                            {"no-gri", no_argument, 0, 'G'},
-                                           {"assembly", required_argument, 0, 'a'},
                                            {0, 0, 0, 0}};
 
     int c;
-    while (-1 != (c = getopt_long(argc, argv, "hqGl:t:a:p:", long_options, nullptr))) {
+    while (-1 != (c = getopt_long(argc, argv, "hqGl:t:p:", long_options, nullptr))) {
         switch (c) {
         case 'h':
             help();
@@ -657,9 +654,6 @@ int main(int argc, char *argv[]) {
                 cerr << "vcf_into_sqlite: couldn't parse --level in [-7,22]";
                 return -1;
             }
-            break;
-        case 'a':
-            assembly = optarg;
             break;
         default:
             help();
@@ -715,29 +709,24 @@ int main(int argc, char *argv[]) {
         // import contigs
         // TODO: allow to open existing db with existing, consistent assembly
         int rid = 0;
+        string assembly;
         for (auto &ctg : extract_hrecs(hdr.get(), "contig", {"ID", "length"})) {
             auto p = ctg.find("assembly");
             if (!rid && assembly.empty()) {
                 if (p != ctg.end()) {
                     assembly = p->second;
                 }
-                if (assembly.empty()) {
-                    assembly = "default";
-                    cerr
-                        << "warning: VCF header contigs don't supply assembly name and --assembly unspecified; using '"
-                        << assembly << "'" << endl;
-                }
             }
             if (p != ctg.end() && p->second != assembly) {
                 throw runtime_error(
-                    "unexpected: VCF header contig lines inconsistent with --assembly or amongst themselves");
+                    "unexpected: VCF header contig lines reference multiple assemblies");
             }
             errno = 0;
             sqlite3_int64 length = strtoull(ctg["length"].c_str(), nullptr, 10);
             if (length <= 0 || errno) {
                 throw runtime_error("invalid contig length in VCF header");
             }
-            string sql = PutReferenceSequence(ctg["ID"], assembly, nullptr, length, rid == 0, rid);
+            string sql = PutReferenceSequence(ctg["ID"], length, assembly, "", rid);
             if (rid == 0) {
                 progress &&cerr << sql << endl;
             } else if (rid == 1) {
@@ -789,10 +778,8 @@ int main(int argc, char *argv[]) {
 
         // create GRI
         progress &&cerr << "genomic range indexing..." << endl;
-        string gri_sql = CreateGenomicRangeIndex(
-            table_prefix + "variants", assembly.c_str(), -1,
-            (table_prefix + "variants.rid").c_str(), (table_prefix + "variants.pos").c_str(),
-            (table_prefix + "variants.pos+" + table_prefix + "variants.rlen").c_str());
+        string gri_sql =
+            CreateGenomicRangeIndex(table_prefix + "variants", "rid", "pos", "pos+rlen");
         progress &&cerr << gri_sql << endl;
         db->exec(gri_sql);
 

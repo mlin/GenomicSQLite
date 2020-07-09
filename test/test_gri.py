@@ -54,11 +54,11 @@ def test_genomic_range_bin():
         (7, 4095 + BIN_OFFSETS[7]),
         (8, 65536 + BIN_OFFSETS[8]),
     ]
-    for (max_level, gri_bin) in examples:
+    for (max_depth, gri_bin) in examples:
         assert (
-            next(con.execute("SELECT genomic_range_bin(?,?,?)", (1048576, 1048577, max_level)))[0]
+            next(con.execute("SELECT genomic_range_bin(?,?,?)", (1048576, 1048577, max_depth)))[0]
             == gri_bin
-        ), str(max_level)
+        ), str(max_depth)
 
 
 def test_indexing():
@@ -66,17 +66,17 @@ def test_indexing():
     _fill_exons(con)
     con.commit()
 
-    query = genomicsqlite.overlapping_genomic_ranges(con, "exons")
-    query = "SELECT id FROM" + query + "ORDER BY rid, beg"
+    query = genomicsqlite.overlapping_genomic_ranges("exons", con)
+    query = "SELECT id FROM" + query + "ORDER BY _gri_rid, _gri_beg"
     print("\n" + query)
     range_queries = 0
     for expl in con.execute("EXPLAIN QUERY PLAN " + query, ("chr17", 43044294, 43048294)):
         print(expl[3])
         if ("SEARCH TABLE exons" in expl[3]) and (
-            "USING INDEX exons_gri ((rid,_gri_bin)>(" in expl[3]
+            "USING INDEX exons__gri ((_gri_rid,_gri_bin)>(" in expl[3]
         ):
             range_queries += 1
-    assert range_queries == 8
+    assert range_queries == 3
     control_query = "SELECT id FROM exons NOT INDEXED WHERE rid = ? AND NOT (end < ? OR beg > ?) ORDER BY rid, beg"
     random.seed(0xBADF00D)
     total_results = 0
@@ -90,7 +90,7 @@ def test_indexing():
     assert total_results == 189935
 
     with pytest.raises(RuntimeError):
-        genomicsqlite.overlapping_genomic_ranges(con, "nonexistent_table")
+        genomicsqlite.overlapping_genomic_ranges("nonexistent_table", con)
 
 
 def test_refseq():
@@ -102,32 +102,36 @@ def test_refseq():
 
     con = sqlite3.connect(":memory:")
     con.executescript(create_assembly)
-    _fill_exons(con, assembly="GRCh38_no_alt_analysis_set", max_level=7)
+    _fill_exons(con, max_depth=7)
     con.commit()
 
-    query = genomicsqlite.overlapping_genomic_ranges(con, "exons")
+    query = genomicsqlite.overlapping_genomic_ranges("exons", con)
     query = "SELECT id FROM" + query
     print("\n" + query)
-    assert len([line for line in query.split("\n") if "BETWEEN" in line]) == 5
+    assert len([line for line in query.split("\n") if "BETWEEN" in line]) == 3
 
 
 def test_join():
     con = sqlite3.connect(":memory:")
     con.executescript(genomicsqlite.put_reference_assembly("GRCh38_no_alt_analysis_set"))
     _fill_exons(con, table="exons")
-    _fill_exons(con, assembly="GRCh38_no_alt_analysis_set", max_level=7, table="exons2")
+    _fill_exons(con, max_depth=7, table="exons2")
     con.commit()
 
     query = (
         "SELECT exons.id, exons2.id FROM exons LEFT JOIN"
         + genomicsqlite.on_overlapping_genomic_ranges(
-            con, "exons2", left_rid="exons.rid", left_beg="exons.beg", left_end="exons.end"
+            "exons.rid", "exons.beg", "exons.end", "exons2", con
         )
         + " AND exons.id != exons2.id ORDER BY exons.id, exons2.id"
     )
     print(query)
+    indexed = 0
     for expl in con.execute("EXPLAIN QUERY PLAN " + query):
         print(expl[3])
+        if "USING INDEX exons2__gri" in expl[3]:
+            indexed += 1
+    assert indexed == 3
     results = list(con.execute(query))
     assert len(results) == 5191
     assert len([result for result in results if result[1] is None]) == 5
@@ -140,7 +144,7 @@ def test_connect(tmp_path):
     dbfile = str(tmp_path / "test.gsql")
     con = genomicsqlite.connect(dbfile, unsafe_load=True)
     con.executescript(genomicsqlite.put_reference_assembly("GRCh38_no_alt_analysis_set"))
-    _fill_exons(con, assembly="GRCh38_no_alt_analysis_set")
+    _fill_exons(con)
     con.commit()
     del con
 
@@ -148,15 +152,26 @@ def test_connect(tmp_path):
     query = (
         "WITH exons2 AS (SELECT * from exons) SELECT exons.id, exons2.id FROM exons2 LEFT JOIN"
         + genomicsqlite.on_overlapping_genomic_ranges(
-            con, "exons", left_rid="exons2.rid", left_beg="exons2.beg", left_end="exons2.end"
+            "exons2.rid", "exons2.beg", "exons2.end", "exons", con
         )
         + " AND exons.id != exons2.id ORDER BY exons.id, exons2.id"
     )
     results = list(con.execute(query))
     assert len(results) == 5191
 
+    refseq_by_rid = genomicsqlite.get_reference_sequences_by_rid(con)
+    refseq_by_name = genomicsqlite.get_reference_sequences_by_name(con)
+    for refseq in refseq_by_rid.values():
+        assert refseq_by_rid[refseq.rid] == refseq
+        assert refseq_by_name[refseq.name] == refseq
+        if refseq.name == "chr17":
+            assert refseq.length == 83257441
+            assert refseq.assembly == "GRCh38_no_alt_analysis_set"
+            assert refseq.refget_id == "f9a0fb01553adb183568e3eb9d8626db"
+    assert len(refseq_by_rid) == 195
 
-def _fill_exons(con, assembly=None, max_level=-1, table="exons"):
+
+def _fill_exons(con, max_depth=-1, table="exons"):
     con.execute(
         f"CREATE TABLE {table}(rid TEXT NOT NULL, beg INTEGER NOT NULL, end INTEGER NOT NULL, id TEXT NOT NULL)"
     )
@@ -167,7 +182,7 @@ def _fill_exons(con, assembly=None, max_level=-1, table="exons"):
             (line[0], int(line[1]) - 1, int(line[2]), line[3]),
         )
     con.executescript(
-        genomicsqlite.create_genomic_range_index(table, assembly=assembly, max_level=max_level)
+        genomicsqlite.create_genomic_range_index(table, "rid", "beg", "end", max_depth=max_depth)
     )
 
 

@@ -18,7 +18,7 @@ using namespace std;
 #endif
 
 /**************************************************************************************************
- * genomic_range_bin() SQL function to calculate bin number from beg+end (optional: max_level)
+ * genomic_range_bin() SQL function to calculate bin number from beg,end (optional: max_depth)
  **************************************************************************************************/
 
 #define GRI_LEVELS (9)
@@ -54,12 +54,12 @@ static void genomic_range_bin(sqlite3_context *context, int argc, sqlite3_value 
         return;
     }
     sqlite3_int64 beg = sqlite3_value_int64(argv[0]), end = sqlite3_value_int64(argv[1]),
-                  max_level = argc >= 3 ? sqlite3_value_int64(argv[2]) : GRI_LEVELS - 1;
-    if (beg < 0 || end < beg || end > GRI_MAX_POS || max_level < 0 || max_level >= GRI_LEVELS) {
+                  max_depth = argc >= 3 ? sqlite3_value_int64(argv[2]) : GRI_LEVELS - 1;
+    if (beg < 0 || end < beg || end > GRI_MAX_POS || max_depth < 0 || max_depth >= GRI_LEVELS) {
         sqlite3_result_error(context, "genomic_range_bin() domain error", -1);
         return;
     }
-    int lv = max_level;
+    int lv = max_depth;
     sqlite3_int64 divisor = 1LL << (4 * (GRI_LEVELS - lv));
     for (; ((beg - GRI_POS_OFFSETS[lv]) / divisor) != ((end - GRI_POS_OFFSETS[lv]) / divisor);
          --lv, divisor *= 16)
@@ -185,8 +185,8 @@ string GenomicSQLiteTuning(const string &schema, bool unsafe_load, int page_cach
 
 extern "C" char *GenomicSQLiteTuning(const char *schema, int unsafe_load, int page_cache_size,
                                      int threads, int inner_page_size) {
-    C_WRAPPER(GenomicSQLiteTuning(schema ? string(schema) : string(), unsafe_load != 0,
-                                  page_cache_size, threads, inner_page_size));
+    C_WRAPPER(GenomicSQLiteTuning(string(schema ? schema : ""), unsafe_load != 0, page_cache_size,
+                                  threads, inner_page_size));
 }
 
 bool _ext_loaded = false;
@@ -272,18 +272,17 @@ static string sqlquote(const std::string &v) {
     return "'" + regex_replace(v, std::regex("'", regex::ECMAScript), "''") + "'";
 }
 
-static string gri_refseq_ddl(const char *schema) {
+static string gri_refseq_ddl(const string &schema) {
     string schema_prefix;
-    if (schema && schema[0]) {
-        schema_prefix = schema;
-        schema_prefix += ".";
+    if (!schema.empty()) {
+        schema_prefix = schema + ".";
     }
     ostringstream out;
-    out << "CREATE TABLE IF NOT EXISTS " << schema_prefix << "_gri_refseq_meta"
+    out << "CREATE TABLE IF NOT EXISTS " << schema_prefix << "__gri_refseq"
         << "(rid INTEGER NOT NULL PRIMARY KEY, name TEXT NOT NULL, assembly TEXT,"
-        << " refget_id TEXT, length INTEGER NOT NULL, UNIQUE(assembly,name))"
-        << ";\nCREATE INDEX IF NOT EXISTS " << schema_prefix << "_gri_refseq_meta_name ON "
-        << schema_prefix << "_gri_refseq_meta(name)";
+        << " refget_id TEXT UNIQUE, length INTEGER NOT NULL, UNIQUE(assembly,name))"
+        << ";\nCREATE INDEX IF NOT EXISTS " << schema_prefix << "__gri_refseq_name ON "
+        << schema_prefix << "__gri_refseq(name)";
     return out.str();
 }
 
@@ -301,111 +300,101 @@ static string remove_table_prefixes(const string &expr, const string &table) {
     return regex_replace(expr, table_prefix, "");
 }
 
-string CreateGenomicRangeIndex(const string &schema_table, const char *assembly, int max_level,
-                               const char *rid_col, const char *beg_expr, const char *end_expr) {
+string CreateGenomicRangeIndex(const string &schema_table, const string &rid, const string &beg,
+                               const string &end, int max_depth) {
     auto split = split_schema_table(schema_table);
     string schema = split.first, table = split.second;
-    string rid(rid_col && rid_col[0] ? rid_col : (table + ".rid")),
-        beg(beg_expr && beg_expr[0] ? beg_expr : (table + ".beg")),
-        end(end_expr && end_expr[0] ? end_expr : (table + ".end"));
-    if (max_level < 0 || max_level > 8) {
-        max_level = 8;
+    if (max_depth < 0 || max_depth > 8) {
+        max_depth = 8;
     }
     size_t p;
-#define COL(s)                                                                                     \
-    ((p = s.find(table + ".")) != string::npos                                                     \
-         ? remove_table_prefixes(s, table)                                                         \
-         : (throw invalid_argument(                                                                \
-               "CreateGenomicRangeIndex: beg/end column names must include table. prefix")))
     ostringstream out;
-    out << gri_refseq_ddl(nullptr) << ";\nALTER TABLE " << schema << table
-        << " ADD COLUMN _gri_bin INTEGER AS (genomic_range_bin((" << COL(beg) << "),(" << COL(end)
-        << ")," << max_level << ")) VIRTUAL"
-        << ";\nCREATE INDEX " << schema << table << "_gri ON " << table << "(" << COL(rid)
-        << ", _gri_bin)"
-        << ";\nCREATE TABLE IF NOT EXISTS " << schema
-        << "_gri_meta(indexed_table TEXT NOT NULL PRIMARY KEY, "
-           "rid_col "
-           "TEXT NOT NULL, beg_expr TEXT NOT NULL, end_expr TEXT NOT NULL, assembly TEXT"
-           ", max_level INTEGER NOT NULL) WITHOUT ROWID"
-        << ";\nINSERT INTO " << schema
-        << "_gri_meta(indexed_table,rid_col,beg_expr,end_expr,assembly,max_level) "
-           "VALUES("
-        << sqlquote(table) << ',';
-    out << sqlquote(rid) << ',' << sqlquote(beg) << ',' << sqlquote(end) << ','
-        << (assembly ? sqlquote(string(assembly)) : "NULL") << ',' << max_level << ");";
+    out << gri_refseq_ddl(schema);
+    out << ";\nALTER TABLE " << schema_table << " ADD COLUMN _gri_rid INTEGER AS (" << rid
+        << ") VIRTUAL";
+    out << ";\nALTER TABLE " << schema_table << " ADD COLUMN _gri_beg INTEGER AS (" << beg
+        << ") VIRTUAL";
+    out << ";\nALTER TABLE " << schema_table << " ADD COLUMN _gri_len INTEGER AS ((" << end << ")-("
+        << beg << ")) VIRTUAL";
+    out << ";\nALTER TABLE " << schema_table
+        << " ADD COLUMN _gri_bin INTEGER AS (genomic_range_bin(_gri_beg,_gri_beg+_gri_len,"
+        << max_depth << ")) VIRTUAL";
+    out << ";\nCREATE INDEX " << schema_table << "__gri ON " << table << "(_gri_rid, _gri_bin)";
+    // TODO: test empirically whether this helps:
+    // << "(_gri_rid, _gri_bin, _gri_beg, _gri_len)";
     return out.str();
 }
 
-extern "C" char *CreateGenomicRangeIndex(const char *table, const char *assembly, int max_level,
-                                         const char *rid_col, const char *beg_expr,
-                                         const char *end_expr) {
-    C_WRAPPER(
-        CreateGenomicRangeIndex(string(table), assembly, max_level, rid_col, beg_expr, end_expr));
+extern "C" char *CreateGenomicRangeIndex(const char *table, const char *rid, const char *beg,
+                                         const char *end, int max_depth) {
+    assert(table && table[0]);
+    assert(rid && rid[0]);
+    assert(beg && beg[0]);
+    assert(end && end[0]);
+    C_WRAPPER(CreateGenomicRangeIndex(string(table), rid, beg, end, max_depth));
 }
 
 struct gri_properties {
-    string rid_col, beg_expr, end_expr;
-    int min_level, max_level;
+    int min_depth = 0, max_depth = GRI_LEVELS - 1;
 };
 
-static gri_properties InspectGRI(sqlite3 *dbconn, const string &schema, const string &table) {
-    // read _gri_meta to detect the indexed columns/expressions
-    string query = "SELECT rid_col,beg_expr,end_expr,assembly,max_level FROM " + schema +
-                   "_gri_meta WHERE "
-                   "indexed_table = " +
-                   sqlquote(table);
+static gri_properties InspectGRI(sqlite3 *dbconn, const string &schema_table) {
+    // find the range of nonempty bin levels [min_depth..max_depth]
+    gri_properties ans;
+    string table = split_schema_table(schema_table).second;
+    // convoluted query ensures it "skip-scans" the index without requiring ANALYZE
+    string query = "SELECT _rowid_ FROM " + schema_table + " INDEXED BY " + table +
+                   "__gri WHERE _gri_rid IN (SELECT DISTINCT _gri_rid FROM " + schema_table +
+                   " INDEXED BY " + table + "__gri) AND _gri_bin >= ? LIMIT 1";
     shared_ptr<sqlite3_stmt> stmt;
     {
         sqlite3_stmt *pStmt = nullptr;
         if (sqlite3_prepare_v3(dbconn, query.c_str(), -1, 0, &pStmt, nullptr) != SQLITE_OK) {
-            throw runtime_error("error inspecting genomic range index schema");
+            throw runtime_error("GenomicSQLite: table has no genomic range index");
         }
         stmt = shared_ptr<sqlite3_stmt>(pStmt, sqlite3_finalize);
     }
-
-    if (sqlite3_step(stmt.get()) != SQLITE_ROW) {
-        throw runtime_error("table has no genomic range index");
+    for (ans.max_depth = GRI_LEVELS - 1; ans.max_depth > 0; --(ans.max_depth)) {
+        if (sqlite3_bind_int64(stmt.get(), 1, GRI_BIN_OFFSETS[ans.max_depth]) != SQLITE_OK) {
+            throw runtime_error("GenomicSQLite: error inspecting genomic range index");
+        }
+        int rc = sqlite3_step(stmt.get());
+        if (rc == SQLITE_ROW && sqlite3_column_type(stmt.get(), 0) == SQLITE_INTEGER) {
+            break;
+        }
+        if ((rc != SQLITE_ROW && rc != SQLITE_DONE) || sqlite3_reset(stmt.get()) != SQLITE_OK) {
+            throw runtime_error("GenomicSQLite: error inspecting genomic range index");
+        }
     }
-    gri_properties ans;
-    ans.rid_col = (const char *)sqlite3_column_text(stmt.get(), 0);
-    ans.beg_expr = (const char *)sqlite3_column_text(stmt.get(), 1);
-    ans.end_expr = (const char *)sqlite3_column_text(stmt.get(), 2);
-    ans.min_level = 0;
-    ans.max_level = sqlite3_column_int64(stmt.get(), 4);
-    assert(ans.min_level >= 0 && ans.min_level <= ans.max_level && ans.max_level < GRI_LEVELS);
 
-    // if assembly is specified, find the max ref sequence length to improve min_level
-    if (sqlite3_column_type(stmt.get(), 3) == SQLITE_TEXT) {
-        string assembly = (const char *)sqlite3_column_text(stmt.get(), 3);
-        query = "SELECT MAX(length) FROM " + schema + "_gri_refseq_meta WHERE assembly = ?";
-        {
-            sqlite3_stmt *pStmt = nullptr;
-            if (sqlite3_prepare_v3(dbconn, query.c_str(), -1, 0, &pStmt, nullptr) != SQLITE_OK) {
-                throw runtime_error("database lacks any reference assembly details");
-            }
-            stmt = shared_ptr<sqlite3_stmt>(pStmt, sqlite3_finalize);
+    stmt.reset();
+    query = "SELECT _rowid_ FROM " + schema_table + " INDEXED BY " + table +
+            "__gri WHERE _gri_rid IN (SELECT DISTINCT _gri_rid FROM " + schema_table +
+            " INDEXED BY " + table + "__gri) AND _gri_bin < ? LIMIT 1";
+    {
+        sqlite3_stmt *pStmt = nullptr;
+        if (sqlite3_prepare_v3(dbconn, query.c_str(), -1, 0, &pStmt, nullptr) != SQLITE_OK) {
+            throw runtime_error("GenomicSQLite: table has no genomic range index");
         }
-
-        if (sqlite3_bind_text(stmt.get(), 1, assembly.c_str(), -1, nullptr) != SQLITE_OK) {
-            throw runtime_error("error querying reference assembly details");
-        }
-
-        if (sqlite3_step(stmt.get()) != SQLITE_ROW ||
-            sqlite3_column_type(stmt.get(), 0) != SQLITE_INTEGER) {
-            throw runtime_error("database lacks valid details for specified reference assembly");
-        }
-        sqlite3_int64 max_refseq_length = sqlite3_column_int64(stmt.get(), 0);
-        if (max_refseq_length > 0) {
-            // set min_level to the highest level with bin size at least max_refseq_length
-            sqlite3_int64 bin_size = GRI_MAX_POS;
-            for (int lv = 0; lv < ans.max_level && bin_size >= max_refseq_length;
-                 lv++, bin_size /= 16) {
-                ans.min_level = lv;
-            }
-        }
-        stmt.reset();
+        stmt = shared_ptr<sqlite3_stmt>(pStmt, sqlite3_finalize);
     }
+    for (ans.min_depth = 0; ans.min_depth < ans.max_depth; ++(ans.min_depth)) {
+        if (sqlite3_bind_int64(stmt.get(), 1,
+                               (ans.min_depth + 1 < GRI_LEVELS) ? GRI_BIN_OFFSETS[ans.min_depth + 1]
+                                                                : GRI_BIN_COUNT) != SQLITE_OK) {
+            throw runtime_error("GenomicSQLite: error inspecting genomic range index");
+        }
+        int rc = sqlite3_step(stmt.get());
+        if (rc == SQLITE_ROW && sqlite3_column_type(stmt.get(), 0) == SQLITE_INTEGER) {
+            break;
+        }
+        if (rc != SQLITE_ROW && rc != SQLITE_DONE && rc != SQLITE_OK ||
+            sqlite3_reset(stmt.get()) != SQLITE_OK) {
+            throw runtime_error("GenomicSQLite: error inspecting genomic range index");
+        }
+    }
+
+    assert(ans.min_depth >= 0 && ans.min_depth <= ans.max_depth && ans.max_depth < GRI_LEVELS);
     return ans;
 }
 
@@ -426,100 +415,108 @@ static string BetweenTerm(const string &qrid, const string &q, int lv) {
     return ans;
 }
 
-static string OverlappingGenomicRanges(sqlite3 *dbconn, const string &indexed_table,
-                                       const char *qrid, const char *qbeg, const char *qend,
-                                       int join) {
-    auto split = split_schema_table(indexed_table);
-    string schema = split.first, table = split.second;
-    auto table_gri = InspectGRI(dbconn, schema, table);
+static string FilterTerm(const string &indexed_table, const string &qbegs, const string &qends) {
+    ostringstream ans;
+    ans << " AND NOT ((" << qbegs << ") > (" << indexed_table << "._gri_beg + " << indexed_table
+        << "._gri_len) OR (" << qends << ") < " << indexed_table << "._gri_beg)";
+    return ans.str();
+}
 
-    const string qrids = (qrid && qrid[0]) ? qrid : "?1", qbegs = (qbeg && qbeg[0]) ? qbeg : "?2",
-                 qends = (qend && qend[0]) ? qend : "?3";
+static string OverlappingGenomicRanges(const string &indexed_table, sqlite3 *dbconn,
+                                       const string &qrid, const string &qbeg, const string &qend,
+                                       bool join) {
+    gri_properties table_gri;
+    if (dbconn) {
+        table_gri = InspectGRI(dbconn, indexed_table);
+    }
+
     ostringstream betweens;
     betweens << "(";
-    int lv = table_gri.max_level;
-    assert(lv < GRI_LEVELS);
-    for (sqlite3_int64 divisor = 1LL << (4 * (GRI_LEVELS - lv)); lv >= table_gri.min_level;
-         --lv, divisor *= 16) {
-        if (lv < table_gri.max_level) {
+    for (int lv = table_gri.max_depth; lv >= table_gri.min_depth; --lv) {
+        if (lv < table_gri.max_depth) {
             betweens << " OR\n  ";
         }
-        betweens << "((" << table_gri.rid_col << "," << indexed_table << "._gri_bin) ";
-        if (lv > table_gri.min_level) {
-            betweens << "BETWEEN " << BetweenTerm(qrids, qbegs, lv) << " AND "
-                     << BetweenTerm(qrids, qends, lv);
-        } else {
-            betweens << "= ((" << qrids << ")," << GRI_BIN_OFFSETS[lv] << ")";
-        }
-        betweens << ")";
+        betweens << "((" << indexed_table << "._gri_rid," << indexed_table << "._gri_bin) ";
+        betweens << "BETWEEN " << BetweenTerm(qrid, qbeg, lv) << " AND "
+                 << BetweenTerm(qrid, qend, lv);
+        betweens << "\n  " << FilterTerm(indexed_table, qbeg, qend) << ")";
     }
-    betweens << ")";
+    betweens << ") ";
     ostringstream out;
-    out << " " << indexed_table << " INDEXED BY " << table << "_gri";
+    out << " " << indexed_table << " INDEXED BY " << split_schema_table(indexed_table).second
+        << "__gri";
     if (join) {
         out << " ON\n " << betweens.str();
     } else {
         out << " WHERE\n " << betweens.str();
     }
-    // TODO: if indexed_table is attached, how to prepend schema to column names?
-    // maybe need to regex s/table./schema.table./g ewww
-    out << "\n AND NOT ((" << qbegs << ") > (" << table_gri.end_expr << ") OR (" << qends << ") < ("
-        << table_gri.beg_expr << "))\n";
+    // out << "\n" << FilterTerm(index, qbegs, qends) << "\n";0
     return out.str();
 }
 
-string OverlappingGenomicRanges(sqlite3 *dbconn, const string &indexed_table, const char *qrid,
-                                const char *qbeg, const char *qend) {
-    return OverlappingGenomicRanges(dbconn, indexed_table, qrid, qbeg, qend, 0);
+string OverlappingGenomicRanges(const string &indexed_table, sqlite3 *dbconn, const string &qrid,
+                                const string &qbeg, const string &qend) {
+    return OverlappingGenomicRanges(indexed_table, dbconn, qrid, qbeg, qend, false);
 }
 
-extern "C" char *OverlappingGenomicRanges(sqlite3 *dbconn, const char *table, const char *qrid,
+extern "C" char *OverlappingGenomicRanges(const char *table, sqlite3 *dbconn, const char *qrid,
                                           const char *qbeg, const char *qend) {
-    C_WRAPPER(OverlappingGenomicRanges(dbconn, string(table), qrid, qbeg, qend));
+    C_WRAPPER(OverlappingGenomicRanges(table, dbconn, (qrid && qrid[0]) ? qrid : "?1",
+                                       (qbeg && qbeg[0]) ? qbeg : "?2",
+                                       (qend && qend[0]) ? qend : "?3", false));
 }
 
-string OnOverlappingGenomicRanges(sqlite3 *dbconn, const string &indexed_table, const char *qrid,
-                                  const char *qbeg, const char *qend) {
-    return OverlappingGenomicRanges(dbconn, indexed_table, qrid, qbeg, qend, 1);
+string OnOverlappingGenomicRanges(const string &left_rid, const string &left_beg,
+                                  const string &left_end, const string &indexed_right_table,
+                                  sqlite3 *dbconn) {
+    return OverlappingGenomicRanges(indexed_right_table, dbconn, left_rid, left_beg, left_end,
+                                    true);
 }
 
-extern "C" char *OnOverlappingGenomicRanges(sqlite3 *dbconn, const char *table, const char *qrid,
-                                            const char *qbeg, const char *qend) {
-    C_WRAPPER(OnOverlappingGenomicRanges(dbconn, string(table), qrid, qbeg, qend));
+extern "C" char *OnOverlappingGenomicRanges(const char *left_rid, const char *left_beg,
+                                            const char *left_end, const char *indexed_right_table,
+                                            sqlite3 *dbconn) {
+    C_WRAPPER(
+        OverlappingGenomicRanges(indexed_right_table, dbconn, left_rid, left_beg, left_end, true));
 }
 
 /**************************************************************************************************
- * reference sequence metadata (_gri_refseq_meta) helpers
+ * reference sequence metadata (__gri_refseq) helpers
  **************************************************************************************************/
 
-string PutReferenceSequence(const string &name, const string &assembly, const char *refget_id,
-                            sqlite3_int64 length, bool first, sqlite3_int64 rid,
-                            const char *schema) {
+string PutReferenceSequence(const string &name, sqlite3_int64 length, const string &assembly,
+                            const string &refget_id, sqlite3_int64 rid, const string &schema,
+                            bool with_ddl) {
     string schema_prefix;
-    if (schema && schema[0]) {
-        schema_prefix = schema;
-        schema_prefix += ".";
+    if (!schema.empty()) {
+        schema_prefix = schema + ".";
     }
     ostringstream out;
-    if (first) {
+    if (with_ddl) {
         out << gri_refseq_ddl(schema) << ";\n";
     }
     out << "INSERT INTO " << schema_prefix
-        << "_gri_refseq_meta(rid,name,assembly,refget_id,length) VALUES("
+        << "__gri_refseq(rid,name,assembly,refget_id,length) VALUES("
         << (rid >= 0 ? std::to_string(rid) : "NULL") << "," << sqlquote(name) << ","
-        << sqlquote(assembly) << "," << (refget_id && refget_id[0] ? sqlquote(refget_id) : "NULL")
-        << "," << std::to_string(length) << ")";
+        << (assembly.empty() ? "NULL" : sqlquote(assembly)) << ","
+        << (refget_id.empty() ? "NULL" : sqlquote(refget_id)) << "," << std::to_string(length)
+        << ")";
     return out.str();
 }
 
-extern "C" char *PutReferenceSequence(const char *name, const char *assembly, const char *refget_id,
-                                      sqlite3_int64 length, int first, sqlite3_int64 rid,
-                                      const char *schema) {
-    C_WRAPPER(PutReferenceSequence(string(name), string(assembly), refget_id, length, first != 0,
-                                   rid, schema));
+string PutReferenceSequence(const string &name, sqlite3_int64 length, const string &assembly,
+                            const string &refget_id, sqlite3_int64 rid, const string &schema) {
+    return PutReferenceSequence(name, length, assembly, refget_id, rid, schema, true);
 }
 
-string PutReferenceAssembly(const string &assembly, const char *schema) {
+extern "C" char *PutReferenceSequence(const char *name, sqlite3_int64 length, const char *assembly,
+                                      const char *refget_id, sqlite3_int64 rid,
+                                      const char *schema) {
+    C_WRAPPER(PutReferenceSequence(name, length, assembly ? assembly : "",
+                                   refget_id ? refget_id : "", rid, schema ? schema : "", true));
+}
+
+string PutReferenceAssembly(const string &assembly, const string &schema) {
     map<string, vector<tuple<const char *, sqlite3_int64, const char *>>> assemblies;
     /*
     wget -nv -O -
@@ -527,8 +524,8 @@ string PutReferenceAssembly(const string &assembly, const char *schema) {
     \ | pigz -dc > GRCh38_no_alt_analysis_set.fa samtools faidx GRCh38_no_alt_analysis_set.fa for
     rnm in $(cut -f1 GRCh38_no_alt_analysis_set.fa.fai); do sqm5=$(samtools faidx
     GRCh38_no_alt_analysis_set.fa "$rnm" | grep -v '^>' | tr -d '\n' | tr a-z A-Z | md5sum | cut -f1
-    -d ' ') sqlen=$(samtools faidx GRCh38_no_alt_analysis_set.fa "$rnm" | grep -v '^>' | tr -d '\n'
-    | wc -c) echo "{\"${rnm}\",${sqlen},\"${sqm5}\"}," done
+    -d ' ') sqend=$(samtools faidx GRCh38_no_alt_analysis_set.fa "$rnm" | grep -v '^>' | tr -d '\n'
+    | wc -c) echo "{\"${rnm}\",${sqend},\"${sqm5}\"}," done
     */
     assemblies["GRCh38_no_alt_analysis_set"] = {
         {"chr1", 248956422, "6aef897c3d6ff0c78aff06ac189178dd"},
@@ -737,12 +734,68 @@ string PutReferenceAssembly(const string &assembly, const char *schema) {
         if (!first) {
             out << ";\n";
         }
-        out << PutReferenceSequence(get<0>(q), assembly, get<2>(q), get<1>(q), first, -1, schema);
+        out << PutReferenceSequence(get<0>(q), get<1>(q), assembly, get<2>(q), -1, schema, first);
         first = false;
     }
     return out.str();
 }
 
 extern "C" char *PutReferenceAssembly(const char *assembly, const char *schema) {
-    C_WRAPPER(PutReferenceAssembly(string(assembly), schema));
+    C_WRAPPER(PutReferenceAssembly(string(assembly), schema ? schema : ""));
+}
+
+map<unsigned long long, gri_refseq_t>
+GetReferenceSequencesByRid(sqlite3 *dbconn, const string &assembly, const string &schema) {
+    map<unsigned long long, gri_refseq_t> ans;
+    string schema_prefix = schema.empty() ? "" : (schema + ".");
+
+    string query =
+        "SELECT rid, name, length, assembly, refget_id FROM " + schema_prefix + "__gri_refseq";
+    if (!assembly.empty()) {
+        query += " WHERE assembly = ?";
+    }
+    shared_ptr<sqlite3_stmt> stmt;
+    {
+        sqlite3_stmt *pStmt = nullptr;
+        if (sqlite3_prepare_v3(dbconn, query.c_str(), -1, 0, &pStmt, nullptr) != SQLITE_OK) {
+            throw runtime_error("GenomicSQLite: error querying reference sequences");
+        }
+        stmt = shared_ptr<sqlite3_stmt>(pStmt, sqlite3_finalize);
+    }
+    if (!assembly.empty()) {
+        if (sqlite3_bind_text(stmt.get(), 1, assembly.c_str(), -1, nullptr) != SQLITE_OK) {
+            throw runtime_error("GenomicSQLite: error querying reference sequences");
+        }
+    }
+    int rc;
+    while ((rc = sqlite3_step(stmt.get())) == SQLITE_ROW) {
+        gri_refseq_t item;
+        item.rid = sqlite3_column_int64(stmt.get(), 0);
+        item.name = (const char *)sqlite3_column_text(stmt.get(), 1);
+        item.length = sqlite3_column_int64(stmt.get(), 2);
+        if (sqlite3_column_type(stmt.get(), 3) == SQLITE_TEXT) {
+            item.assembly = (const char *)sqlite3_column_text(stmt.get(), 3);
+        }
+        if (sqlite3_column_type(stmt.get(), 4) == SQLITE_TEXT) {
+            item.refget_id = (const char *)sqlite3_column_text(stmt.get(), 4);
+        }
+        ans[item.rid] = item;
+    }
+    if (rc != SQLITE_DONE) {
+        throw runtime_error("GenomicSQLite: error querying reference sequences");
+    }
+    return ans;
+}
+
+map<string, gri_refseq_t> GetReferenceSequencesByName(sqlite3 *dbconn, const string &assembly,
+                                                      const string &schema) {
+    map<string, gri_refseq_t> ans;
+    for (const auto &p : GetReferenceSequencesByRid(dbconn, assembly, schema)) {
+        const gri_refseq_t &item = p.second;
+        if (ans.find(item.name) != ans.end()) {
+            throw runtime_error("GenomicSQLite: reference sequence names are not unique");
+        }
+        ans[item.name] = item;
+    }
+    return ans;
 }

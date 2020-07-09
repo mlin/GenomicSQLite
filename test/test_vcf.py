@@ -28,14 +28,19 @@ def test_gnomad_sites_small(tmp_path):
     )
 
     con = genomicsqlite.connect(dbfile, read_only=True)
+
     query = (
-        "SELECT gnomad_variants.rowid, id_jsarray FROM (SELECT rid FROM _gri_refseq_meta WHERE name=?) AS chrom,"
-        + genomicsqlite.overlapping_genomic_ranges(con, "gnomad_variants", qrid="chrom.rid")
+        "SELECT gnomad_variants.rowid, id_jsarray FROM (SELECT rid FROM __gri_refseq WHERE name=?1) AS chrom,"
+        + genomicsqlite.overlapping_genomic_ranges("gnomad_variants", con, qrid="chrom.rid")
     )
     rs671 = ("chr12", 111803912, 111804012)
     print(query)
+    indexed = 0
     for expl in con.execute("EXPLAIN QUERY PLAN " + query, rs671):
         print(expl[3])
+        if "USING INDEX gnomad_variants__gri" in expl[3]:
+            indexed += 1
+    assert indexed == 3
     results = list(con.execute(query, rs671))
     results_rowids = set(vt[0] for vt in results)
     assert next(vt for vt in results if vt[1] and "rs671" in vt[1])
@@ -51,10 +56,7 @@ def test_gnomad_sites_small(tmp_path):
 def test_gvcf_dv(tmp_path):
     dbfile = str(tmp_path / "test.gsql")
     vcf_into_sqlite(
-        os.path.join(HERE, "data/NA12878.dv0.8.0.chr21.g.vcf.gz"),
-        str(dbfile),
-        "--assembly",
-        "GRCh38",
+        os.path.join(HERE, "data/NA12878.dv0.8.0.chr21.g.vcf.gz"), str(dbfile),
     )
     rows = 962896
     con = genomicsqlite.connect(dbfile, read_only=True)
@@ -65,10 +67,7 @@ def test_gvcf_dv(tmp_path):
 def test_gvcf_hc(tmp_path):
     dbfile = str(tmp_path / "test.gsql")
     vcf_into_sqlite(
-        os.path.join(HERE, "data/hc.NA12878.chr22:25000000-30000000.g.vcf.gz"),
-        str(dbfile),
-        "--assembly",
-        "GRCh38",
+        os.path.join(HERE, "data/hc.NA12878.chr22:25000000-30000000.g.vcf.gz"), str(dbfile),
     )
     rows = 823480
     con = genomicsqlite.connect(dbfile, read_only=True)
@@ -79,10 +78,7 @@ def test_gvcf_hc(tmp_path):
 def test_pvcf_glnexus(tmp_path):
     dbfile = str(tmp_path / "test.gsql")
     vcf_into_sqlite(
-        os.path.join(HERE, "data/dv_glnexus.1KGP.ALDH2.vcf.gz"),
-        str(dbfile),
-        "--assembly",
-        "GRCh38",
+        os.path.join(HERE, "data/dv_glnexus.1KGP.ALDH2.vcf.gz"), str(dbfile),
     )
     rows = 1993
     samples = 2504
@@ -111,9 +107,7 @@ def test_pvcf_glnexus(tmp_path):
 
 def test_pvcf_gatk(tmp_path):
     dbfile = str(tmp_path / "test.gsql")
-    vcf_into_sqlite(
-        os.path.join(HERE, "data/gatk.1KGP.ALDH2.vcf.gz"), str(dbfile), "--assembly", "GRCh38",
-    )
+    vcf_into_sqlite(os.path.join(HERE, "data/gatk.1KGP.ALDH2.vcf.gz"), str(dbfile))
     rows = 2087
     samples = 2504
     con = genomicsqlite.connect(dbfile, read_only=True)
