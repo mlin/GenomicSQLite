@@ -319,9 +319,8 @@ string CreateGenomicRangeIndex(const string &schema_table, const string &rid, co
     out << ";\nALTER TABLE " << schema_table
         << " ADD COLUMN _gri_bin INTEGER AS (genomic_range_bin(_gri_beg,_gri_beg+_gri_len,"
         << max_depth << ")) VIRTUAL";
-    out << ";\nCREATE INDEX " << schema_table << "__gri ON " << table << "(_gri_rid, _gri_bin)";
-    // TODO: test empirically whether this helps:
-    // << "(_gri_rid, _gri_bin, _gri_beg, _gri_len)";
+    out << ";\nCREATE INDEX " << schema_table << "__gri ON " << table
+        << "(_gri_rid, _gri_bin, _gri_beg, _gri_len)";
     return out.str();
 }
 
@@ -417,67 +416,38 @@ static string BetweenTerm(const string &qrid, const string &q, int lv) {
 
 static string FilterTerm(const string &indexed_table, const string &qbegs, const string &qends) {
     ostringstream ans;
-    ans << " AND NOT ((" << qbegs << ") > (" << indexed_table << "._gri_beg + " << indexed_table
+    ans << "AND NOT ((" << qbegs << ") > (" << indexed_table << "._gri_beg + " << indexed_table
         << "._gri_len) OR (" << qends << ") < " << indexed_table << "._gri_beg)";
     return ans.str();
 }
 
-static string OverlappingGenomicRanges(const string &indexed_table, sqlite3 *dbconn,
-                                       const string &qrid, const string &qbeg, const string &qend,
-                                       bool join) {
+string GenomicRangeRowids(const string &indexed_table, sqlite3 *dbconn, const string &qrid,
+                          const string &qbeg, const string &qend) {
     gri_properties table_gri;
     if (dbconn) {
         table_gri = InspectGRI(dbconn, indexed_table);
     }
+    string table = split_schema_table(indexed_table).second;
 
-    ostringstream betweens;
-    betweens << "(";
+    ostringstream lvq; // per-level queries
+    lvq << " (";
     for (int lv = table_gri.max_depth; lv >= table_gri.min_depth; --lv) {
         if (lv < table_gri.max_depth) {
-            betweens << " OR\n  ";
+            lvq << "\n  UNION ALL\n  ";
         }
-        betweens << "((" << indexed_table << "._gri_rid," << indexed_table << "._gri_bin) ";
-        betweens << "BETWEEN " << BetweenTerm(qrid, qbeg, lv) << " AND "
-                 << BetweenTerm(qrid, qend, lv);
-        betweens << "\n  " << FilterTerm(indexed_table, qbeg, qend) << ")";
+        lvq << "SELECT _rowid_ FROM " << indexed_table << " INDEXED BY " << table << "__gri WHERE"
+            << "\n   ((" << indexed_table << "._gri_rid," << indexed_table << "._gri_bin) ";
+        lvq << "BETWEEN " << BetweenTerm(qrid, qbeg, lv) << " AND " << BetweenTerm(qrid, qend, lv);
+        lvq << "\n   " << FilterTerm(indexed_table, qbeg, qend) << ")";
     }
-    betweens << ") ";
-    ostringstream out;
-    out << " " << indexed_table << " INDEXED BY " << split_schema_table(indexed_table).second
-        << "__gri";
-    if (join) {
-        out << " ON\n " << betweens.str();
-    } else {
-        out << " WHERE\n " << betweens.str();
-    }
-    // out << "\n" << FilterTerm(index, qbegs, qends) << "\n";0
-    return out.str();
+    lvq << ") ";
+    return "(SELECT _rowid_ FROM\n" + lvq.str() + "\n ORDER BY _rowid_)";
 }
 
-string OverlappingGenomicRanges(const string &indexed_table, sqlite3 *dbconn, const string &qrid,
-                                const string &qbeg, const string &qend) {
-    return OverlappingGenomicRanges(indexed_table, dbconn, qrid, qbeg, qend, false);
-}
-
-extern "C" char *OverlappingGenomicRanges(const char *table, sqlite3 *dbconn, const char *qrid,
-                                          const char *qbeg, const char *qend) {
-    C_WRAPPER(OverlappingGenomicRanges(table, dbconn, (qrid && qrid[0]) ? qrid : "?1",
-                                       (qbeg && qbeg[0]) ? qbeg : "?2",
-                                       (qend && qend[0]) ? qend : "?3", false));
-}
-
-string OnOverlappingGenomicRanges(const string &left_rid, const string &left_beg,
-                                  const string &left_end, const string &indexed_right_table,
-                                  sqlite3 *dbconn) {
-    return OverlappingGenomicRanges(indexed_right_table, dbconn, left_rid, left_beg, left_end,
-                                    true);
-}
-
-extern "C" char *OnOverlappingGenomicRanges(const char *left_rid, const char *left_beg,
-                                            const char *left_end, const char *indexed_right_table,
-                                            sqlite3 *dbconn) {
-    C_WRAPPER(
-        OverlappingGenomicRanges(indexed_right_table, dbconn, left_rid, left_beg, left_end, true));
+extern "C" char *GenomicRangeRowids(const char *table, sqlite3 *dbconn, const char *qrid,
+                                    const char *qbeg, const char *qend) {
+    C_WRAPPER(GenomicRangeRowids(string(table), dbconn, (qrid && qrid[0]) ? qrid : "?1",
+                                 (qbeg && qbeg[0]) ? qbeg : "?2", (qend && qend[0]) ? qend : "?3"));
 }
 
 /**************************************************************************************************

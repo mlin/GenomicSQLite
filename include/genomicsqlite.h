@@ -24,15 +24,12 @@ char *GenomicSQLiteTuning(const char *attached_schema, int unsafe_load, int page
                           int threads, int inner_page_size);
 
 /*
- * Genomic range indexing routines
+ * Genomic range indexing
  */
 char *CreateGenomicRangeIndex(const char *table, const char *rid, const char *beg, const char *end,
                               int max_depth);
-
-char *OverlappingGenomicRanges(const char *indexed_table, sqlite3 *dbconn, const char *qrid,
-                               const char *qbeg, const char *qend);
-char *OnOverlappingGenomicRanges(const char *left_rid, const char *left_beg, const char *left_end,
-                                 const char *indexed_right_table, sqlite3 *dbconn);
+char *GenomicRangeRowids(const char *indexed_table, sqlite3 *dbconn, const char *qrid,
+                         const char *qbeg, const char *qend);
 
 /*
  * Optional storage of refrence sequence metadata
@@ -75,14 +72,9 @@ std::string GenomicSQLiteTuning(const std::string &attached_schema = "", bool un
 std::string CreateGenomicRangeIndex(const std::string &table, const std::string &rid,
                                     const std::string &beg, const std::string &end,
                                     int max_depth = -1);
-
-std::string OverlappingGenomicRanges(const std::string &indexed_table, sqlite3 *dbconn = nullptr,
-                                     const std::string &qrid = "?1", const std::string &qbeg = "?2",
-                                     const std::string &qend = "?3");
-std::string OnOverlappingGenomicRanges(const std::string &left_rid, const std::string &left_beg,
-                                       const std::string &left_end,
-                                       const std::string &indexed_right_table,
-                                       sqlite3 *dbconn = nullptr);
+std::string GenomicRangeRowids(const std::string &indexed_table, sqlite3 *dbconn = nullptr,
+                               const std::string &qrid = "?1", const std::string &qbeg = "?2",
+                               const std::string &qend = "?3");
 
 std::string PutReferenceAssembly(const std::string &assembly,
                                  const std::string &attached_schema = "");

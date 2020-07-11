@@ -87,7 +87,7 @@ def create_genomic_range_index(
         _sqlite3_free(buffer)
 
 
-def overlapping_genomic_ranges(
+def genomic_range_rowids(
     indexed_table: str,
     con: Optional[sqlite3.Connection] = None,
     qrid: Optional[str] = None,
@@ -99,7 +99,7 @@ def overlapping_genomic_ranges(
     qbeg = _encodestr(qbeg)
     qend = _encodestr(qend)
 
-    func = _link("OverlappingGenomicRanges")
+    func = _link("GenomicRangeRowids")
     func.restype = c_void_p  # char* that we need to free
 
     buffer = func(
@@ -108,34 +108,6 @@ def overlapping_genomic_ranges(
         c_char_p(qrid),
         c_char_p(qbeg),
         c_char_p(qend),
-    )
-    try:
-        return _decodestr(buffer)
-    finally:
-        _sqlite3_free(buffer)
-
-
-def on_overlapping_genomic_ranges(
-    left_rid: str,
-    left_beg: str,
-    left_end: str,
-    indexed_right_table: str,
-    con: Optional[sqlite3.Connection] = None,
-) -> str:
-    left_rid = _encodestr(left_rid)
-    left_beg = _encodestr(left_beg)
-    left_end = _encodestr(left_end)
-    indexed_right_table = _encodestr(indexed_right_table)
-
-    func = _link("OnOverlappingGenomicRanges")
-    func.restype = c_void_p  # char* that we need to free
-
-    buffer = func(
-        c_char_p(left_rid),
-        c_char_p(left_beg),
-        c_char_p(left_end),
-        c_char_p(indexed_right_table),
-        c_int(_sqlite3_cptr(con)),
     )
     try:
         return _decodestr(buffer)
