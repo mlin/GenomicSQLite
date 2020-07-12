@@ -36,5 +36,5 @@ repos:
     language: system
     files: \.py$
     verbose: true
-    entry: pylint
-    args: [-d, "bad-continuation,global-statement,missing-docstring,missing-module-docstring,line-too-long,too-many-arguments,duplicate-code"]
+    entry: env PYTHONPATH=bindings/python pylint
+    args: [-d, "bad-continuation,global-statement,missing-docstring,missing-module-docstring,line-too-long,too-many-arguments,duplicate-code,redefined-outer-name"]
