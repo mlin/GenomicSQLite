@@ -36,7 +36,7 @@ execute_process(COMMAND git describe --tags --long --always
                 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -DGIT_REVISION=\"\\\"${GIT_REVISION}\\\"\"")
 
 include_directories(${CMAKE_CURRENT_SOURCE_DIR}/include)
-add_library(genomicsqlite SHARED src/genomicsqlite.cc include/genomicsqlite.h)
+add_library(genomicsqlite SHARED src/genomicsqlite.cc include/genomicsqlite.h src/json1.c)
 target_link_libraries(genomicsqlite PRIVATE SQLiteCpp zstd)
 
 add_subdirectory(loaders)

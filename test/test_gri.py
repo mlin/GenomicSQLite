@@ -66,7 +66,7 @@ def test_indexing():
     _fill_exons(con)
     con.commit()
 
-    query = genomicsqlite.genomic_range_rowids("exons", con)
+    query = genomicsqlite.genomic_range_rowids_sql(con, "exons")
     query = "SELECT id FROM exons WHERE exons._rowid_ IN\n" + query
     print("\n" + query)
 
@@ -106,19 +106,20 @@ def test_indexing():
         total_results += len(control_ids)
     assert total_results == 189935
 
-    with pytest.raises(RuntimeError):
-        genomicsqlite.genomic_range_rowids("nonexistent_table", con)
+    with pytest.raises(sqlite3.OperationalError):
+        genomicsqlite.genomic_range_rowids_sql(con, "nonexistent_table")
 
 
 def test_refseq():
-    create_assembly = genomicsqlite.put_reference_assembly("GRCh38_no_alt_analysis_set")
+    con = sqlite3.connect(":memory:")
+
+    create_assembly = genomicsqlite.put_reference_assembly_sql(con, "GRCh38_no_alt_analysis_set")
     lines = create_assembly.strip().split("\n")
     print("\n".join([line for line in lines if "INSERT INTO" in line][:24]))
     assert len([line for line in lines if "INSERT INTO" in line]) == 195
     assert len([line for line in lines if "INSERT INTO" not in line]) == 2
 
-    con = sqlite3.connect(":memory:")
-    con.executescript(create_assembly)
+    genomicsqlite.put_reference_assembly(con, "GRCh38_no_alt_analysis_set")
     _fill_exons(con, max_depth=7)
     con.commit()
 
@@ -136,7 +137,7 @@ def test_refseq():
 
     query = (
         "SELECT __gri_refseq.rid, exons.beg, exons.end, exons.id FROM __gri_refseq, exons WHERE __gri_refseq.name = exons.rid AND exons._rowid_ IN "
-        + genomicsqlite.genomic_range_rowids("exons", con)
+        + genomicsqlite.genomic_range_rowids_sql(con, "exons")
     )
     print("\n" + query)
     assert len([line for line in query.split("\n") if "BETWEEN" in line]) == 3
@@ -145,14 +146,16 @@ def test_refseq():
 
 def test_join():
     con = sqlite3.connect(":memory:")
-    con.executescript(genomicsqlite.put_reference_assembly("GRCh38_no_alt_analysis_set"))
+    genomicsqlite.put_reference_assembly(con, "GRCh38_no_alt_analysis_set")
     _fill_exons(con, table="exons")
     _fill_exons(con, max_depth=7, table="exons2")
     con.commit()
 
     query = (
         "SELECT exons.id, exons2.id FROM exons LEFT JOIN exons2 ON exons2._rowid_ IN\n"
-        + genomicsqlite.genomic_range_rowids("exons2", con, "exons.rid", "exons.beg", "exons.end")
+        + genomicsqlite.genomic_range_rowids_sql(
+            con, "exons2", "exons.rid", "exons.beg", "exons.end"
+        )
         + " AND exons.id != exons2.id ORDER BY exons.id, exons2.id"
     )
     print(query)
@@ -173,7 +176,7 @@ def test_join():
 def test_connect(tmp_path):
     dbfile = str(tmp_path / "test.gsql")
     con = genomicsqlite.connect(dbfile, unsafe_load=True)
-    con.executescript(genomicsqlite.put_reference_assembly("GRCh38_no_alt_analysis_set"))
+    genomicsqlite.put_reference_assembly(con, "GRCh38_no_alt_analysis_set")
     _fill_exons(con)
     con.commit()
     del con
@@ -181,7 +184,9 @@ def test_connect(tmp_path):
     con = genomicsqlite.connect(dbfile, read_only=True)
     query = (
         "WITH exons2 AS (SELECT * from exons) SELECT exons.id, exons2.id FROM exons2 LEFT JOIN exons ON exons._rowid_ IN\n"
-        + genomicsqlite.genomic_range_rowids("exons", con, "exons2.rid", "exons2.beg", "exons2.end")
+        + genomicsqlite.genomic_range_rowids_sql(
+            con, "exons", "exons2.rid", "exons2.beg", "exons2.end"
+        )
         + " AND exons.id != exons2.id ORDER BY exons.id, exons2.id"
     )
     results = list(con.execute(query))
@@ -198,9 +203,7 @@ def _fill_exons(con, max_depth=-1, table="exons"):
             f"INSERT INTO {table}(rid,beg,end,id) VALUES(?,?,?,?)",
             (line[0], int(line[1]) - 1, int(line[2]), line[3]),
         )
-    con.executescript(
-        genomicsqlite.create_genomic_range_index(table, "rid", "beg", "end", max_depth=max_depth)
-    )
+    genomicsqlite.create_genomic_range_index(con, table, "rid", "beg", "end", max_depth=max_depth)
 
 
 _EXONS = """

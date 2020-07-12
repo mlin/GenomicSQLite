@@ -1,9 +1,9 @@
-#include <map>
-#include <memory>
+#include <assert.h>
 #include <regex>
 #include <sqlite3ext.h>
 #include <sstream>
 #include <thread>
+#include <vector>
 SQLITE_EXTENSION_INIT1
 #include "SQLiteCpp/SQLiteCpp.h"
 #include "genomicsqlite.h"
@@ -18,98 +18,11 @@ using namespace std;
 #endif
 
 /**************************************************************************************************
- * genomic_range_bin() SQL function to calculate bin number from beg,end (optional: max_depth)
- **************************************************************************************************/
-
-#define GRI_LEVELS (9)
-const sqlite3_int64 GRI_BIN_OFFSETS[] = {
-    0,
-    1,
-    1 + 16,
-    1 + 16 + 256,
-    1 + 16 + 256 + 4096,
-    1 + 16 + 256 + 4096 + 65536,
-    1 + 16 + 256 + 4096 + 65536 + 1048576,
-    1 + 16 + 256 + 4096 + 65536 + 1048576 + 16777216,
-    1 + 16 + 256 + 4096 + 65336 + 1048576 + 16777216 + 268435456,
-};
-const sqlite_int64 GRI_POS_OFFSETS[] = {
-    0, 134217728, 8388608, 524288, 32768, 2048, 128, 8, 0,
-};
-const sqlite3_int64 GRI_BIN_COUNT = GRI_BIN_OFFSETS[GRI_LEVELS - 1] + 4294967296LL;
-
-static void genomic_range_bin(sqlite3_context *context, int argc, sqlite3_value **argv) {
-    if (argc != 2 && !(argc == 3 && sqlite3_value_type(argv[2]) == SQLITE_INTEGER)) {
-        sqlite3_result_error(context, "genomic_range_bin() expects two or three integer arguments",
-                             -1);
-        return;
-    }
-    if (sqlite3_value_type(argv[0]) == SQLITE_NULL || sqlite3_value_type(argv[1]) == SQLITE_NULL) {
-        sqlite3_result_null(context);
-        return;
-    }
-    if (sqlite3_value_type(argv[0]) != SQLITE_INTEGER ||
-        sqlite3_value_type(argv[1]) != SQLITE_INTEGER) {
-        sqlite3_result_error(context, "genomic_range_bin() expects integer arguments", -1);
-        return;
-    }
-    sqlite3_int64 beg = sqlite3_value_int64(argv[0]), end = sqlite3_value_int64(argv[1]),
-                  max_depth = argc >= 3 ? sqlite3_value_int64(argv[2]) : GRI_LEVELS - 1;
-    if (beg < 0 || end < beg || end > GRI_MAX_POS || max_depth < 0 || max_depth >= GRI_LEVELS) {
-        sqlite3_result_error(context, "genomic_range_bin() domain error", -1);
-        return;
-    }
-    int lv = max_depth;
-    sqlite3_int64 divisor = 1LL << (4 * (GRI_LEVELS - lv));
-    for (; ((beg - GRI_POS_OFFSETS[lv]) / divisor) != ((end - GRI_POS_OFFSETS[lv]) / divisor);
-         --lv, divisor *= 16)
-        ;
-    assert(lv >= 0);
-    sqlite3_int64 ans = (beg - GRI_POS_OFFSETS[lv]) / divisor;
-    assert(ans >= 0);
-    sqlite3_result_int64(context, ans + GRI_BIN_OFFSETS[lv]);
-}
-
-/**************************************************************************************************
- * SQLite loadable extension initialization
- **************************************************************************************************/
-
-static int register_gri_functions(sqlite3 *db, const char **pzErrMsg,
-                                  const sqlite3_api_routines *pApi) {
-    int rc =
-        sqlite3_create_function_v2(db, "genomic_range_bin", 2, SQLITE_UTF8 | SQLITE_DETERMINISTIC,
-                                   nullptr, genomic_range_bin, nullptr, nullptr, nullptr);
-    if (rc != SQLITE_OK)
-        return rc;
-    return sqlite3_create_function_v2(db, "genomic_range_bin", 3,
-                                      SQLITE_UTF8 | SQLITE_DETERMINISTIC, nullptr,
-                                      genomic_range_bin, nullptr, nullptr, nullptr);
-}
-
-/*
-** This routine is called when the extension is loaded.
-*/
-extern "C" int sqlite3_genomicsqlite_init(sqlite3 *db, char **pzErrMsg,
-                                          const sqlite3_api_routines *pApi) {
-    SQLITE_EXTENSION_INIT2(pApi);
-    int rc = (new ZstdVFS())->Register("zstd");
-    if (rc != SQLITE_OK)
-        return rc;
-    rc = register_gri_functions(db, nullptr, pApi);
-    if (rc != SQLITE_OK)
-        return rc;
-    rc = sqlite3_auto_extension((void (*)(void))register_gri_functions);
-    if (rc != SQLITE_OK)
-        return rc;
-    return SQLITE_OK_LOAD_PERMANENTLY;
-}
-
-/**************************************************************************************************
  * connection & tuning helpers
  **************************************************************************************************/
 
 string _version_msg;
-extern "C" const char *GenomicSQLiteVersionCheck() {
+extern "C" const char *genomicsqlite_version_check() {
     // The newest SQLite feature currently required is "Generated Columns"
     const int MIN_SQLITE_VERSION_NUMBER = 3031000;
     const string MIN_SQLITE_VERSION = "3.31.0";
@@ -122,6 +35,16 @@ extern "C" const char *GenomicSQLiteVersionCheck() {
         return _version_msg.c_str();
     }
     return nullptr;
+}
+
+static void sqlfn_genomicsqlite_version_check(sqlite3_context *ctx, int argc,
+                                              sqlite3_value **argv) {
+    const char *msg = genomicsqlite_version_check();
+    if (msg) {
+        sqlite3_result_error(ctx, msg, -1);
+    } else {
+        sqlite3_result_null(ctx);
+    }
 }
 
 string GenomicSQLiteURI(const string &dbfile, bool unsafe_load, int threads, int zstd_level,
@@ -137,6 +60,7 @@ string GenomicSQLiteURI(const string &dbfile, bool unsafe_load, int threads, int
     return uri.str();
 }
 
+// boilerplate for C bindings to C++ functions
 #define C_WRAPPER(call)                                                                            \
     string ans;                                                                                    \
     try {                                                                                          \
@@ -151,14 +75,80 @@ string GenomicSQLiteURI(const string &dbfile, bool unsafe_load, int threads, int
     }                                                                                              \
     return sql;
 
-extern "C" char *GenomicSQLiteURI(const char *dbfile, int unsafe_load, int threads, int zstd_level,
-                                  int outer_page_size) {
+extern "C" char *genomicsqlite_uri(const char *dbfile, int unsafe_load, int threads, int zstd_level,
+                                   int outer_page_size) {
     C_WRAPPER(
         GenomicSQLiteURI(string(dbfile), unsafe_load != 0, threads, zstd_level, outer_page_size));
 }
 
-string GenomicSQLiteTuning(const string &schema, bool unsafe_load, int page_cache_size, int threads,
-                           int inner_page_size) {
+// boilerplate for SQLite custom function bindings
+#define ARG_TYPE(idx, expected)                                                                    \
+    assert(argc > idx);                                                                            \
+    if (sqlite3_value_type(argv[idx]) != (expected)) {                                             \
+        string errmsg =                                                                            \
+            string(__func__) + "() argument #" + to_string(idx + 1) + " type mismatch";            \
+        sqlite3_result_error(ctx, errmsg.c_str(), -1);                                             \
+        return;                                                                                    \
+    }
+
+#define OPTIONAL_ARG_TYPE(idx, expected, dest)                                                     \
+    assert(argc > idx);                                                                            \
+    dest = sqlite3_value_type(argv[idx]);                                                          \
+    if (dest != (expected) && dest != SQLITE_NULL) {                                               \
+        string errmsg =                                                                            \
+            string(__func__) + "() argument #" + to_string(idx + 1) + " type mismatch";            \
+        sqlite3_result_error(ctx, errmsg.c_str(), -1);                                             \
+        return;                                                                                    \
+    }
+
+#define ARG(dest, idx, expected, suffix)                                                           \
+    ARG_TYPE(idx, expected)                                                                        \
+    dest = sqlite3_value_##suffix(argv[idx]);
+
+#define ARG_OPTIONAL(dest, idx, expected, suffix)                                                  \
+    if (argc > idx) {                                                                              \
+        int __ty;                                                                                  \
+        OPTIONAL_ARG_TYPE(idx, expected, __ty);                                                    \
+        if (__ty != SQLITE_NULL)                                                                   \
+            dest = sqlite3_value_##suffix(argv[idx]);                                              \
+    }
+
+#define ARG_TEXT(dest, idx)                                                                        \
+    ARG_TYPE(idx, SQLITE_TEXT)                                                                     \
+    dest = (const char *)sqlite3_value_text(argv[idx]);
+
+#define ARG_TEXT_OPTIONAL(dest, idx)                                                               \
+    if (argc > idx) {                                                                              \
+        int __ty;                                                                                  \
+        OPTIONAL_ARG_TYPE(idx, SQLITE_TEXT, __ty)                                                  \
+        if (__ty != SQLITE_NULL)                                                                   \
+            dest = (const char *)sqlite3_value_text(argv[idx]);                                    \
+    }
+
+#define SQL_WRAPPER(invocation)                                                                    \
+    try {                                                                                          \
+        string ans = invocation;                                                                   \
+        sqlite3_result_text(ctx, ans.c_str(), -1, SQLITE_TRANSIENT);                               \
+    } catch (std::bad_alloc &) {                                                                   \
+        sqlite3_result_error_nomem(ctx);                                                           \
+    } catch (std::exception & exn) {                                                               \
+        sqlite3_result_error(ctx, exn.what(), -1);                                                 \
+    }
+
+static void sqlfn_genomicsqlite_uri(sqlite3_context *ctx, int argc, sqlite3_value **argv) {
+    string dbfile;
+    sqlite3_int64 unsafe_load = 0, threads = -1, zstd_level = 6, outer_page_size = 32768;
+    assert(argc == 5);
+    ARG_TEXT(dbfile, 0)
+    ARG_OPTIONAL(unsafe_load, 1, SQLITE_INTEGER, int64)
+    ARG_OPTIONAL(threads, 2, SQLITE_INTEGER, int64)
+    ARG_OPTIONAL(zstd_level, 3, SQLITE_INTEGER, int64)
+    ARG_OPTIONAL(outer_page_size, 4, SQLITE_INTEGER, int64)
+    SQL_WRAPPER(GenomicSQLiteURI(dbfile, unsafe_load != 0, threads, zstd_level, outer_page_size))
+}
+
+string GenomicSQLiteTuningSQL(const string &schema, bool unsafe_load, int page_cache_size,
+                              int threads, int inner_page_size) {
     string schema_prefix;
     if (!schema.empty()) {
         schema_prefix = schema + ".";
@@ -183,10 +173,24 @@ string GenomicSQLiteTuning(const string &schema, bool unsafe_load, int page_cach
     return out.str();
 }
 
-extern "C" char *GenomicSQLiteTuning(const char *schema, int unsafe_load, int page_cache_size,
-                                     int threads, int inner_page_size) {
-    C_WRAPPER(GenomicSQLiteTuning(string(schema ? schema : ""), unsafe_load != 0, page_cache_size,
-                                  threads, inner_page_size));
+extern "C" char *genomicsqlite_tuning_sql(const char *schema, int unsafe_load, int page_cache_size,
+                                          int threads, int inner_page_size) {
+    C_WRAPPER(GenomicSQLiteTuningSQL(string(schema ? schema : ""), unsafe_load != 0,
+                                     page_cache_size, threads, inner_page_size));
+}
+
+static void sqlfn_genomicsqlite_tuning_sql(sqlite3_context *ctx, int argc, sqlite3_value **argv) {
+    string schema;
+    sqlite3_int64 unsafe_load = 0, page_cache_size = -1048576, threads = -1,
+                  inner_page_size = 16384;
+    assert(argc == 5);
+    ARG_TEXT_OPTIONAL(schema, 0)
+    ARG_OPTIONAL(unsafe_load, 1, SQLITE_INTEGER, int64)
+    ARG_OPTIONAL(page_cache_size, 2, SQLITE_INTEGER, int64)
+    ARG_OPTIONAL(threads, 3, SQLITE_INTEGER, int64)
+    ARG_OPTIONAL(inner_page_size, 4, SQLITE_INTEGER, int64)
+    SQL_WRAPPER(
+        GenomicSQLiteTuningSQL(schema, unsafe_load != 0, page_cache_size, threads, inner_page_size))
 }
 
 bool _ext_loaded = false;
@@ -211,7 +215,7 @@ int GenomicSQLiteOpen(const string &dbfile, sqlite3 **ppDb, int flags, bool unsa
         if (ret != SQLITE_OK) {
             return ret;
         }
-        if (GenomicSQLiteVersionCheck()) {
+        if (genomicsqlite_version_check()) {
             return SQLITE_RANGE;
         }
         _ext_loaded = true;
@@ -226,14 +230,14 @@ int GenomicSQLiteOpen(const string &dbfile, sqlite3 **ppDb, int flags, bool unsa
     }
     return sqlite3_exec(
         *ppDb,
-        GenomicSQLiteTuning(string(), unsafe_load, page_cache_size, threads, inner_page_size)
+        GenomicSQLiteTuningSQL(string(), unsafe_load, page_cache_size, threads, inner_page_size)
             .c_str(),
         nullptr, nullptr, nullptr);
 }
 
-extern "C" int GenomicSQLiteOpen(const char *filename, sqlite3 **ppDb, int flags, int unsafe_load,
-                                 int page_cache_size, int threads, int zstd_level,
-                                 int inner_page_size, int outer_page_size) {
+extern "C" int genomicsqlite_open(const char *filename, sqlite3 **ppDb, int flags, int unsafe_load,
+                                  int page_cache_size, int threads, int zstd_level,
+                                  int inner_page_size, int outer_page_size) {
     return GenomicSQLiteOpen(string(filename), ppDb, flags, unsafe_load != 0, page_cache_size,
                              threads, zstd_level, inner_page_size, outer_page_size);
 }
@@ -250,7 +254,7 @@ unique_ptr<SQLite::Database> GenomicSQLiteOpen(const string &dbfile, int flags, 
             throw std::runtime_error("failed loading libgenomicsqlite shared library: " +
                                      string(exn.what()));
         }
-        auto msg = GenomicSQLiteVersionCheck();
+        auto msg = genomicsqlite_version_check();
         if (msg) {
             throw runtime_error(msg);
         }
@@ -259,12 +263,58 @@ unique_ptr<SQLite::Database> GenomicSQLiteOpen(const string &dbfile, int flags, 
     db.reset(new SQLite::Database(
         GenomicSQLiteURI(dbfile, unsafe_load, threads, zstd_level, outer_page_size),
         SQLITE_OPEN_URI | flags));
-    db->exec(GenomicSQLiteTuning(string(), unsafe_load, page_cache_size, threads, inner_page_size));
+    db->exec(
+        GenomicSQLiteTuningSQL(string(), unsafe_load, page_cache_size, threads, inner_page_size));
     return db;
 }
 
 /**************************************************************************************************
- * GRI helpers
+ * genomic_range_bin() SQL function to calculate bin number from beg,end (optional: max_depth)
+ **************************************************************************************************/
+
+const sqlite3_int64 GRI_BIN_OFFSETS[] = {
+    0,
+    1,
+    1 + 16,
+    1 + 16 + 256,
+    1 + 16 + 256 + 4096,
+    1 + 16 + 256 + 4096 + 65536,
+    1 + 16 + 256 + 4096 + 65536 + 1048576,
+    1 + 16 + 256 + 4096 + 65536 + 1048576 + 16777216,
+    1 + 16 + 256 + 4096 + 65336 + 1048576 + 16777216 + 268435456,
+};
+const sqlite_int64 GRI_POS_OFFSETS[] = {
+    0, 134217728, 8388608, 524288, 32768, 2048, 128, 8, 0,
+};
+const sqlite3_int64 GRI_BIN_COUNT = GRI_BIN_OFFSETS[GRI_MAX_LEVEL] + 4294967296LL;
+
+static void sqlfn_genomic_range_bin(sqlite3_context *ctx, int argc, sqlite3_value **argv) {
+    assert(argc == 2 || argc == 3);
+    if (sqlite3_value_type(argv[0]) == SQLITE_NULL || sqlite3_value_type(argv[1]) == SQLITE_NULL) {
+        sqlite3_result_null(ctx);
+        return;
+    }
+    sqlite3_int64 beg, end, max_depth = GRI_MAX_LEVEL;
+    ARG(beg, 0, SQLITE_INTEGER, int64)
+    ARG(end, 1, SQLITE_INTEGER, int64)
+    ARG_OPTIONAL(max_depth, 2, SQLITE_INTEGER, int64)
+    if (beg < 0 || end < beg || end > GRI_MAX_POS || max_depth < 0 || max_depth >= GRI_LEVELS) {
+        sqlite3_result_error(ctx, "genomic_range_bin() domain error", -1);
+        return;
+    }
+    int lv = max_depth;
+    sqlite3_int64 divisor = 1LL << (4 * (GRI_LEVELS - lv));
+    for (; ((beg - GRI_POS_OFFSETS[lv]) / divisor) != ((end - GRI_POS_OFFSETS[lv]) / divisor);
+         --lv, divisor *= 16)
+        ;
+    assert(lv >= 0);
+    sqlite3_int64 ans = (beg - GRI_POS_OFFSETS[lv]) / divisor;
+    assert(ans >= 0);
+    sqlite3_result_int64(ctx, ans + GRI_BIN_OFFSETS[lv]);
+}
+
+/**************************************************************************************************
+ * GRI implementation
  **************************************************************************************************/
 
 static string sqlquote(const std::string &v) {
@@ -300,12 +350,12 @@ static string remove_table_prefixes(const string &expr, const string &table) {
     return regex_replace(expr, table_prefix, "");
 }
 
-string CreateGenomicRangeIndex(const string &schema_table, const string &rid, const string &beg,
-                               const string &end, int max_depth) {
+string CreateGenomicRangeIndexSQL(const string &schema_table, const string &rid, const string &beg,
+                                  const string &end, int max_depth) {
     auto split = split_schema_table(schema_table);
     string schema = split.first, table = split.second;
-    if (max_depth < 0 || max_depth > 8) {
-        max_depth = 8;
+    if (max_depth < 0 || max_depth > GRI_MAX_LEVEL) {
+        max_depth = GRI_MAX_LEVEL;
     }
     size_t p;
     ostringstream out;
@@ -324,17 +374,30 @@ string CreateGenomicRangeIndex(const string &schema_table, const string &rid, co
     return out.str();
 }
 
-extern "C" char *CreateGenomicRangeIndex(const char *table, const char *rid, const char *beg,
-                                         const char *end, int max_depth) {
+extern "C" char *create_genomic_range_index_sql(const char *table, const char *rid, const char *beg,
+                                                const char *end, int max_depth) {
     assert(table && table[0]);
     assert(rid && rid[0]);
     assert(beg && beg[0]);
     assert(end && end[0]);
-    C_WRAPPER(CreateGenomicRangeIndex(string(table), rid, beg, end, max_depth));
+    C_WRAPPER(CreateGenomicRangeIndexSQL(string(table), rid, beg, end, max_depth));
+}
+
+static void sqlfn_create_genomic_range_index_sql(sqlite3_context *ctx, int argc,
+                                                 sqlite3_value **argv) {
+    string schema_table, rid, beg, end;
+    sqlite3_int64 max_depth = -1;
+    assert(argc == 4 || argc == 5);
+    ARG_TEXT(schema_table, 0)
+    ARG_TEXT(rid, 1)
+    ARG_TEXT(beg, 2)
+    ARG_TEXT(end, 3)
+    ARG_OPTIONAL(max_depth, 4, SQLITE_INTEGER, int64)
+    SQL_WRAPPER(CreateGenomicRangeIndexSQL(schema_table, rid, beg, end, max_depth))
 }
 
 struct gri_properties {
-    int min_depth = 0, max_depth = GRI_LEVELS - 1;
+    int min_depth = 0, max_depth = GRI_MAX_LEVEL;
 };
 
 static gri_properties InspectGRI(sqlite3 *dbconn, const string &schema_table) {
@@ -353,7 +416,7 @@ static gri_properties InspectGRI(sqlite3 *dbconn, const string &schema_table) {
         }
         stmt = shared_ptr<sqlite3_stmt>(pStmt, sqlite3_finalize);
     }
-    for (ans.max_depth = GRI_LEVELS - 1; ans.max_depth > 0; --(ans.max_depth)) {
+    for (ans.max_depth = GRI_MAX_LEVEL; ans.max_depth > 0; --(ans.max_depth)) {
         if (sqlite3_bind_int64(stmt.get(), 1, GRI_BIN_OFFSETS[ans.max_depth]) != SQLITE_OK) {
             throw runtime_error("GenomicSQLite: error inspecting genomic range index");
         }
@@ -379,8 +442,8 @@ static gri_properties InspectGRI(sqlite3 *dbconn, const string &schema_table) {
     }
     for (ans.min_depth = 0; ans.min_depth < ans.max_depth; ++(ans.min_depth)) {
         if (sqlite3_bind_int64(stmt.get(), 1,
-                               (ans.min_depth + 1 < GRI_LEVELS) ? GRI_BIN_OFFSETS[ans.min_depth + 1]
-                                                                : GRI_BIN_COUNT) != SQLITE_OK) {
+                               (ans.min_depth < GRI_MAX_LEVEL) ? GRI_BIN_OFFSETS[ans.min_depth + 1]
+                                                               : GRI_BIN_COUNT) != SQLITE_OK) {
             throw runtime_error("GenomicSQLite: error inspecting genomic range index");
         }
         int rc = sqlite3_step(stmt.get());
@@ -421,8 +484,8 @@ static string FilterTerm(const string &indexed_table, const string &qbegs, const
     return ans.str();
 }
 
-string GenomicRangeRowids(const string &indexed_table, sqlite3 *dbconn, const string &qrid,
-                          const string &qbeg, const string &qend) {
+string GenomicRangeRowidsSQL(const string &indexed_table, sqlite3 *dbconn, const string &qrid,
+                             const string &qbeg, const string &qend) {
     gri_properties table_gri;
     if (dbconn) {
         table_gri = InspectGRI(dbconn, indexed_table);
@@ -444,19 +507,31 @@ string GenomicRangeRowids(const string &indexed_table, sqlite3 *dbconn, const st
     return "(SELECT _rowid_ FROM\n" + lvq.str() + "\n ORDER BY _rowid_)";
 }
 
-extern "C" char *GenomicRangeRowids(const char *table, sqlite3 *dbconn, const char *qrid,
-                                    const char *qbeg, const char *qend) {
-    C_WRAPPER(GenomicRangeRowids(string(table), dbconn, (qrid && qrid[0]) ? qrid : "?1",
-                                 (qbeg && qbeg[0]) ? qbeg : "?2", (qend && qend[0]) ? qend : "?3"));
+extern "C" char *genomic_range_rowids_sql(const char *table, sqlite3 *dbconn, const char *qrid,
+                                          const char *qbeg, const char *qend) {
+    C_WRAPPER(GenomicRangeRowidsSQL(string(table), dbconn, (qrid && qrid[0]) ? qrid : "?1",
+                                    (qbeg && qbeg[0]) ? qbeg : "?2",
+                                    (qend && qend[0]) ? qend : "?3"));
+}
+
+static void sqlfn_genomic_range_rowids_sql(sqlite3_context *ctx, int argc, sqlite3_value **argv) {
+    string indexed_table, qrid = "?1", qbeg = "?2", qend = "?3";
+    assert(argc >= 1 && argc <= 4);
+    ARG_TEXT(indexed_table, 0)
+    ARG_TEXT_OPTIONAL(qrid, 1)
+    ARG_TEXT_OPTIONAL(qbeg, 2)
+    ARG_TEXT_OPTIONAL(qend, 3)
+    SQL_WRAPPER(
+        GenomicRangeRowidsSQL(indexed_table, sqlite3_context_db_handle(ctx), qrid, qbeg, qend))
 }
 
 /**************************************************************************************************
  * reference sequence metadata (__gri_refseq) helpers
  **************************************************************************************************/
 
-string PutReferenceSequence(const string &name, sqlite3_int64 length, const string &assembly,
-                            const string &refget_id, sqlite3_int64 rid, const string &schema,
-                            bool with_ddl) {
+string PutGenomicReferenceSequenceSQL(const string &name, sqlite3_int64 length,
+                                      const string &assembly, const string &refget_id,
+                                      sqlite3_int64 rid, const string &schema, bool with_ddl) {
     string schema_prefix;
     if (!schema.empty()) {
         schema_prefix = schema + ".";
@@ -474,19 +549,35 @@ string PutReferenceSequence(const string &name, sqlite3_int64 length, const stri
     return out.str();
 }
 
-string PutReferenceSequence(const string &name, sqlite3_int64 length, const string &assembly,
-                            const string &refget_id, sqlite3_int64 rid, const string &schema) {
-    return PutReferenceSequence(name, length, assembly, refget_id, rid, schema, true);
+string PutGenomicReferenceSequenceSQL(const string &name, sqlite3_int64 length,
+                                      const string &assembly, const string &refget_id,
+                                      sqlite3_int64 rid, const string &schema) {
+    return PutGenomicReferenceSequenceSQL(name, length, assembly, refget_id, rid, schema, true);
 }
 
-extern "C" char *PutReferenceSequence(const char *name, sqlite3_int64 length, const char *assembly,
-                                      const char *refget_id, sqlite3_int64 rid,
-                                      const char *schema) {
-    C_WRAPPER(PutReferenceSequence(name, length, assembly ? assembly : "",
-                                   refget_id ? refget_id : "", rid, schema ? schema : "", true));
+extern "C" char *put_genomic_reference_sequence_sql(const char *name, sqlite3_int64 length,
+                                                    const char *assembly, const char *refget_id,
+                                                    sqlite3_int64 rid, const char *schema) {
+    C_WRAPPER(PutGenomicReferenceSequenceSQL(name, length, assembly ? assembly : "",
+                                             refget_id ? refget_id : "", rid, schema ? schema : "",
+                                             true));
 }
 
-string PutReferenceAssembly(const string &assembly, const string &schema) {
+static void sqlfn_put_genomic_reference_sequence_sql(sqlite3_context *ctx, int argc,
+                                                     sqlite3_value **argv) {
+    string name, assembly, refget_id, schema;
+    sqlite3_int64 length, rid = -1;
+    assert(argc >= 2 && argc <= 6);
+    ARG_TEXT(name, 0)
+    ARG(length, 1, SQLITE_INTEGER, int64)
+    ARG_TEXT_OPTIONAL(assembly, 2)
+    ARG_TEXT_OPTIONAL(refget_id, 3)
+    ARG_OPTIONAL(rid, 4, SQLITE_INTEGER, int64)
+    ARG_TEXT_OPTIONAL(schema, 5);
+    SQL_WRAPPER(PutGenomicReferenceSequenceSQL(name, length, assembly, refget_id, rid, schema))
+}
+
+string PutGenomicReferenceAssemblySQL(const string &assembly, const string &schema) {
     map<string, vector<tuple<const char *, sqlite3_int64, const char *>>> assemblies;
     /*
     wget -nv -O -
@@ -704,18 +795,28 @@ string PutReferenceAssembly(const string &assembly, const string &schema) {
         if (!first) {
             out << ";\n";
         }
-        out << PutReferenceSequence(get<0>(q), get<1>(q), assembly, get<2>(q), -1, schema, first);
+        out << PutGenomicReferenceSequenceSQL(get<0>(q), get<1>(q), assembly, get<2>(q), -1, schema,
+                                              first);
         first = false;
     }
     return out.str();
 }
 
-extern "C" char *PutReferenceAssembly(const char *assembly, const char *schema) {
-    C_WRAPPER(PutReferenceAssembly(string(assembly), schema ? schema : ""));
+extern "C" char *put_genomic_reference_assembly_sql(const char *assembly, const char *schema) {
+    C_WRAPPER(PutGenomicReferenceAssemblySQL(string(assembly), schema ? schema : ""));
+}
+
+static void sqlfn_put_genomic_reference_assembly_sql(sqlite3_context *ctx, int argc,
+                                                     sqlite3_value **argv) {
+    string assembly, schema;
+    assert(argc == 1 || argc == 2);
+    ARG_TEXT(assembly, 0)
+    ARG_TEXT_OPTIONAL(schema, 1)
+    SQL_WRAPPER(PutGenomicReferenceAssemblySQL(assembly, schema))
 }
 
 map<unsigned long long, gri_refseq_t>
-GetReferenceSequencesByRid(sqlite3 *dbconn, const string &assembly, const string &schema) {
+GetGenomicReferenceSequencesByRid(sqlite3 *dbconn, const string &assembly, const string &schema) {
     map<unsigned long long, gri_refseq_t> ans;
     string schema_prefix = schema.empty() ? "" : (schema + ".");
 
@@ -757,10 +858,10 @@ GetReferenceSequencesByRid(sqlite3 *dbconn, const string &assembly, const string
     return ans;
 }
 
-map<string, gri_refseq_t> GetReferenceSequencesByName(sqlite3 *dbconn, const string &assembly,
-                                                      const string &schema) {
+map<string, gri_refseq_t>
+GetGenomicReferenceSequencesByName(sqlite3 *dbconn, const string &assembly, const string &schema) {
     map<string, gri_refseq_t> ans;
-    for (const auto &p : GetReferenceSequencesByRid(dbconn, assembly, schema)) {
+    for (const auto &p : GetGenomicReferenceSequencesByRid(dbconn, assembly, schema)) {
         const gri_refseq_t &item = p.second;
         if (ans.find(item.name) != ans.end()) {
             throw runtime_error("GenomicSQLite: reference sequence names are not unique");
@@ -768,4 +869,59 @@ map<string, gri_refseq_t> GetReferenceSequencesByName(sqlite3 *dbconn, const str
         ans[item.name] = item;
     }
     return ans;
+}
+
+/**************************************************************************************************
+ * SQLite loadable extension initialization
+ **************************************************************************************************/
+
+extern "C" int genomicsqliteJson1Init(sqlite3 *db);
+
+static int register_genomicsqlite_functions(sqlite3 *db, const char **pzErrMsg,
+                                            const sqlite3_api_routines *pApi) {
+#define FPNM(fn) #fn, sqlfn_##fn
+    vector<tuple<const char *, void (*)(sqlite3_context *, int, sqlite3_value **), int, int>>
+        scalar_functions = {{FPNM(genomic_range_bin), 2, SQLITE_DETERMINISTIC},
+                            {FPNM(genomic_range_bin), 3, SQLITE_DETERMINISTIC},
+                            {FPNM(genomicsqlite_version_check), 0, 0},
+                            {FPNM(genomicsqlite_uri), 5, 0},
+                            {FPNM(genomicsqlite_tuning_sql), 5, 0},
+                            {FPNM(create_genomic_range_index_sql), 4, 0},
+                            {FPNM(create_genomic_range_index_sql), 5, 0},
+                            {FPNM(genomic_range_rowids_sql), 1, 0},
+                            {FPNM(genomic_range_rowids_sql), 2, 0},
+                            {FPNM(genomic_range_rowids_sql), 3, 0},
+                            {FPNM(genomic_range_rowids_sql), 4, 0},
+                            {FPNM(put_genomic_reference_sequence_sql), 2, 0},
+                            {FPNM(put_genomic_reference_sequence_sql), 3, 0},
+                            {FPNM(put_genomic_reference_sequence_sql), 4, 0},
+                            {FPNM(put_genomic_reference_sequence_sql), 5, 0},
+                            {FPNM(put_genomic_reference_sequence_sql), 6, 0},
+                            {FPNM(put_genomic_reference_assembly_sql), 1, 0},
+                            {FPNM(put_genomic_reference_assembly_sql), 2, 0}};
+    for (const auto &t : scalar_functions) {
+        int rc = sqlite3_create_function_v2(db, get<0>(t), get<2>(t), SQLITE_UTF8 | get<3>(t),
+                                            nullptr, get<1>(t), nullptr, nullptr, nullptr);
+        if (rc != SQLITE_OK)
+            return rc;
+    }
+    return genomicsqliteJson1Init(db);
+}
+
+/*
+** This routine is called when the extension is loaded.
+*/
+extern "C" int sqlite3_genomicsqlite_init(sqlite3 *db, char **pzErrMsg,
+                                          const sqlite3_api_routines *pApi) {
+    SQLITE_EXTENSION_INIT2(pApi);
+    int rc = (new ZstdVFS())->Register("zstd");
+    if (rc != SQLITE_OK)
+        return rc;
+    rc = register_genomicsqlite_functions(db, nullptr, pApi);
+    if (rc != SQLITE_OK)
+        return rc;
+    rc = sqlite3_auto_extension((void (*)(void))register_genomicsqlite_functions);
+    if (rc != SQLITE_OK)
+        return rc;
+    return SQLITE_OK_LOAD_PERMANENTLY;
 }

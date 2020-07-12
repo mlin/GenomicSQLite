@@ -161,7 +161,7 @@ int main(int argc, char *argv[]) {
 
         // create GRI
         progress &&cerr << "genomic range indexing..." << endl;
-        string gri_sql = CreateGenomicRangeIndex(table, "CHROM", "POS", "POS+rlen");
+        string gri_sql = CreateGenomicRangeIndexSQL(table, "CHROM", "POS", "POS+rlen");
         progress &&cerr << gri_sql << endl;
         db->exec(gri_sql);
 

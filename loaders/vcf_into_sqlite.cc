@@ -726,7 +726,7 @@ int main(int argc, char *argv[]) {
             if (length <= 0 || errno) {
                 throw runtime_error("invalid contig length in VCF header");
             }
-            string sql = PutReferenceSequence(ctg["ID"], length, assembly, "", rid);
+            string sql = PutGenomicReferenceSequenceSQL(ctg["ID"], length, assembly, "", rid);
             if (rid == 0) {
                 progress &&cerr << sql << endl;
             } else if (rid == 1) {
@@ -779,7 +779,7 @@ int main(int argc, char *argv[]) {
         // create GRI
         progress &&cerr << "genomic range indexing..." << endl;
         string gri_sql =
-            CreateGenomicRangeIndex(table_prefix + "variants", "rid", "pos", "pos+rlen");
+            CreateGenomicRangeIndexSQL(table_prefix + "variants", "rid", "pos", "pos+rlen");
         progress &&cerr << gri_sql << endl;
         db->exec(gri_sql);
 

@@ -31,7 +31,7 @@ def test_gnomad_sites_small(tmp_path):
 
     query = (
         "SELECT gnomad_variants._rowid_, id_jsarray FROM (SELECT rid FROM __gri_refseq WHERE name=?1) AS chrom, gnomad_variants WHERE gnomad_variants._rowid_ IN"
-        + genomicsqlite.genomic_range_rowids("gnomad_variants", con, qrid="chrom.rid")
+        + genomicsqlite.genomic_range_rowids_sql(con, "gnomad_variants", "chrom.rid")
     )
     rs671 = ("chr12", 111803912, 111804012)
     print(query)

@@ -5,6 +5,7 @@ repos:
     name: clang-format
     language: system
     files: \.(c|cc|cxx|cpp|h|hpp|hxx)$
+    exclude: json1\.c
     verbose: true
     entry: clang-format
     args: [-i,'-style={IndentWidth: 4, ColumnLimit: 100, BreakStringLiterals: false, ReflowComments: false}']
@@ -12,6 +13,7 @@ repos:
     name: cppcheck
     language: system
     files: \.(c|cc|cxx|cpp|h|hpp|hxx)$
+    exclude: json1\.c
     verbose: true
     entry: cppcheck
     args: [-q,--std=c++11]
@@ -22,6 +24,13 @@ repos:
     verbose: true
     entry: black
     args: [-l,'100']
+  - id: flake8
+    name: flake8
+    language: system
+    files: \.py$
+    verbose: true
+    entry: flake8
+    args: [--max-line-length, "100", "--ignore=E501,W503"]
   - id: pylint
     name: pylint
     language: system

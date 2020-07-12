@@ -26,7 +26,7 @@ def test_gnomad_sites_small(tmp_path):
     con = genomicsqlite.connect(dbfile, read_only=True)
     query = (
         "SELECT _rowid_, line FROM gnomad_vcf_lines WHERE _rowid_ IN "
-        + genomicsqlite.genomic_range_rowids("gnomad_vcf_lines", con)
+        + genomicsqlite.genomic_range_rowids_sql(con, "gnomad_vcf_lines")
     )
     rs671 = ("chr12", 111803912, 111804012)
     print(query)
