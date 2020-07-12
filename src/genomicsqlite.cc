@@ -21,34 +21,110 @@ using namespace std;
  * connection & tuning helpers
  **************************************************************************************************/
 
-string _version_msg;
-extern "C" const char *genomicsqlite_version_check() {
+std::string GenomicSQLiteVersionCheck() {
     // The newest SQLite feature currently required is "Generated Columns"
     const int MIN_SQLITE_VERSION_NUMBER = 3031000;
     const string MIN_SQLITE_VERSION = "3.31.0";
     if (sqlite3_libversion_number() < MIN_SQLITE_VERSION_NUMBER) {
-        if (_version_msg.empty()) {
-            _version_msg = "SQLite library version (" + string(sqlite3_libversion()) +
-                           ") is older than required by the GenomicSQLite extension (" +
-                           MIN_SQLITE_VERSION + ")";
-        }
-        return _version_msg.c_str();
+        string version_msg = "SQLite library version (" + string(sqlite3_libversion()) +
+                             ") is older than required by the GenomicSQLite extension (" +
+                             MIN_SQLITE_VERSION + ")";
+        throw std::runtime_error(version_msg);
     }
-    return nullptr;
+    return string(GIT_REVISION);
 }
 
-static void sqlfn_genomicsqlite_version_check(sqlite3_context *ctx, int argc,
-                                              sqlite3_value **argv) {
-    const char *msg = genomicsqlite_version_check();
-    if (msg) {
-        sqlite3_result_error(ctx, msg, -1);
-    } else {
-        sqlite3_result_null(ctx);
+// boilerplate for C bindings to C++ functions
+#define C_WRAPPER(call)                                                                            \
+    string ans;                                                                                    \
+    try {                                                                                          \
+        ans = call;                                                                                \
+    } catch (exception & exn) {                                                                    \
+        ans = string(1, 0) + exn.what();                                                           \
+    }                                                                                              \
+    char *copy = (char *)sqlite3_malloc(ans.size() + 1);                                           \
+    if (copy) {                                                                                    \
+        memcpy(copy, ans.c_str(), ans.size());                                                     \
+        copy[ans.size()] = 0;                                                                      \
+    }                                                                                              \
+    return copy;
+
+extern "C" char *genomicsqlite_version_check() { C_WRAPPER(GenomicSQLiteVersionCheck()) }
+
+#define SQL_WRAPPER(invocation)                                                                    \
+    try {                                                                                          \
+        string ans = invocation;                                                                   \
+        sqlite3_result_text(ctx, ans.c_str(), -1, SQLITE_TRANSIENT);                               \
+    } catch (std::bad_alloc &) {                                                                   \
+        sqlite3_result_error_nomem(ctx);                                                           \
+    } catch (std::exception & exn) {                                                               \
+        sqlite3_result_error(ctx, exn.what(), -1);                                                 \
     }
+
+static void sqlfn_genomicsqlite_version_check(sqlite3_context *ctx, int argc, sqlite3_value **argv){
+    SQL_WRAPPER(GenomicSQLiteVersionCheck())}
+
+std::string GenomicSQLiteDefaultConfigJSON() {
+    return R"({
+    "unsafe_load": false,
+    "page_cache_size": -1048576,
+    "threads": -1,
+    "zstd_level": 6,
+    "inner_page_size": 16384,
+    "outer_page_size": 32768
+})";
 }
 
-string GenomicSQLiteURI(const string &dbfile, bool unsafe_load, int threads, int zstd_level,
-                        int outer_page_size) {
+extern "C" char *genomicsqlite_default_config_json() { C_WRAPPER(GenomicSQLiteDefaultConfigJSON()) }
+
+static void sqlfn_genomicsqlite_default_config_json(sqlite3_context *ctx, int argc,
+                                                    sqlite3_value **argv){
+    SQL_WRAPPER(GenomicSQLiteDefaultConfigJSON())}
+
+string GenomicSQLiteURI(const string &dbfile, const string &config_json = "") {
+    SQLite::Database tmpdb(":memory:", SQLITE_OPEN_CREATE | SQLITE_OPEN_READWRITE);
+
+    string merged_json = GenomicSQLiteDefaultConfigJSON();
+    if (!config_json.empty()) {
+        SQLite::Statement patch(tmpdb, "SELECT json_patch(?,?)");
+        patch.bind(1, merged_json);
+        patch.bind(2, config_json);
+        if (!patch.executeStep() || patch.getColumnCount() != 1 || !patch.getColumn(0).isText())
+            throw std::runtime_error("error processing config JSON");
+        merged_json = patch.getColumn(0).getText();
+    }
+
+    SQLite::Statement extract(tmpdb, "SELECT json_extract(?,?)");
+    extract.bind(1, merged_json);
+
+    extract.bind(2, "$.unsafe_load");
+    if (!extract.executeStep() || extract.getColumnCount() != 1 ||
+        !extract.getColumn(0).isInteger())
+        throw std::runtime_error("error processing config JSON $.unsafe_load");
+    bool unsafe_load = extract.getColumn(0).getInt() != 0;
+    extract.reset();
+
+    extract.bind(2, "$.threads");
+    if (!extract.executeStep() || extract.getColumnCount() != 1 ||
+        !extract.getColumn(0).isInteger())
+        throw std::runtime_error("error processing config JSON $.threads");
+    int threads = extract.getColumn(0).getInt();
+    extract.reset();
+
+    extract.bind(2, "$.outer_page_size");
+    if (!extract.executeStep() || extract.getColumnCount() != 1 ||
+        !extract.getColumn(0).isInteger())
+        throw std::runtime_error("error processing config JSON $.outer_page_size");
+    int outer_page_size = extract.getColumn(0).getInt();
+    extract.reset();
+
+    extract.bind(2, "$.zstd_level");
+    if (!extract.executeStep() || extract.getColumnCount() != 1 ||
+        !extract.getColumn(0).isInteger())
+        throw std::runtime_error("error processing config JSON $.zstd_level");
+    int zstd_level = extract.getColumn(0).getInt();
+    extract.reset();
+
     ostringstream uri;
     uri << "file:" << dbfile << "?vfs=zstd";
     uri << "&threads=" << to_string(threads);
@@ -60,25 +136,8 @@ string GenomicSQLiteURI(const string &dbfile, bool unsafe_load, int threads, int
     return uri.str();
 }
 
-// boilerplate for C bindings to C++ functions
-#define C_WRAPPER(call)                                                                            \
-    string ans;                                                                                    \
-    try {                                                                                          \
-        ans = call;                                                                                \
-    } catch (exception & exn) {                                                                    \
-        ans = string(1, 0) + exn.what();                                                           \
-    }                                                                                              \
-    char *sql = (char *)sqlite3_malloc(ans.size() + 1);                                            \
-    if (sql) {                                                                                     \
-        memcpy(sql, ans.c_str(), ans.size());                                                      \
-        sql[ans.size()] = 0;                                                                       \
-    }                                                                                              \
-    return sql;
-
-extern "C" char *genomicsqlite_uri(const char *dbfile, int unsafe_load, int threads, int zstd_level,
-                                   int outer_page_size) {
-    C_WRAPPER(
-        GenomicSQLiteURI(string(dbfile), unsafe_load != 0, threads, zstd_level, outer_page_size));
+extern "C" char *genomicsqlite_uri(const char *dbfile, const char *config_json) {
+    C_WRAPPER(GenomicSQLiteURI(string(dbfile), config_json ? config_json : ""));
 }
 
 // boilerplate for SQLite custom function bindings
@@ -125,37 +184,64 @@ extern "C" char *genomicsqlite_uri(const char *dbfile, int unsafe_load, int thre
             dest = (const char *)sqlite3_value_text(argv[idx]);                                    \
     }
 
-#define SQL_WRAPPER(invocation)                                                                    \
-    try {                                                                                          \
-        string ans = invocation;                                                                   \
-        sqlite3_result_text(ctx, ans.c_str(), -1, SQLITE_TRANSIENT);                               \
-    } catch (std::bad_alloc &) {                                                                   \
-        sqlite3_result_error_nomem(ctx);                                                           \
-    } catch (std::exception & exn) {                                                               \
-        sqlite3_result_error(ctx, exn.what(), -1);                                                 \
-    }
-
 static void sqlfn_genomicsqlite_uri(sqlite3_context *ctx, int argc, sqlite3_value **argv) {
-    string dbfile;
-    sqlite3_int64 unsafe_load = 0, threads = -1, zstd_level = 6, outer_page_size = 32768;
-    assert(argc == 5);
+    string dbfile, config_json;
+    assert(argc == 2);
     ARG_TEXT(dbfile, 0)
-    ARG_OPTIONAL(unsafe_load, 1, SQLITE_INTEGER, int64)
-    ARG_OPTIONAL(threads, 2, SQLITE_INTEGER, int64)
-    ARG_OPTIONAL(zstd_level, 3, SQLITE_INTEGER, int64)
-    ARG_OPTIONAL(outer_page_size, 4, SQLITE_INTEGER, int64)
-    SQL_WRAPPER(GenomicSQLiteURI(dbfile, unsafe_load != 0, threads, zstd_level, outer_page_size))
+    ARG_TEXT_OPTIONAL(config_json, 1);
+    SQL_WRAPPER(GenomicSQLiteURI(dbfile, config_json))
 }
 
-string GenomicSQLiteTuningSQL(const string &schema, bool unsafe_load, int page_cache_size,
-                              int threads, int inner_page_size) {
+string GenomicSQLiteTuningSQL(const string &config_json, const string &schema = "") {
+    SQLite::Database tmpdb(":memory:", SQLITE_OPEN_CREATE | SQLITE_OPEN_READWRITE);
+
+    string merged_json = GenomicSQLiteDefaultConfigJSON();
+    if (!config_json.empty()) {
+        SQLite::Statement patch(tmpdb, "SELECT json_patch(?,?)");
+        patch.bind(1, merged_json);
+        patch.bind(2, config_json);
+        if (!patch.executeStep() || patch.getColumnCount() != 1 || !patch.getColumn(0).isText())
+            throw std::runtime_error("error processing config JSON");
+        merged_json = patch.getColumn(0).getText();
+    }
+
+    SQLite::Statement extract(tmpdb, "SELECT json_extract(?,?)");
+    extract.bind(1, merged_json);
+
+    extract.bind(2, "$.unsafe_load");
+    if (!extract.executeStep() || extract.getColumnCount() != 1 ||
+        !extract.getColumn(0).isInteger())
+        throw std::runtime_error("error processing config JSON $.unsafe_load");
+    bool unsafe_load = extract.getColumn(0).getInt() != 0;
+    extract.reset();
+
+    extract.bind(2, "$.page_cache_size");
+    if (!extract.executeStep() || extract.getColumnCount() != 1 ||
+        !extract.getColumn(0).isInteger())
+        throw std::runtime_error("error processing config JSON $.page_cache_size");
+    int page_cache_size = extract.getColumn(0).getInt();
+    extract.reset();
+
+    extract.bind(2, "$.threads");
+    if (!extract.executeStep() || extract.getColumnCount() != 1 ||
+        !extract.getColumn(0).isInteger())
+        throw std::runtime_error("error processing config JSON $.threads");
+    int threads = extract.getColumn(0).getInt();
+    extract.reset();
+
+    extract.bind(2, "$.inner_page_size");
+    if (!extract.executeStep() || extract.getColumnCount() != 1 ||
+        !extract.getColumn(0).isInteger())
+        throw std::runtime_error("error processing config JSON $.inner_page_size");
+    int inner_page_size = extract.getColumn(0).getInt();
+    extract.reset();
+
     string schema_prefix;
     if (!schema.empty()) {
         schema_prefix = schema + ".";
     }
     map<string, string> pragmas;
-    pragmas[schema_prefix + "cache_size"] =
-        to_string(page_cache_size != 0 ? page_cache_size : -1048576);
+    pragmas[schema_prefix + "cache_size"] = to_string(page_cache_size);
     pragmas["threads"] = to_string(threads >= 0 ? threads : thread::hardware_concurrency());
     if (unsafe_load) {
         pragmas[schema_prefix + "journal_mode"] = "OFF";
@@ -173,30 +259,21 @@ string GenomicSQLiteTuningSQL(const string &schema, bool unsafe_load, int page_c
     return out.str();
 }
 
-extern "C" char *genomicsqlite_tuning_sql(const char *schema, int unsafe_load, int page_cache_size,
-                                          int threads, int inner_page_size) {
-    C_WRAPPER(GenomicSQLiteTuningSQL(string(schema ? schema : ""), unsafe_load != 0,
-                                     page_cache_size, threads, inner_page_size));
+extern "C" char *genomicsqlite_tuning_sql(const char *config_json, const char *schema) {
+    C_WRAPPER(GenomicSQLiteTuningSQL(string(config_json ? config_json : ""),
+                                     string(schema ? schema : "")))
 }
 
 static void sqlfn_genomicsqlite_tuning_sql(sqlite3_context *ctx, int argc, sqlite3_value **argv) {
-    string schema;
-    sqlite3_int64 unsafe_load = 0, page_cache_size = -1048576, threads = -1,
-                  inner_page_size = 16384;
-    assert(argc == 5);
-    ARG_TEXT_OPTIONAL(schema, 0)
-    ARG_OPTIONAL(unsafe_load, 1, SQLITE_INTEGER, int64)
-    ARG_OPTIONAL(page_cache_size, 2, SQLITE_INTEGER, int64)
-    ARG_OPTIONAL(threads, 3, SQLITE_INTEGER, int64)
-    ARG_OPTIONAL(inner_page_size, 4, SQLITE_INTEGER, int64)
-    SQL_WRAPPER(
-        GenomicSQLiteTuningSQL(schema, unsafe_load != 0, page_cache_size, threads, inner_page_size))
+    string config_json, schema;
+    ARG_TEXT_OPTIONAL(config_json, 0)
+    ARG_TEXT_OPTIONAL(schema, 1)
+    SQL_WRAPPER(GenomicSQLiteTuningSQL(config_json, schema))
 }
 
 bool _ext_loaded = false;
-int GenomicSQLiteOpen(const string &dbfile, sqlite3 **ppDb, int flags, bool unsafe_load,
-                      int page_cache_size, int threads, int zstd_level, int inner_page_size,
-                      int outer_page_size) noexcept {
+int GenomicSQLiteOpen(const string &dbfile, sqlite3 **ppDb, int flags,
+                      const string &config_json) noexcept {
     // ensure extension is registered
     int ret;
     *ppDb = nullptr;
@@ -215,36 +292,37 @@ int GenomicSQLiteOpen(const string &dbfile, sqlite3 **ppDb, int flags, bool unsa
         if (ret != SQLITE_OK) {
             return ret;
         }
-        if (genomicsqlite_version_check()) {
+        try {
+            GenomicSQLiteVersionCheck();
+        } catch (std::exception &exn) {
             return SQLITE_RANGE;
         }
         _ext_loaded = true;
     }
 
     // open as requested
-    ret = sqlite3_open_v2(
-        GenomicSQLiteURI(dbfile, unsafe_load, threads, zstd_level, outer_page_size).c_str(), ppDb,
-        SQLITE_OPEN_URI | flags, nullptr);
-    if (ret != SQLITE_OK) {
-        return ret;
+    try {
+        ret = sqlite3_open_v2(GenomicSQLiteURI(dbfile, config_json).c_str(), ppDb,
+                              SQLITE_OPEN_URI | flags, nullptr);
+        if (ret != SQLITE_OK) {
+            return ret;
+        }
+        return sqlite3_exec(*ppDb, GenomicSQLiteTuningSQL(config_json).c_str(), nullptr, nullptr,
+                            nullptr);
+    } catch (SQLite::Exception &exn) {
+        return exn.getErrorCode();
+    } catch (std::exception &exn) {
+        return SQLITE_ERROR;
     }
-    return sqlite3_exec(
-        *ppDb,
-        GenomicSQLiteTuningSQL(string(), unsafe_load, page_cache_size, threads, inner_page_size)
-            .c_str(),
-        nullptr, nullptr, nullptr);
 }
 
-extern "C" int genomicsqlite_open(const char *filename, sqlite3 **ppDb, int flags, int unsafe_load,
-                                  int page_cache_size, int threads, int zstd_level,
-                                  int inner_page_size, int outer_page_size) {
-    return GenomicSQLiteOpen(string(filename), ppDb, flags, unsafe_load != 0, page_cache_size,
-                             threads, zstd_level, inner_page_size, outer_page_size);
+extern "C" int genomicsqlite_open(const char *filename, sqlite3 **ppDb, int flags,
+                                  const char *config_json) {
+    return GenomicSQLiteOpen(string(filename), ppDb, flags, config_json ? config_json : "");
 }
 
-unique_ptr<SQLite::Database> GenomicSQLiteOpen(const string &dbfile, int flags, bool unsafe_load,
-                                               int page_cache_size, int threads, int zstd_level,
-                                               int inner_page_size, int outer_page_size) {
+unique_ptr<SQLite::Database> GenomicSQLiteOpen(const string &dbfile, int flags,
+                                               const string &config_json) {
     unique_ptr<SQLite::Database> db;
     if (!_ext_loaded) {
         db.reset(new SQLite::Database(":memory:", SQLite::OPEN_READWRITE | SQLite::OPEN_CREATE));
@@ -254,17 +332,11 @@ unique_ptr<SQLite::Database> GenomicSQLiteOpen(const string &dbfile, int flags, 
             throw std::runtime_error("failed loading libgenomicsqlite shared library: " +
                                      string(exn.what()));
         }
-        auto msg = genomicsqlite_version_check();
-        if (msg) {
-            throw runtime_error(msg);
-        }
+        GenomicSQLiteVersionCheck();
         _ext_loaded = true;
     }
-    db.reset(new SQLite::Database(
-        GenomicSQLiteURI(dbfile, unsafe_load, threads, zstd_level, outer_page_size),
-        SQLITE_OPEN_URI | flags));
-    db->exec(
-        GenomicSQLiteTuningSQL(string(), unsafe_load, page_cache_size, threads, inner_page_size));
+    db.reset(new SQLite::Database(GenomicSQLiteURI(dbfile, config_json), SQLITE_OPEN_URI | flags));
+    db->exec(GenomicSQLiteTuningSQL(config_json));
     return db;
 }
 
@@ -884,8 +956,12 @@ static int register_genomicsqlite_functions(sqlite3 *db, const char **pzErrMsg,
         scalar_functions = {{FPNM(genomic_range_bin), 2, SQLITE_DETERMINISTIC},
                             {FPNM(genomic_range_bin), 3, SQLITE_DETERMINISTIC},
                             {FPNM(genomicsqlite_version_check), 0, 0},
-                            {FPNM(genomicsqlite_uri), 5, 0},
-                            {FPNM(genomicsqlite_tuning_sql), 5, 0},
+                            {FPNM(genomicsqlite_default_config_json), 0, 0},
+                            {FPNM(genomicsqlite_uri), 1, 0},
+                            {FPNM(genomicsqlite_uri), 2, 0},
+                            {FPNM(genomicsqlite_tuning_sql), 0, 0},
+                            {FPNM(genomicsqlite_tuning_sql), 1, 0},
+                            {FPNM(genomicsqlite_tuning_sql), 2, 0},
                             {FPNM(create_genomic_range_index_sql), 4, 0},
                             {FPNM(create_genomic_range_index_sql), 5, 0},
                             {FPNM(genomic_range_rowids_sql), 1, 0},

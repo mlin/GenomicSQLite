@@ -1,47 +1,60 @@
 """
 GenomicSQLite Python binding
 """
+import json
 import sqlite3
 from typing import Optional, NamedTuple, Dict
 from ctypes.util import find_library
 
-# load the extension shared-library
+# One-time global initialization -- load the extension shared-library
 _DLL = find_library("genomicsqlite")
 assert _DLL, "couldn't locate genomicsqlite shared-library file"
 # open a dummy connection to :memory: just for setting up the extension
 _MEMCONN = sqlite3.connect(":memory:")
 _MEMCONN.enable_load_extension(True)
 _MEMCONN.load_extension(_DLL)
+
+
+def _execute1(conn, sql, params=None):
+    """
+    conn.execute(sql,params) and return row 1 column 1
+    """
+    return next(conn.execute(sql, params) if params else conn.execute(sql))[0]
+
+
 # check SQLite version
-_MEMCONN.executescript("SELECT genomicsqlite_version_check()")
+__version__ = _execute1(_MEMCONN, "SELECT genomicsqlite_version_check()")
+# load default configuration
+_DEFAULT_CONFIG = json.loads(_execute1(_MEMCONN, "SELECT genomicsqlite_default_config_json()"))
 
 
-def connect(
-    dbfile: str,
-    read_only: bool = False,
-    unsafe_load: bool = False,
-    page_cache_size: Optional[int] = None,
-    threads: Optional[int] = None,
-    zstd_level: Optional[int] = None,
-    inner_page_size: Optional[int] = None,
-    outer_page_size: Optional[int] = None,
-    **kwargs,
-) -> sqlite3.Connection:
-    assert not (read_only and unsafe_load)
-    uri = _execute1(
-        _MEMCONN,
-        "SELECT genomicsqlite_uri(?,?,?,?,?)",
-        (dbfile, 1 if unsafe_load else 0, threads, zstd_level, outer_page_size),
-    )
+def connect(dbfile: str, read_only: bool = False, **kwargs) -> sqlite3.Connection:
+    """
+    Open a SQLite connection & activate GenomicSQLite extension on it
+    """
+
+    # kwargs may be a mix of GenomicSQLite config settings and sqlite3.connect() kwargs. Extract
+    # the GenomicSQLite settings based on the keys found in the default configuration.
+    kwargs = dict(kwargs)
+    config = {}
+    for config_key in _DEFAULT_CONFIG:
+        if config_key in kwargs:
+            config[config_key] = kwargs[config_key]
+            del kwargs[config_key]
+    config_json = json.dumps(config)
+
+    # formulate the URI connection string
+    uri = _execute1(_MEMCONN, "SELECT genomicsqlite_uri(?,?)", (dbfile, config_json),)
     if read_only:
         uri += "&mode=ro"
+
+    # open the connection
     conn = sqlite3.connect(uri, uri=True, **kwargs)
-    tuning_sql = _execute1(
-        conn,
-        "SELECT genomicsqlite_tuning_sql(?,?,?,?,?)",
-        (None, 1 if unsafe_load else 0, page_cache_size, threads, inner_page_size),
-    )
+
+    # perform GenomicSQLite tuning
+    tuning_sql = _execute1(conn, "SELECT genomicsqlite_tuning_sql(?)", (config_json,),)
     conn.executescript(tuning_sql)
+
     return conn
 
 
@@ -142,10 +155,3 @@ def get_reference_sequences_by_name(
         assert item.name not in ans, "genomicsqlite: non-unique reference sequence names"
         ans[item.name] = item
     return ans
-
-
-def _execute1(conn, sql, params=None):
-    """
-    conn.execute(sql,params) and return row 1 column 1
-    """
-    return next(conn.execute(sql, params))[0]

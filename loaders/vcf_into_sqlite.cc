@@ -699,8 +699,8 @@ int main(int argc, char *argv[]) {
         sqlite3_config(SQLITE_CONFIG_MEMSTATUS, 0);
         sqlite3_config(SQLITE_CONFIG_LOOKASIDE, 2048, 128);
         auto db = GenomicSQLiteOpen(
-            outfilename, SQLITE_OPEN_CREATE | SQLITE_OPEN_READWRITE | SQLITE_OPEN_NOMUTEX, true, 0,
-            -1, level);
+            outfilename, SQLITE_OPEN_CREATE | SQLITE_OPEN_READWRITE | SQLITE_OPEN_NOMUTEX,
+            R"( {"unsafe_load": true, "zstd_level": )" + to_string(level) + "}");
 #ifndef NDEBUG
         db->exec("PRAGMA foreign_keys=ON");
 #endif

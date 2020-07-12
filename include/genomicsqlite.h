@@ -4,26 +4,34 @@
 #define GRI_LEVELS (9)
 #define GRI_MAX_LEVEL (GRI_LEVELS - 1)
 
+/*
+ * C bindings
+ *
+ * Convention for all functions returning char*:
+ * - Return value is always a non-null buffer which must be freed using sqlite3_free()
+ * - On success, it's a nonempty, null-terminated string
+ * - On failure, it's a null byte, followed immediately by a null-terminated error message
+ */
+
 #ifdef __cplusplus
 extern "C" {
 #endif
 
 /*
- * Wrap sqlite3_open() and initialize the "connection" for use with GenomicSQLite.
+ * Return the GenomicSQLite version. Also checks the SQLite version, failing if it's incompatible.
  */
-int genomicsqlite_open(const char *dbfile, sqlite3 **ppDb, int flags, int unsafe_load,
-                       int page_cache_size, int threads, int zstd_level, int inner_page_size,
-                       int outer_page_size);
+char *genomicsqlite_version_check();
 
 /*
- * Subroutines of genomicsqlite_open() exposed to support equivalent idiomatic bindings for other
- * programming languages.
+ * Get configuration defaults.
  */
-const char *genomicsqlite_version_check();
-char *genomicsqlite_uri(const char *dbfile, int unsafe_load, int threads, int zstd_level,
-                        int outer_page_size);
-char *genomicsqlite_tuning_sql(const char *attached_schema, int unsafe_load, int page_cache_size,
-                               int threads, int inner_page_size);
+char *genomicsqlite_default_config_json();
+
+/*
+ * Wrap sqlite3_open() and initialize the "connection" for use with GenomicSQLite. config_json if
+ * supplied, will be merged into defaults (i.e. it's not necessary to include defaults)
+ */
+int genomicsqlite_open(const char *dbfile, sqlite3 **ppDb, int flags, const char *config_json);
 
 /*
  * Genomic range indexing
@@ -42,7 +50,7 @@ char *put_genomic_reference_sequence_sql(const char *name, sqlite3_int64 length,
                                          sqlite3_int64 rid, const char *attached_schema);
 
 /*
- * C++ bindings: are liable to throw exceptions except where marked
+ * C++ bindings: are liable to throw exceptions except where marked noexcept
  */
 #ifdef __cplusplus
 }
@@ -50,27 +58,20 @@ char *put_genomic_reference_sequence_sql(const char *name, sqlite3_int64 length,
 #include <map>
 #include <string>
 
+std::string GenomicSQLiteVersionCheck();
+std::string GenomicSQLiteDefaultConfigJSON();
+
 int GenomicSQLiteOpen(const std::string &dbfile, sqlite3 **ppDb, int flags,
-                      bool unsafe_load = false, int page_cache_size = -1048576, int threads = -1,
-                      int zstd_level = 6, int inner_page_size = 16384,
-                      int outer_page_size = 32768) noexcept;
+                      const std::string &config_json = "{}") noexcept;
 #ifdef SQLITECPP_VERSION
 /*
  * For use with SQLiteCpp -- https://github.com/SRombauts/SQLiteCpp
  * (include SQLiteCpp/SQLiteCpp.h first)
  */
 #include <memory>
-std::unique_ptr<SQLite::Database>
-GenomicSQLiteOpen(const std::string &dbfile, int flags, bool unsafe_load = false,
-                  int page_cache_size = -1048576, int threads = -1, int zstd_level = 6,
-                  int inner_page_size = 16384, int outer_page_size = 32768);
+std::unique_ptr<SQLite::Database> GenomicSQLiteOpen(const std::string &dbfile, int flags,
+                                                    const std::string &config_json = "{}");
 #endif
-
-std::string GenomicSQLiteURI(const std::string &dbfile, bool unsafe_load = false, int threads = -1,
-                             int zstd_level = 6, int outer_page_size = 32768);
-std::string GenomicSQLiteTuningSQL(const std::string &attached_schema = "",
-                                   bool unsafe_load = false, int page_cache_size = 0,
-                                   int threads = -1, int inner_page_size = 16384);
 
 std::string CreateGenomicRangeIndexSQL(const std::string &table, const std::string &rid,
                                        const std::string &beg, const std::string &end,
