@@ -34,6 +34,12 @@ char *genomicsqlite_default_config_json();
 int genomicsqlite_open(const char *dbfile, sqlite3 **ppDb, int flags, const char *config_json);
 
 /*
+ * Generate SQL script to run on existing SQLite database (not necessarily GenomicSQLite) to cause
+ * creation of a defragmented & GenomicSQLite-compressed copy.
+ */
+char *genomicsqlite_vacuum_into_sql(const char *destfile, const char *config_json);
+
+/*
  * Genomic range indexing
  */
 char *create_genomic_range_index_sql(const char *table, const char *rid, const char *beg,
@@ -72,6 +78,8 @@ int GenomicSQLiteOpen(const std::string &dbfile, sqlite3 **ppDb, int flags,
 std::unique_ptr<SQLite::Database> GenomicSQLiteOpen(const std::string &dbfile, int flags,
                                                     const std::string &config_json = "{}");
 #endif
+std::string GenomicSQLiteVacuumIntoSQL(const std::string &dbfile,
+                                       const std::string &config_json = "{}");
 
 std::string CreateGenomicRangeIndexSQL(const std::string &table, const std::string &rid,
                                        const std::string &beg, const std::string &end,

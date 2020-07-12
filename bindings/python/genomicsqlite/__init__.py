@@ -58,6 +58,11 @@ def connect(dbfile: str, read_only: bool = False, **kwargs) -> sqlite3.Connectio
     return conn
 
 
+def vacuum_into_sql(conn: sqlite3.Connection, destfile: str, **config) -> None:
+    config_json = json.dumps(config)
+    return _execute1(conn, "SELECT genomicsqlite_vacuum_into_sql(?,?)", (destfile, config_json))
+
+
 def create_genomic_range_index_sql(
     conn: sqlite3.Connection,
     table: str,

@@ -75,15 +75,8 @@ std::string GenomicSQLiteDefaultConfigJSON() {
 })";
 }
 
-extern "C" char *genomicsqlite_default_config_json() { C_WRAPPER(GenomicSQLiteDefaultConfigJSON()) }
-
-static void sqlfn_genomicsqlite_default_config_json(sqlite3_context *ctx, int argc,
-                                                    sqlite3_value **argv){
-    SQL_WRAPPER(GenomicSQLiteDefaultConfigJSON())}
-
-string GenomicSQLiteURI(const string &dbfile, const string &config_json = "") {
-    SQLite::Database tmpdb(":memory:", SQLITE_OPEN_CREATE | SQLITE_OPEN_READWRITE);
-
+static unique_ptr<SQLite::Statement> ConfigExtractor(SQLite::Database &tmpdb,
+                                                     const string &config_json) {
     string merged_json = GenomicSQLiteDefaultConfigJSON();
     if (!config_json.empty()) {
         SQLite::Statement patch(tmpdb, "SELECT json_patch(?,?)");
@@ -94,36 +87,48 @@ string GenomicSQLiteURI(const string &dbfile, const string &config_json = "") {
         merged_json = patch.getColumn(0).getText();
     }
 
-    SQLite::Statement extract(tmpdb, "SELECT json_extract(?,?)");
-    extract.bind(1, merged_json);
+    unique_ptr<SQLite::Statement> ans(new SQLite::Statement(tmpdb, "SELECT json_extract(?,?)"));
+    ans->bind(1, merged_json);
+    return ans;
+}
 
-    extract.bind(2, "$.unsafe_load");
-    if (!extract.executeStep() || extract.getColumnCount() != 1 ||
-        !extract.getColumn(0).isInteger())
+extern "C" char *genomicsqlite_default_config_json() { C_WRAPPER(GenomicSQLiteDefaultConfigJSON()) }
+
+static void sqlfn_genomicsqlite_default_config_json(sqlite3_context *ctx, int argc,
+                                                    sqlite3_value **argv){
+    SQL_WRAPPER(GenomicSQLiteDefaultConfigJSON())}
+
+string GenomicSQLiteURI(const string &dbfile, const string &config_json = "") {
+    SQLite::Database tmpdb(":memory:", SQLITE_OPEN_CREATE | SQLITE_OPEN_READWRITE);
+    auto extract = ConfigExtractor(tmpdb, config_json);
+
+    extract->bind(2, "$.unsafe_load");
+    if (!extract->executeStep() || extract->getColumnCount() != 1 ||
+        !extract->getColumn(0).isInteger())
         throw std::runtime_error("error processing config JSON $.unsafe_load");
-    bool unsafe_load = extract.getColumn(0).getInt() != 0;
-    extract.reset();
+    bool unsafe_load = extract->getColumn(0).getInt() != 0;
+    extract->reset();
 
-    extract.bind(2, "$.threads");
-    if (!extract.executeStep() || extract.getColumnCount() != 1 ||
-        !extract.getColumn(0).isInteger())
+    extract->bind(2, "$.threads");
+    if (!extract->executeStep() || extract->getColumnCount() != 1 ||
+        !extract->getColumn(0).isInteger())
         throw std::runtime_error("error processing config JSON $.threads");
-    int threads = extract.getColumn(0).getInt();
-    extract.reset();
+    int threads = extract->getColumn(0).getInt();
+    extract->reset();
 
-    extract.bind(2, "$.outer_page_size");
-    if (!extract.executeStep() || extract.getColumnCount() != 1 ||
-        !extract.getColumn(0).isInteger())
+    extract->bind(2, "$.outer_page_size");
+    if (!extract->executeStep() || extract->getColumnCount() != 1 ||
+        !extract->getColumn(0).isInteger())
         throw std::runtime_error("error processing config JSON $.outer_page_size");
-    int outer_page_size = extract.getColumn(0).getInt();
-    extract.reset();
+    int outer_page_size = extract->getColumn(0).getInt();
+    extract->reset();
 
-    extract.bind(2, "$.zstd_level");
-    if (!extract.executeStep() || extract.getColumnCount() != 1 ||
-        !extract.getColumn(0).isInteger())
+    extract->bind(2, "$.zstd_level");
+    if (!extract->executeStep() || extract->getColumnCount() != 1 ||
+        !extract->getColumn(0).isInteger())
         throw std::runtime_error("error processing config JSON $.zstd_level");
-    int zstd_level = extract.getColumn(0).getInt();
-    extract.reset();
+    int zstd_level = extract->getColumn(0).getInt();
+    extract->reset();
 
     ostringstream uri;
     uri << "file:" << dbfile << "?vfs=zstd";
@@ -131,7 +136,7 @@ string GenomicSQLiteURI(const string &dbfile, const string &config_json = "") {
     uri << "&outer_page_size=" << to_string(outer_page_size);
     uri << "&level=" << to_string(zstd_level);
     if (unsafe_load) {
-        uri << "&unsafe_load";
+        uri << "&outer_unsafe";
     }
     return uri.str();
 }
@@ -194,47 +199,35 @@ static void sqlfn_genomicsqlite_uri(sqlite3_context *ctx, int argc, sqlite3_valu
 
 string GenomicSQLiteTuningSQL(const string &config_json, const string &schema = "") {
     SQLite::Database tmpdb(":memory:", SQLITE_OPEN_CREATE | SQLITE_OPEN_READWRITE);
+    auto extract = ConfigExtractor(tmpdb, config_json);
 
-    string merged_json = GenomicSQLiteDefaultConfigJSON();
-    if (!config_json.empty()) {
-        SQLite::Statement patch(tmpdb, "SELECT json_patch(?,?)");
-        patch.bind(1, merged_json);
-        patch.bind(2, config_json);
-        if (!patch.executeStep() || patch.getColumnCount() != 1 || !patch.getColumn(0).isText())
-            throw std::runtime_error("error processing config JSON");
-        merged_json = patch.getColumn(0).getText();
-    }
-
-    SQLite::Statement extract(tmpdb, "SELECT json_extract(?,?)");
-    extract.bind(1, merged_json);
-
-    extract.bind(2, "$.unsafe_load");
-    if (!extract.executeStep() || extract.getColumnCount() != 1 ||
-        !extract.getColumn(0).isInteger())
+    extract->bind(2, "$.unsafe_load");
+    if (!extract->executeStep() || extract->getColumnCount() != 1 ||
+        !extract->getColumn(0).isInteger())
         throw std::runtime_error("error processing config JSON $.unsafe_load");
-    bool unsafe_load = extract.getColumn(0).getInt() != 0;
-    extract.reset();
+    bool unsafe_load = extract->getColumn(0).getInt() != 0;
+    extract->reset();
 
-    extract.bind(2, "$.page_cache_size");
-    if (!extract.executeStep() || extract.getColumnCount() != 1 ||
-        !extract.getColumn(0).isInteger())
+    extract->bind(2, "$.page_cache_size");
+    if (!extract->executeStep() || extract->getColumnCount() != 1 ||
+        !extract->getColumn(0).isInteger())
         throw std::runtime_error("error processing config JSON $.page_cache_size");
-    int page_cache_size = extract.getColumn(0).getInt();
-    extract.reset();
+    int page_cache_size = extract->getColumn(0).getInt();
+    extract->reset();
 
-    extract.bind(2, "$.threads");
-    if (!extract.executeStep() || extract.getColumnCount() != 1 ||
-        !extract.getColumn(0).isInteger())
+    extract->bind(2, "$.threads");
+    if (!extract->executeStep() || extract->getColumnCount() != 1 ||
+        !extract->getColumn(0).isInteger())
         throw std::runtime_error("error processing config JSON $.threads");
-    int threads = extract.getColumn(0).getInt();
-    extract.reset();
+    int threads = extract->getColumn(0).getInt();
+    extract->reset();
 
-    extract.bind(2, "$.inner_page_size");
-    if (!extract.executeStep() || extract.getColumnCount() != 1 ||
-        !extract.getColumn(0).isInteger())
+    extract->bind(2, "$.inner_page_size");
+    if (!extract->executeStep() || extract->getColumnCount() != 1 ||
+        !extract->getColumn(0).isInteger())
         throw std::runtime_error("error processing config JSON $.inner_page_size");
-    int inner_page_size = extract.getColumn(0).getInt();
-    extract.reset();
+    int inner_page_size = extract->getColumn(0).getInt();
+    extract->reset();
 
     string schema_prefix;
     if (!schema.empty()) {
@@ -340,6 +333,40 @@ unique_ptr<SQLite::Database> GenomicSQLiteOpen(const string &dbfile, int flags,
     return db;
 }
 
+static string sqlquote(const std::string &v) {
+    // TODO: reject any non-printable characters
+    return "'" + regex_replace(v, std::regex("'", regex::ECMAScript), "''") + "'";
+}
+
+string GenomicSQLiteVacuumIntoSQL(const string &destfile, const string &config_json) {
+    SQLite::Database tmpdb(":memory:", SQLITE_OPEN_CREATE | SQLITE_OPEN_READWRITE);
+    auto extract = ConfigExtractor(tmpdb, config_json);
+    extract->bind(2, "$.inner_page_size");
+    if (!extract->executeStep() || extract->getColumnCount() != 1 ||
+        !extract->getColumn(0).isInteger())
+        throw std::runtime_error("error processing config JSON $.inner_page_size");
+    int inner_page_size = extract->getColumn(0).getInt();
+
+    string desturi = GenomicSQLiteURI(destfile, config_json);
+
+    ostringstream ans;
+    ans << "PRAGMA page_size = " << inner_page_size << ";\nPRAGMA auto_vacuum = FULL"
+        << ";\nVACUUM INTO " << sqlquote(desturi);
+    return ans.str();
+}
+
+char *genomicsqlite_vacuum_into_sql(const char *destfile, const char *config_json) {
+    C_WRAPPER(GenomicSQLiteVacuumIntoSQL(string(destfile), config_json ? config_json : ""));
+}
+
+static void sqlfn_genomicsqlite_vacuum_into_sql(sqlite3_context *ctx, int argc,
+                                                sqlite3_value **argv) {
+    string destfile, config_json;
+    ARG_TEXT(destfile, 0)
+    ARG_TEXT_OPTIONAL(config_json, 1)
+    SQL_WRAPPER(GenomicSQLiteVacuumIntoSQL(destfile, config_json))
+}
+
 /**************************************************************************************************
  * genomic_range_bin() SQL function to calculate bin number from beg,end (optional: max_depth)
  **************************************************************************************************/
@@ -388,11 +415,6 @@ static void sqlfn_genomic_range_bin(sqlite3_context *ctx, int argc, sqlite3_valu
 /**************************************************************************************************
  * GRI implementation
  **************************************************************************************************/
-
-static string sqlquote(const std::string &v) {
-    // TODO: reject any unusual characters
-    return "'" + regex_replace(v, std::regex("'", regex::ECMAScript), "''") + "'";
-}
 
 static string gri_refseq_ddl(const string &schema) {
     string schema_prefix;
@@ -962,6 +984,8 @@ static int register_genomicsqlite_functions(sqlite3 *db, const char **pzErrMsg,
                             {FPNM(genomicsqlite_tuning_sql), 0, 0},
                             {FPNM(genomicsqlite_tuning_sql), 1, 0},
                             {FPNM(genomicsqlite_tuning_sql), 2, 0},
+                            {FPNM(genomicsqlite_vacuum_into_sql), 1, 0},
+                            {FPNM(genomicsqlite_vacuum_into_sql), 2, 0},
                             {FPNM(create_genomic_range_index_sql), 4, 0},
                             {FPNM(create_genomic_range_index_sql), 5, 0},
                             {FPNM(genomic_range_rowids_sql), 1, 0},

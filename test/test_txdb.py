@@ -20,14 +20,15 @@ def txdb(tmp_path):
 
 @pytest.fixture
 def genomicsqlite_txdb(txdb):
+    """
+    import bioC TxDb sourced originally from:
+    http://bioconductor.org/packages/release/BiocViews.html#___TxDb
+    """
     outfile = txdb[:-7] + ".genomicsqlite"
     conn = sqlite3.connect(txdb)
-    conn.executescript("PRAGMA page_size = 16384; PRAGMA auto_vacuum = FULL")
-    outuri = next(conn.execute("SELECT genomicsqlite_uri(?,?)", (outfile, '{"unsafe_load":true}')))[
-        0
-    ]
-    conn.execute("VACUUM INTO ?", (outuri,))
+    conn.executescript(genomicsqlite.vacuum_into_sql(conn, outfile))
     conn.close()
+    # create GRIs on the three feature tables
     conn = genomicsqlite.connect(outfile)
     conn.executescript(
         genomicsqlite.create_genomic_range_index_sql(
