@@ -71,10 +71,6 @@ def create_genomic_range_index_sql(
     )
 
 
-def create_genomic_range_index(conn: sqlite3.Connection, *args, **kwargs) -> None:
-    conn.executescript(create_genomic_range_index_sql(conn, *args, **kwargs))
-
-
 def genomic_range_rowids_sql(
     conn: sqlite3.Connection,
     indexed_table: str,
@@ -93,10 +89,6 @@ def put_reference_assembly_sql(
     return _execute1(conn, "SELECT put_genomic_reference_assembly_sql(?,?)", (assembly, schema))
 
 
-def put_reference_assembly(conn: sqlite3.Connection, *args, **kwargs) -> None:
-    conn.executescript(put_reference_assembly_sql(conn, *args, **kwargs))
-
-
 def put_reference_sequence_sql(
     conn: sqlite3.Connection,
     name: str,
@@ -111,10 +103,6 @@ def put_reference_sequence_sql(
         "SELECT put_genomic_reference_sequence_sql(?,?,?,?,?,?)",
         (name, length, assembly, refget_id, rid, schema),
     )
-
-
-def put_reference_sequence(conn: sqlite3.Connection, *args, **kwargs) -> None:
-    conn.executescript(put_reference_sequence_sql(conn, *args, **kwargs))
 
 
 class ReferenceSequence(NamedTuple):
