@@ -1,6 +1,9 @@
+#!/usr/bin/env python3
 """
 GenomicSQLite Python binding
 """
+import os
+import sys
 import json
 import sqlite3
 from typing import Optional, NamedTuple, Dict
@@ -148,3 +151,50 @@ def get_reference_sequences_by_name(
         assert item.name not in ans, "genomicsqlite: non-unique reference sequence names"
         ans[item.name] = item
     return ans
+
+
+def _cli():
+    """
+    Command-line entry point wrapping the `sqlite3` interactive CLI to open a GenomicSQLite
+    compressed database file.
+
+    This isn't part of the Python-facing GenomicSQLite API, and shouldn't be reimplemented in other
+    language bindings.
+    """
+
+    if len(sys.argv) < 2 or not os.path.isfile(sys.argv[1]):
+        print("Usage: genomicsqlite DBFILENAME [-readonly] [sqlite3_ARG ...]", file=sys.stderr)
+        print(
+            "Enters the sqlite3 interactive CLI on a GenomicSQLite-compressed database.",
+            file=sys.stderr,
+        )
+        sys.exit(1)
+    uri = _execute1(_MEMCONN, "SELECT genomicsqlite_uri(?)", (sys.argv[1],))
+    tuning_sql = _execute1(_MEMCONN, "SELECT genomicsqlite_tuning_sql()")
+
+    if "-readonly" in sys.argv:
+        uri += "&mode=ro"
+    cmd = [
+        "sqlite3",
+        "-cmd",
+        f".load {_DLL}",
+        "-cmd",
+        f".open {uri}",
+        "-cmd",
+        tuning_sql,
+        "-cmd",
+        ".headers on",
+        "-cmd",
+        ".mode tabs",
+        "-cmd",
+        ".databases",
+    ]
+    cmd.extend(sys.argv[2:])
+    if sys.stdout.isatty():
+        print(f"GenomicSQLite {__version__}")
+        print(" ".join((arg if " " not in arg else f"'{arg}'" for arg in cmd)))
+    os.execvp("sqlite3", cmd)
+
+
+if __name__ == "__main__":
+    _cli()

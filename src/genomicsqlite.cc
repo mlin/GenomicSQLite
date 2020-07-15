@@ -4,7 +4,9 @@
 #include <sstream>
 #include <thread>
 #include <vector>
+extern "C" {
 SQLITE_EXTENSION_INIT1
+}
 #include "SQLiteCpp/SQLiteCpp.h"
 #include "genomicsqlite.h"
 #include "zstd_vfs.h"
@@ -191,7 +193,7 @@ extern "C" char *genomicsqlite_uri(const char *dbfile, const char *config_json) 
 
 static void sqlfn_genomicsqlite_uri(sqlite3_context *ctx, int argc, sqlite3_value **argv) {
     string dbfile, config_json;
-    assert(argc == 2);
+    assert(argc == 1 || argc == 2);
     ARG_TEXT(dbfile, 0)
     ARG_TEXT_OPTIONAL(config_json, 1);
     SQL_WRAPPER(GenomicSQLiteURI(dbfile, config_json))
@@ -247,7 +249,7 @@ string GenomicSQLiteTuningSQL(const string &config_json, const string &schema = 
     // must go first:
     out << "PRAGMA " << schema_prefix << "page_size=" << to_string(inner_page_size);
     for (const auto &p : pragmas) {
-        out << ";\nPRAGMA " << p.first << "=" << p.second;
+        out << "; PRAGMA " << p.first << "=" << p.second;
     }
     return out.str();
 }
@@ -969,7 +971,7 @@ GetGenomicReferenceSequencesByName(sqlite3 *dbconn, const string &assembly, cons
  * SQLite loadable extension initialization
  **************************************************************************************************/
 
-extern "C" int genomicsqliteJson1Init(sqlite3 *db);
+extern "C" int genomicsqliteJson1Register(sqlite3 *db);
 
 static int register_genomicsqlite_functions(sqlite3 *db, const char **pzErrMsg,
                                             const sqlite3_api_routines *pApi) {
@@ -1005,7 +1007,7 @@ static int register_genomicsqlite_functions(sqlite3 *db, const char **pzErrMsg,
         if (rc != SQLITE_OK)
             return rc;
     }
-    return genomicsqliteJson1Init(db);
+    return genomicsqliteJson1Register(db);
 }
 
 /*

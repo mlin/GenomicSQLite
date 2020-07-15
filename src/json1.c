@@ -29,12 +29,12 @@
 ** This implementation parses JSON text at 250 MB/s, so it is hard to see
 ** how JSONB might improve on that.)
 */
-#include <sqlite3.h>
 #if !defined(SQLITE_CORE) || defined(SQLITE_ENABLE_JSON1)
 #if !defined(SQLITEINT_H)
-/*#include "sqlite3ext.h"*/
+#include "sqlite3ext.h"
 #endif
-/*SQLITE_EXTENSION_INIT1*/
+/* instead of SQLITE_EXTENSION_INIT1, link to the one in genomicsqlite.cc: */
+extern const sqlite3_api_routines *sqlite3_api;
 #include <assert.h>
 #include <string.h>
 #include <stdlib.h>
@@ -2540,7 +2540,7 @@ static sqlite3_module jsonTreeModule = {
 ** functions and the virtual table implemented by this file.
 ****************************************************************************/
 
-int genomicsqliteJson1Init(sqlite3 *db){
+int genomicsqliteJson1Register(sqlite3 *db){
   int rc = SQLITE_OK;
   unsigned int i;
   static const struct {
