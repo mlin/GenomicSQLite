@@ -117,6 +117,7 @@ def test_refseq():
     lines = create_assembly.strip().split("\n")
     print("\n".join([line for line in lines if "INSERT INTO" in line][:24]))
     assert len([line for line in lines if "INSERT INTO" in line]) == 195
+    print("\n".join([line for line in lines if "INSERT INTO" not in line]))
     assert len([line for line in lines if "INSERT INTO" not in line]) == 2
     con.executescript(create_assembly)
 

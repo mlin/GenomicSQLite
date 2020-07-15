@@ -24,7 +24,7 @@ FetchContent_MakeAvailable(sqlite_zstd_vfs)
 include_directories(${sqlite_zstd_vfs_SOURCE_DIR}/src)
 
 project(genomicsqlite VERSION 1.0
-        DESCRIPTION "Genomics Extensions for SQLite"
+        DESCRIPTION "Genomics Extension for SQLite"
         LANGUAGES C CXX)
 
 set(CMAKE_CXX_STANDARD 11)
@@ -37,7 +37,7 @@ execute_process(COMMAND git describe --tags --long --always --dirty
 
 include_directories(${CMAKE_CURRENT_SOURCE_DIR}/include)
 add_library(genomicsqlite SHARED src/genomicsqlite.cc include/genomicsqlite.h src/json1.c)
-target_link_libraries(genomicsqlite PRIVATE SQLiteCpp zstd)
+target_link_libraries(genomicsqlite PRIVATE sqlite3 SQLiteCpp zstd)
 
 add_subdirectory(loaders)
 
