@@ -127,10 +127,13 @@ def get_reference_sequences_by_rid(
     table = "__gri_refseq"
     if schema:
         table = f"{schema}.{table}"
-    sql = "SELECT rid, name, length, assembly, refget_id FROM " + table
+    sql = (
+        "SELECT gri_rid, gri_refseq_name, gri_refseq_length, gri_assembly, gri_refget_id FROM "
+        + table
+    )
     params = []
     if assembly:
-        sql += " WHERE assembly = ?"
+        sql += " WHERE gri_assembly = ?"
         params = (assembly,)
     ans = {}
     for row in con.execute(sql, params):

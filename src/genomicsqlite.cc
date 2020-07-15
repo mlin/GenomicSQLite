@@ -434,10 +434,10 @@ static string gri_refseq_ddl(const string &schema) {
     }
     ostringstream out;
     out << "CREATE TABLE IF NOT EXISTS " << schema_prefix << "__gri_refseq"
-        << "(rid INTEGER NOT NULL PRIMARY KEY, name TEXT NOT NULL, assembly TEXT,"
-        << " refget_id TEXT UNIQUE, length INTEGER NOT NULL, UNIQUE(assembly,name))"
+        << "(gri_rid INTEGER NOT NULL PRIMARY KEY, gri_refseq_name TEXT NOT NULL, gri_assembly TEXT,"
+        << " gri_refget_id TEXT UNIQUE, gri_refseq_length INTEGER NOT NULL, UNIQUE(gri_assembly,gri_refseq_name))"
         << ";\nCREATE INDEX IF NOT EXISTS " << schema_prefix << "__gri_refseq_name ON "
-        << schema_prefix << "__gri_refseq(name)";
+        << schema_prefix << "__gri_refseq(gri_refseq_name)";
     return out.str();
 }
 
@@ -640,7 +640,7 @@ string PutGenomicReferenceSequenceSQL(const string &name, sqlite3_int64 length,
         out << gri_refseq_ddl(schema) << ";\n";
     }
     out << "INSERT INTO " << schema_prefix
-        << "__gri_refseq(rid,name,assembly,refget_id,length) VALUES("
+        << "__gri_refseq(gri_rid,gri_refseq_name,gri_assembly,gri_refget_id,gri_refseq_length) VALUES("
         << (rid >= 0 ? std::to_string(rid) : "NULL") << "," << sqlquote(name) << ","
         << (assembly.empty() ? "NULL" : sqlquote(assembly)) << ","
         << (refget_id.empty() ? "NULL" : sqlquote(refget_id)) << "," << std::to_string(length)
@@ -930,9 +930,10 @@ GetGenomicReferenceSequencesByRid(sqlite3 *dbconn, const string &assembly, const
     string schema_prefix = schema.empty() ? "" : (schema + ".");
 
     string query =
-        "SELECT rid, name, length, assembly, refget_id FROM " + schema_prefix + "__gri_refseq";
+        "SELECT gri_rid, gri_refseq_name, gri_refseq_length, gri_assembly, gri_refget_id FROM " +
+        schema_prefix + "__gri_refseq";
     if (!assembly.empty()) {
-        query += " WHERE assembly = ?";
+        query += " WHERE gri_assembly = ?";
     }
     shared_ptr<sqlite3_stmt> stmt;
     {
