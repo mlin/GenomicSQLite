@@ -37,7 +37,12 @@ execute_process(COMMAND git describe --tags --long --always --dirty
 
 include_directories(${CMAKE_CURRENT_SOURCE_DIR}/include)
 add_library(genomicsqlite SHARED src/genomicsqlite.cc include/genomicsqlite.h src/json1.c)
-target_link_libraries(genomicsqlite PRIVATE sqlite3 SQLiteCpp zstd)
+if(ZSTD_WHOLE_ARCHIVE)
+    target_link_libraries(genomicsqlite PRIVATE sqlite3 SQLiteCpp -Wl,--whole-archive libzstd.a -Wl,--no-whole-archive)
+else()
+    target_link_libraries(genomicsqlite PRIVATE sqlite3 SQLiteCpp zstd)
+endif()
+
 
 add_subdirectory(loaders)
 

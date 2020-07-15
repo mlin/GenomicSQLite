@@ -1,5 +1,4 @@
 #include <assert.h>
-#include <regex>
 #include <sqlite3ext.h>
 #include <sstream>
 #include <thread>
@@ -336,8 +335,18 @@ unique_ptr<SQLite::Database> GenomicSQLiteOpen(const string &dbfile, int flags,
 }
 
 static string sqlquote(const std::string &v) {
-    // TODO: reject any non-printable characters
-    return "'" + regex_replace(v, std::regex("'", regex::ECMAScript), string("''")) + "'";
+    ostringstream ans;
+    ans << "'";
+    for (char c : v) {
+        if (c < 32 || c > 126)
+            throw std::invalid_argument("non-printable character in: " + v);
+        if (c == '\'')
+            ans << "''";
+        else
+            ans << c;
+    }
+    ans << "'";
+    return ans.str();
 }
 
 string GenomicSQLiteVacuumIntoSQL(const string &destfile, const string &config_json) {
@@ -438,12 +447,6 @@ static pair<string, string> split_schema_table(const string &qtable) {
         return make_pair(string(), qtable);
     }
     return make_pair(qtable.substr(0, p + 1), qtable.substr(p + 1));
-}
-
-static string remove_table_prefixes(const string &expr, const string &table) {
-    // TODO: escape table as needed
-    std::regex table_prefix(table + "\\.", regex::ECMAScript);
-    return regex_replace(expr, table_prefix, string());
 }
 
 string CreateGenomicRangeIndexSQL(const string &schema_table, const string &rid, const string &beg,
