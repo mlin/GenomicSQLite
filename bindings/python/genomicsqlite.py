@@ -85,9 +85,12 @@ def genomic_range_rowids_sql(
     qrid: Optional[str] = None,
     qbeg: Optional[str] = None,
     qend: Optional[str] = None,
+    safe: bool = False,
 ) -> str:
     return _execute1(
-        conn, "SELECT genomic_range_rowids_sql(?,?,?,?)", (indexed_table, qrid, qbeg, qend)
+        conn,
+        f"SELECT genomic_range_rowids_{'safe_' if safe else ''}sql(?,?,?,?)",
+        (indexed_table, qrid, qbeg, qend),
     )
 
 

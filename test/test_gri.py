@@ -160,6 +160,8 @@ def test_depth_detection():
     assert " / 4096)" in query  # level 6
     assert fanout(query) == 2
 
+    assert fanout(genomicsqlite.genomic_range_rowids_sql(con, "features", safe=True)[1:-1]) == 9
+
     con.executescript(
         """
         INSERT INTO features VALUES(43, NULL, 10000000000);

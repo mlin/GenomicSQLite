@@ -646,6 +646,17 @@ static void sqlfn_genomic_range_rowids_sql(sqlite3_context *ctx, int argc, sqlit
         GenomicRangeRowidsSQL(indexed_table, sqlite3_context_db_handle(ctx), qrid, qbeg, qend))
 }
 
+static void sqlfn_genomic_range_rowids_safe_sql(sqlite3_context *ctx, int argc,
+                                                sqlite3_value **argv) {
+    string indexed_table, qrid = "?1", qbeg = "?2", qend = "?3";
+    assert(argc >= 1 && argc <= 4);
+    ARG_TEXT(indexed_table, 0)
+    ARG_TEXT_OPTIONAL(qrid, 1)
+    ARG_TEXT_OPTIONAL(qbeg, 2)
+    ARG_TEXT_OPTIONAL(qend, 3)
+    SQL_WRAPPER(GenomicRangeRowidsSQL(indexed_table, nullptr, qrid, qbeg, qend))
+}
+
 /**************************************************************************************************
  * reference sequence metadata (__gri_refseq) helpers
  **************************************************************************************************/
@@ -1034,6 +1045,10 @@ static int register_genomicsqlite_functions(sqlite3 *db, const char **pzErrMsg,
                  {FPNM(genomic_range_rowids_sql), 2, 0},
                  {FPNM(genomic_range_rowids_sql), 3, 0},
                  {FPNM(genomic_range_rowids_sql), 4, 0},
+                 {FPNM(genomic_range_rowids_safe_sql), 1, 0},
+                 {FPNM(genomic_range_rowids_safe_sql), 2, 0},
+                 {FPNM(genomic_range_rowids_safe_sql), 3, 0},
+                 {FPNM(genomic_range_rowids_safe_sql), 4, 0},
                  {FPNM(put_genomic_reference_sequence_sql), 2, 0},
                  {FPNM(put_genomic_reference_sequence_sql), 3, 0},
                  {FPNM(put_genomic_reference_sequence_sql), 4, 0},

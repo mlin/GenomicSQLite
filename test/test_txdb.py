@@ -83,7 +83,7 @@ def test_txdbquery(genomicsqlite_txdb):
         control_query = f"SELECT _rowid_ FROM {tbl} NOT INDEXED WHERE {pfx}_chrom = ? AND NOT ({pfx}_end < ? OR {pfx}_start > ?) ORDER BY _rowid_"
 
         total_results = 0
-        for _ in range(1000):
+        for _ in range(2000):
             chrom = random.choice(chroms)
             beg = random.randint(0, chrom[1] - 65536)
             end = beg + random.randint(1, random.choice([16, 256, 4096, 65536]))
@@ -91,7 +91,7 @@ def test_txdbquery(genomicsqlite_txdb):
             control_ids = list(row[0] for row in conn.execute(control_query, (chrom[0], beg, end)))
             assert ids == control_ids
             total_results += len(control_ids)
-        assert total_results in (3802, 1341)
+        assert total_results in (7341, 2660)
 
     # join cds to exon
     cds_exon_counts = (
