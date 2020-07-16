@@ -67,7 +67,7 @@ string schemaDDL(const string &table_prefix, vector<map<string, string>> &info_h
             out << ",Description=" << desc->second;
         }
     }
-    out << "\n, FOREIGN KEY (rid) REFERENCES __gri_refseq(rid))";
+    out << "\n, FOREIGN KEY (rid) REFERENCES __gri_refseq(gri_rid))";
 
     if (!format_hrecs.empty()) {
         // TODO: include metadata from SAMPLE header lines

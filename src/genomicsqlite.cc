@@ -393,7 +393,7 @@ const sqlite3_int64 GRI_BIN_OFFSETS[] = {
     1 + 16 + 256 + 4096 + 65536 + 1048576 + 16777216,
     1 + 16 + 256 + 4096 + 65336 + 1048576 + 16777216 + 268435456,
 };
-const sqlite_int64 GRI_POS_OFFSETS[] = {
+const sqlite3_int64 GRI_POS_OFFSETS[] = {
     0, 134217728, 8388608, 524288, 32768, 2048, 128, 8, 0,
 };
 const sqlite3_int64 GRI_BIN_COUNT = GRI_BIN_OFFSETS[GRI_MAX_LEVEL] + 4294967296LL;
@@ -495,66 +495,88 @@ static void sqlfn_create_genomic_range_index_sql(sqlite3_context *ctx, int argc,
     SQL_WRAPPER(CreateGenomicRangeIndexSQL(schema_table, rid, beg, end, max_depth))
 }
 
-struct gri_properties {
+static int gri_bin_depth(sqlite3_int64 bin) {
+    assert(bin >= 0 && bin < GRI_BIN_COUNT);
+    for (int lv = 0; lv < GRI_MAX_LEVEL; ++lv) {
+        if (bin < GRI_BIN_OFFSETS[lv + 1]) {
+            return lv;
+        }
+    }
+    return GRI_MAX_LEVEL;
+}
+
+struct gri_depth_range_t {
     int min_depth = 0, max_depth = GRI_MAX_LEVEL;
 };
 
-static gri_properties InspectGRI(sqlite3 *dbconn, const string &schema_table) {
-    // find the range of nonempty bin levels [min_depth..max_depth]
-    gri_properties ans;
+static gri_depth_range_t DetectDepthRange(sqlite3 *dbconn, const string &schema_table) {
     string table = split_schema_table(schema_table).second;
-    // convoluted query ensures it "skip-scans" the index without requiring ANALYZE
-    string query = "SELECT _rowid_ FROM " + schema_table + " INDEXED BY " + table +
-                   "__gri WHERE _gri_rid IN (SELECT DISTINCT _gri_rid FROM " + schema_table +
-                   " INDEXED BY " + table + "__gri) AND _gri_bin >= ? LIMIT 1";
+
+    // Detect min & max bin depth (level) occupied in the table's GRI. Since bin numbers increase
+    // with depth, we can find the min and max bin numbers & then figure their respective depths.
+    //
+    // We'd like to write simply SELECT MIN(_gri_bin), MAX(_gri_bin) ... and trust SQLite to plan
+    // an efficient skip-scan of the GRI on (_gri_rid, _gri_bin, ...). Unfortunately it doesn't do
+    // that, so instead we write some convoluted SQL that forces the efficient plan.
+    //
+    // This consists of --
+    // (i) recursive CTE to find the set of relevant _gri_rid (because even
+    //       SELECT DISTINCT _gri_rid ... triggers a full index scan)
+    // (ii) for each _gri_rid: pick out the min/max bins with ORDER BY _gri_bin [DESC] LIMIT 1
+    // (iii) min() and  max() over the per-rid answers
+    // We do the (iii) aggregation externally to ensure SQLite only does one pass through the index
+
+    string tbl_gri = schema_table + " INDEXED BY " + table + "__gri";
+    string query =
+        "WITH RECURSIVE __distinct(__rid) AS\n"
+        " (SELECT (SELECT _gri_rid FROM " +
+        tbl_gri +
+        " ORDER BY _gri_rid NULLS LAST LIMIT 1) AS __rid_0 WHERE __rid_0 IS NOT NULL\n"
+        "  UNION ALL\n"
+        "  SELECT (SELECT _gri_rid FROM " +
+        tbl_gri +
+        " WHERE _gri_rid > __rid ORDER BY _gri_rid LIMIT 1) AS __rid_i FROM __distinct WHERE __rid_i IS NOT NULL)\n"
+        "SELECT\n"
+        " (SELECT _gri_bin FROM " +
+        tbl_gri +
+        " WHERE _gri_rid = __rid AND _gri_bin >= 0 ORDER BY _gri_rid, _gri_bin LIMIT 1),\n"
+        " (SELECT _gri_bin FROM " +
+        tbl_gri +
+        " WHERE _gri_rid = __rid AND _gri_bin >= 0 ORDER BY _gri_rid DESC, _gri_bin DESC LIMIT 1)\n"
+        "FROM __distinct";
+    _DBG << endl << query << endl;
     shared_ptr<sqlite3_stmt> stmt;
     {
         sqlite3_stmt *pStmt = nullptr;
         if (sqlite3_prepare_v3(dbconn, query.c_str(), -1, 0, &pStmt, nullptr) != SQLITE_OK) {
+            throw runtime_error(sqlite3_errmsg(dbconn));
             throw runtime_error("GenomicSQLite: table has no genomic range index");
         }
         stmt = shared_ptr<sqlite3_stmt>(pStmt, sqlite3_finalize);
     }
-    for (ans.max_depth = GRI_MAX_LEVEL; ans.max_depth > 0; --(ans.max_depth)) {
-        if (sqlite3_bind_int64(stmt.get(), 1, GRI_BIN_OFFSETS[ans.max_depth]) != SQLITE_OK) {
-            throw runtime_error("GenomicSQLite: error inspecting genomic range index");
+
+    sqlite3_int64 min_bin = GRI_BIN_COUNT, max_bin = -1;
+    int rc;
+    while ((rc = sqlite3_step(stmt.get())) == SQLITE_ROW) {
+        if (sqlite3_column_type(stmt.get(), 0) == SQLITE_INTEGER) {
+            min_bin = min(min_bin, sqlite3_column_int64(stmt.get(), 0));
         }
-        int rc = sqlite3_step(stmt.get());
-        if (rc == SQLITE_ROW && sqlite3_column_type(stmt.get(), 0) == SQLITE_INTEGER) {
-            break;
+        if (sqlite3_column_type(stmt.get(), 1) == SQLITE_INTEGER) {
+            max_bin = max(max_bin, sqlite3_column_int64(stmt.get(), 1));
         }
-        if ((rc != SQLITE_ROW && rc != SQLITE_DONE) || sqlite3_reset(stmt.get()) != SQLITE_OK) {
-            throw runtime_error("GenomicSQLite: error inspecting genomic range index");
-        }
+    }
+    if (rc != SQLITE_DONE) {
+        throw runtime_error("GenomicSQLite: error inspecting genomic range index");
     }
 
-    stmt.reset();
-    query = "SELECT _rowid_ FROM " + schema_table + " INDEXED BY " + table +
-            "__gri WHERE _gri_rid IN (SELECT DISTINCT _gri_rid FROM " + schema_table +
-            " INDEXED BY " + table + "__gri) AND _gri_bin < ? LIMIT 1";
-    {
-        sqlite3_stmt *pStmt = nullptr;
-        if (sqlite3_prepare_v3(dbconn, query.c_str(), -1, 0, &pStmt, nullptr) != SQLITE_OK) {
-            throw runtime_error("GenomicSQLite: table has no genomic range index");
-        }
-        stmt = shared_ptr<sqlite3_stmt>(pStmt, sqlite3_finalize);
+    // set min/max depth based on min/max bin
+    gri_depth_range_t ans;
+    if (min_bin < GRI_BIN_COUNT) {
+        ans.min_depth = gri_bin_depth(min_bin);
     }
-    for (ans.min_depth = 0; ans.min_depth < ans.max_depth; ++(ans.min_depth)) {
-        if (sqlite3_bind_int64(stmt.get(), 1,
-                               (ans.min_depth < GRI_MAX_LEVEL) ? GRI_BIN_OFFSETS[ans.min_depth + 1]
-                                                               : GRI_BIN_COUNT) != SQLITE_OK) {
-            throw runtime_error("GenomicSQLite: error inspecting genomic range index");
-        }
-        int rc = sqlite3_step(stmt.get());
-        if (rc == SQLITE_ROW && sqlite3_column_type(stmt.get(), 0) == SQLITE_INTEGER) {
-            break;
-        }
-        if (rc != SQLITE_ROW && rc != SQLITE_DONE && rc != SQLITE_OK ||
-            sqlite3_reset(stmt.get()) != SQLITE_OK) {
-            throw runtime_error("GenomicSQLite: error inspecting genomic range index");
-        }
+    if (max_bin >= 0) {
+        ans.max_depth = gri_bin_depth(max_bin);
     }
-
     assert(ans.min_depth >= 0 && ans.min_depth <= ans.max_depth && ans.max_depth < GRI_LEVELS);
     return ans;
 }
@@ -585,9 +607,9 @@ static string FilterTerm(const string &indexed_table, const string &qbegs, const
 
 string GenomicRangeRowidsSQL(const string &indexed_table, sqlite3 *dbconn, const string &qrid,
                              const string &qbeg, const string &qend) {
-    gri_properties table_gri;
+    gri_depth_range_t table_gri;
     if (dbconn) {
-        table_gri = InspectGRI(dbconn, indexed_table);
+        table_gri = DetectDepthRange(dbconn, indexed_table);
     }
     string table = split_schema_table(indexed_table).second;
 
