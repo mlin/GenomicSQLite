@@ -1,0 +1,46 @@
+name: build
+on: [push, pull_request]
+
+env:
+  APT_DEPS: libzstd-dev samtools tabix libhts-dev python3-pip
+  PIP_DEPS: pytest pytest-xdist
+
+jobs:
+
+  test:
+    runs-on: ubuntu-20.04
+    strategy:
+      matrix:
+        BUILD_TYPE: [Debug, Release]
+    steps:
+    - uses: actions/checkout@v2
+    - name: deps
+      run: |
+        sudo apt-get install -y $APT_DEPS
+        pip3 install $PIP_DEPS
+    - name: build
+      run: cmake -DCMAKE_BUILD_TYPE=${{ matrix.BUILD_TYPE }} -B build . && cmake --build build -j $(nproc)
+    - name: test
+      run: env -C build ctest -V
+
+  linux-so:
+    runs-on: ubuntu-20.04
+    steps:
+    - uses: actions/checkout@v2
+    - name: detect GIT_REVISION
+      run: echo "::set-env name=GIT_REVISION::$(git describe --tags --long --always)"
+    - name: build loaders
+      run: |
+        sudo apt-get install -y $APT_DEPS
+        pip3 install $PIP_DEPS
+        cmake -DCMAKE_BUILD_TYPE=Release -B build . && cmake --build build -j $(nproc)
+        rm build/libgenomicsqlite.so
+        sudo apt-get remove -y libzstd-dev  # should be linked into libgenomicsqlite.so
+    - name: build portable .so in docker
+      run: docker build -t genomicsqlite . && docker run -v $(pwd):/mnt --rm genomicsqlite cp build/libgenomicsqlite.so /mnt/build/
+    - name: test portable .so
+      run: env -C build ctest -V
+    - uses: actions/upload-artifact@v2
+      with:
+        name: GenomicSQLite-Linux-x86_64-so-${{ env.GIT_REVISION }}
+        path: build/libgenomicsqlite.so
