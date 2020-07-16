@@ -517,7 +517,7 @@ static gri_depth_range_t DetectDepthRange(sqlite3 *dbconn, const string &schema_
     //
     // We'd like to write simply SELECT MIN(_gri_bin), MAX(_gri_bin) ... and trust SQLite to plan
     // an efficient skip-scan of the GRI on (_gri_rid, _gri_bin, ...). Unfortunately it doesn't do
-    // that, so instead we write some convoluted SQL that forces the efficient plan.
+    // that, so instead we write convoluted SQL that forces the efficient plan.
     //
     // This consists of --
     // (i) recursive CTE to find the set of relevant _gri_rid (because even
@@ -544,7 +544,7 @@ static gri_depth_range_t DetectDepthRange(sqlite3 *dbconn, const string &schema_
         tbl_gri +
         " WHERE _gri_rid = __rid AND _gri_bin >= 0 ORDER BY _gri_rid DESC, _gri_bin DESC LIMIT 1)\n"
         "FROM __distinct";
-    _DBG << endl << query << endl;
+    //_DBG << endl << query << endl;
     shared_ptr<sqlite3_stmt> stmt;
     {
         sqlite3_stmt *pStmt = nullptr;

@@ -110,6 +110,85 @@ def test_indexing():
         genomicsqlite.genomic_range_rowids_sql(con, "nonexistent_table")
 
 
+def test_depth_detection():
+    # test corner cases for the bit of genomic_range_rowids() which detects the depth range
+
+    con = sqlite3.connect(":memory:")
+    con.executescript("CREATE TABLE features(rid INTEGER, beg INTEGER, end INTEGER)")
+    con.executescript(
+        genomicsqlite.create_genomic_range_index_sql(con, "features", "rid", "beg", "end")
+    )
+
+    def fanout(query):
+        return sum(
+            1
+            for expl in con.execute("EXPLAIN QUERY PLAN " + query, (None, None, None))
+            if "((_gri_rid,_gri_bin)>(?,?) AND (_gri_rid,_gri_bin)<(?,?))" in expl[3]
+        )
+
+    assert fanout(genomicsqlite.genomic_range_rowids_sql(con, "features")[1:-1]) == 9
+
+    con.executescript(
+        "INSERT INTO features VALUES(NULL, NULL, NULL); INSERT INTO features VALUES(NULL, 0, 10000000000)"
+    )
+    assert fanout(genomicsqlite.genomic_range_rowids_sql(con, "features")[1:-1]) == 9
+    assert not list(
+        con.execute(genomicsqlite.genomic_range_rowids_sql(con, "features")[1:-1], (None, 123, 456))
+    )
+
+    con.executescript("INSERT INTO features VALUES(42, 1048568, 1048584)")
+    query = genomicsqlite.genomic_range_rowids_sql(con, "features")[1:-1]
+    print("\n" + query)
+    assert " / 4096)" in query  # level 6
+    assert not list(
+        con.execute(
+            genomicsqlite.genomic_range_rowids_sql(con, "features")[1:-1], (42, None, 1048584)
+        )
+    )
+
+    assert fanout(query) == 1
+
+    con.executescript(
+        """
+        INSERT INTO features VALUES(44, 1048568, 1048584);
+        INSERT INTO features VALUES(44, 0, 64000)
+        """
+    )
+    query = genomicsqlite.genomic_range_rowids_sql(con, "features")[1:-1]
+    print("\n" + query)
+    assert " / 65536)" in query  # level 5
+    assert " / 4096)" in query  # level 6
+    assert fanout(query) == 2
+
+    con.executescript(
+        """
+        INSERT INTO features VALUES(43, NULL, 10000000000);
+        INSERT INTO features VALUES(44, 0, NULL)
+        """
+    )
+    assert fanout(genomicsqlite.genomic_range_rowids_sql(con, "features")[1:-1]) == 2
+
+    con.executescript(
+        """
+    INSERT INTO features VALUES(43, 0, 10000000000);
+    INSERT INTO features VALUES(43, 32, 48)
+    """
+    )
+    query = genomicsqlite.genomic_range_rowids_sql(con, "features")[1:-1]
+    print("\n" + query)
+    assert " / 16)" not in query
+    assert fanout(query) == 8
+
+    con.executescript(
+        """
+        INSERT INTO features VALUES(43, 0, 10000000000);
+        INSERT INTO features VALUES(43, 32, 47)
+        """
+    )
+    query = genomicsqlite.genomic_range_rowids_sql(con, "features")[1:-1]
+    assert fanout(query) == 9
+
+
 def test_refseq():
     con = sqlite3.connect(":memory:")
 
