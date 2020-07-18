@@ -3,7 +3,6 @@
 #include "SQLiteCpp/SQLiteCpp.h"
 #include "genomicsqlite.h"
 #include "strlcpy.h"
-#include <htslib/vcf.h>
 #include <iostream>
 #include <memory>
 #include <sqlite3.h>

@@ -194,11 +194,24 @@ def _cli():
         ".mode tabs",
         "-cmd",
         ".databases",
+        "-cmd",
+        'SELECT "GenomicSQLite " || genomicsqlite_version_check()',
+        "-cmd",
+        '.prompt "GenomicSQLite> "',
     ]
     cmd.extend(sys.argv[2:])
     if sys.stdout.isatty():
-        print(f"GenomicSQLite {__version__}")
-        print(" ".join((arg if " " not in arg else f"'{arg}'" for arg in cmd)))
+        print(
+            " ".join(
+                (
+                    (
+                        (arg if " " not in arg else f"'{arg}'")
+                        + (" \\\n    " if len(arg) > 50 else "")
+                    )
+                    for arg in cmd
+                )
+            )
+        )
     os.execvp("sqlite3", cmd)
 
 

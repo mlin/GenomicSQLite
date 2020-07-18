@@ -1,3 +1,8 @@
+/*
+ * vcf_lines_into_sqlite: load VCF into a simple GenomicSQLite database which merely stores each
+ * text line alongside bare-essential columns for genomic range indexing (CHROM,POS,rlen). The
+ * header is jammed into a row with null positions.
+ */
 #include "common.hpp"
 #include <fstream>
 #include <getopt.h>
@@ -160,10 +165,12 @@ int main(int argc, char *argv[]) {
         progress &&cerr << "inserted " << count << " lines" << endl;
 
         // create GRI
-        progress &&cerr << "genomic range indexing..." << endl;
-        string gri_sql = CreateGenomicRangeIndexSQL(table, "CHROM", "POS", "POS+rlen");
-        progress &&cerr << gri_sql << endl;
-        db->exec(gri_sql);
+        if (gri) {
+            progress &&cerr << "genomic range indexing..." << endl;
+            string gri_sql = CreateGenomicRangeIndexSQL(table, "CHROM", "POS", "POS+rlen");
+            progress &&cerr << gri_sql << endl;
+            db->exec(gri_sql);
+        }
 
         progress &&cerr << "COMMIT" << endl;
         txn.commit();

@@ -1,9 +1,18 @@
+/*
+ * vcf_into_sqlite: load VCF/gVCF/pVCF into a GenomicSQLite database with a detailed schema
+ * unpacking genotypes and all QC fields
+ * - if there are individual genotypes:
+ *   - they & FORMAT fields go into a separate table keyed by (variant,sample)
+ *   - sample names go into a dimension table referred to by integer ID elsewhere
+ * - array values are stored as JSON
+ */
 #include "common.hpp"
 #include <atomic>
 #include <chrono>
 #include <cmath>
 #include <functional>
 #include <getopt.h>
+#include <htslib/vcf.h>
 #include <map>
 #include <set>
 #include <sstream>
@@ -40,8 +49,9 @@ string schemaDDL(const string &table_prefix, vector<map<string, string>> &info_h
 
     OStringStream out;
     out << "CREATE TABLE " << table_prefix
-        << "variants (rowid INTEGER NOT NULL PRIMARY KEY, rid INTEGER NOT NULL, POS INTEGER NOT NULL, rlen INTEGER NOT NULL,"
-        << " ID_jsarray TEXT, REF TEXT NOT NULL, ALT_jsarray TEXT, QUAL REAL, FILTER_jsarray";
+        << "variants (rowid INTEGER NOT NULL PRIMARY KEY, rid INTEGER NOT NULL REFERENCES __gri_refseq(gri_rid), "
+           "POS INTEGER NOT NULL, rlen INTEGER NOT NULL, ID_jsarray TEXT, REF TEXT NOT NULL, "
+           "ALT_jsarray TEXT, QUAL REAL, FILTER_jsarray";
 
     // INFO columns
     for (auto &hrec : info_hrecs) {
@@ -67,14 +77,16 @@ string schemaDDL(const string &table_prefix, vector<map<string, string>> &info_h
             out << ",Description=" << desc->second;
         }
     }
-    out << "\n, FOREIGN KEY (rid) REFERENCES __gri_refseq(gri_rid))";
+    out << "\n)";
 
     if (!format_hrecs.empty()) {
         // TODO: include metadata from SAMPLE header lines
         out << ";\nCREATE TABLE " << table_prefix
             << "samples (rowid INTEGER NOT NULL PRIMARY KEY, id TEXT NOT NULL)";
         out << ";\nCREATE TABLE " << table_prefix
-            << "genotypes (variant INTEGER NOT NULL, sample INTEGER NOT NULL";
+            << "genotypes (variant INTEGER NOT NULL REFERENCES " << table_prefix
+            << "variants(rowid), sample INTEGER NOT NULL REFERENCES " << table_prefix
+            << "samples(rowid)";
 
         // FORMAT columns
         for (auto &hrec : format_hrecs) {
@@ -108,10 +120,7 @@ string schemaDDL(const string &table_prefix, vector<map<string, string>> &info_h
                 }
             }
         }
-        out << "\n, PRIMARY KEY (variant, sample)"
-            << "\n, FOREIGN KEY (variant) REFERENCES " << table_prefix << "variants(rowid)"
-            << "\n, FOREIGN KEY (sample) REFERENCES " << table_prefix
-            << "samples(rowid)) WITHOUT ROWID";
+        out << "\n, PRIMARY KEY (variant, sample)) WITHOUT ROWID";
     }
 
     return string(out.Get());
@@ -777,11 +786,13 @@ int main(int argc, char *argv[]) {
         progress && (reader.log(), true);
 
         // create GRI
-        progress &&cerr << "genomic range indexing..." << endl;
-        string gri_sql =
-            CreateGenomicRangeIndexSQL(table_prefix + "variants", "rid", "pos", "pos+rlen");
-        progress &&cerr << gri_sql << endl;
-        db->exec(gri_sql);
+        if (gri) {
+            progress &&cerr << "genomic range indexing..." << endl;
+            string gri_sql =
+                CreateGenomicRangeIndexSQL(table_prefix + "variants", "rid", "pos", "pos+rlen");
+            progress &&cerr << gri_sql << endl;
+            db->exec(gri_sql);
+        }
 
         progress &&cerr << "COMMIT" << endl;
         txn.commit();
