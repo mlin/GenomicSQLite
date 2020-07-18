@@ -17,7 +17,7 @@ jobs:
     - name: deps
       run: |
         sudo apt-get install -y $APT_DEPS
-        pip3 install $PIP_DEPS
+        sudo pip3 install --system $PIP_DEPS
     - name: build
       run: cmake -DCMAKE_BUILD_TYPE=${{ matrix.BUILD_TYPE }} -B build . && cmake --build build -j $(nproc)
     - name: test
@@ -32,7 +32,7 @@ jobs:
     - name: build loaders
       run: |
         sudo apt-get install -y $APT_DEPS
-        pip3 install $PIP_DEPS
+        sudo pip3 install --system $PIP_DEPS
         cmake -DCMAKE_BUILD_TYPE=Release -B build . && cmake --build build -j $(nproc)
         rm build/libgenomicsqlite.so
         sudo apt-get remove -y libzstd-dev  # should be linked into libgenomicsqlite.so
@@ -44,3 +44,14 @@ jobs:
       with:
         name: GenomicSQLite-Linux-x86_64-so-${{ env.GIT_REVISION }}
         path: build/libgenomicsqlite.so
+
+  lint:
+    runs-on: ubuntu-20.04
+    steps:
+    - uses: actions/checkout@v2
+    - name: deps
+      run: |
+        sudo apt-get install -y clang-format cppcheck python3-pip
+        sudo pip3 install --system pre-commit $PIP_DEPS black flake8 pylint
+    - name: pre-commit
+      run: pre-commit run --all-files
