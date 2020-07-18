@@ -49,7 +49,7 @@ string schemaDDL(const string &table_prefix, vector<map<string, string>> &info_h
 
     OStringStream out;
     out << "CREATE TABLE " << table_prefix
-        << "variants (rowid INTEGER NOT NULL PRIMARY KEY, rid INTEGER NOT NULL REFERENCES __gri_refseq(gri_rid), "
+        << "variants (variant_rowid INTEGER NOT NULL PRIMARY KEY, rid INTEGER NOT NULL REFERENCES __gri_refseq(gri_rid), "
            "POS INTEGER NOT NULL, rlen INTEGER NOT NULL, ID_jsarray TEXT, REF TEXT NOT NULL, "
            "ALT_jsarray TEXT, QUAL REAL, FILTER_jsarray";
 
@@ -82,11 +82,11 @@ string schemaDDL(const string &table_prefix, vector<map<string, string>> &info_h
     if (!format_hrecs.empty()) {
         // TODO: include metadata from SAMPLE header lines
         out << ";\nCREATE TABLE " << table_prefix
-            << "samples (rowid INTEGER NOT NULL PRIMARY KEY, id TEXT NOT NULL)";
+            << "samples (sample_id INTEGER NOT NULL PRIMARY KEY, sample_name TEXT NOT NULL)";
         out << ";\nCREATE TABLE " << table_prefix
-            << "genotypes (variant INTEGER NOT NULL REFERENCES " << table_prefix
-            << "variants(rowid), sample INTEGER NOT NULL REFERENCES " << table_prefix
-            << "samples(rowid)";
+            << "genotypes (variant_rowid INTEGER NOT NULL REFERENCES " << table_prefix
+            << "variants(variant_rowid), sample_id INTEGER NOT NULL REFERENCES " << table_prefix
+            << "samples(sample_id)";
 
         // FORMAT columns
         for (auto &hrec : format_hrecs) {
@@ -120,7 +120,7 @@ string schemaDDL(const string &table_prefix, vector<map<string, string>> &info_h
                 }
             }
         }
-        out << "\n, PRIMARY KEY (variant, sample)) WITHOUT ROWID";
+        out << "\n, PRIMARY KEY (variant_rowid, sample_id)) WITHOUT ROWID";
     }
 
     return string(out.Get());
@@ -156,7 +156,8 @@ unique_ptr<SQLite::Statement> prepare_insert_genotype(const string &table_prefix
 }
 
 void insert_samples(bcf_hdr_t *hdr, const string &table_prefix, SQLite::Database &db) {
-    SQLite::Statement stmt(db, "INSERT INTO " + table_prefix + "samples(rowid,id) VALUES(?,?)");
+    SQLite::Statement stmt(db, "INSERT INTO " + table_prefix +
+                                   "samples(sample_id,sample_name) VALUES(?,?)");
 
     for (sqlite3_int64 i = 0; i < bcf_hdr_nsamples(hdr); ++i) {
         stmt.bind(1, i);

@@ -1,4 +1,4 @@
-# Genomics Extensions for SQLite
+# Genomics Extension for SQLite
 
 ![build](https://github.com/mlin/GenomicSQLite/workflows/build/badge.svg?branch=main)
 
