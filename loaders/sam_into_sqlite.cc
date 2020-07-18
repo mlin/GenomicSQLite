@@ -30,7 +30,7 @@ map<string, int> import_readgroups(const string &table_prefix, sam_hdr_t *hdr, S
                                    bool progress) {
     string ddl =
         "CREATE TABLE " + table_prefix +
-        "readgroups(rg_id INTEGER PRIMARY KEY, rg_name TEXT NOT NULL UNIQUE, rg_tags_json TEXT NOT NULL)";
+        "readgroups(rg_id INTEGER PRIMARY KEY, rg_name TEXT NOT NULL UNIQUE, rg_tags_json TEXT NOT NULL DEFAULT '{}')";
     progress &&cerr << ddl << endl;
     db.exec(ddl);
 
@@ -228,7 +228,7 @@ int main(int argc, char *argv[]) {
             if (sam_hdr_find_tag_pos(hdr.get(), "SQ", rid, "M5", ks.get()) == 0) {
                 m5 = ks->s;
             }
-            string sql = PutGenomicReferenceSequenceSQL(name, length, "", m5, rid);
+            string sql = PutGenomicReferenceSequenceSQL(name, length, "", m5, "{}", rid);
             if (rid == 0) {
                 progress &&cerr << sql << endl;
             } else if (rid == 1) {
@@ -244,7 +244,7 @@ int main(int argc, char *argv[]) {
         // TODO: allow --append
         string ddl =
             "CREATE TABLE " + table_prefix +
-            "reads(rowid INTEGER PRIMARY KEY, flag INTEGER NOT NULL, rid INTEGER REFERENCES __gri_refseq(gri_rid), pos INTEGER, endpos INTEGER, "
+            "reads(rowid INTEGER PRIMARY KEY, flag INTEGER NOT NULL, rid INTEGER REFERENCES __gri_refseq(_gri_rid), pos INTEGER, endpos INTEGER, "
             "mapq INTEGER, cigar TEXT, rnext INTEGER, pnext INTEGER, tlen INTEGER, "
             "rg_id INTEGER REFERENCES " +
             table_prefix + "readgroups(rg_id))";
@@ -253,7 +253,7 @@ int main(int argc, char *argv[]) {
                "reads(rowid), qname TEXT, seq TEXT, qual TEXT)";
         ddl += ";\nCREATE TABLE " + table_prefix +
                "reads_tags(rowid INTEGER PRIMARY KEY REFERENCES " + table_prefix +
-               "reads(rowid), tags_json TEXT)";
+               "reads(rowid), tags_json TEXT NOT NULL DEFAULT '{}')";
 
         progress &&cerr << ddl << endl;
         db->exec(ddl);

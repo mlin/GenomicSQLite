@@ -75,7 +75,8 @@ char *genomic_range_rowids_sql(const char *indexed_table, sqlite3 *dbconn, const
 char *put_genomic_reference_assembly_sql(const char *assembly, const char *attached_schema);
 char *put_genomic_reference_sequence_sql(const char *name, sqlite3_int64 length,
                                          const char *assembly, const char *refget_id,
-                                         sqlite3_int64 rid, const char *attached_schema);
+                                         const char *meta_json, sqlite3_int64 rid,
+                                         const char *attached_schema);
 
 /*
  * C++ bindings: are liable to throw exceptions except where marked noexcept
@@ -116,6 +117,7 @@ std::string PutGenomicReferenceAssemblySQL(const std::string &assembly,
 std::string PutGenomicReferenceSequenceSQL(const std::string &name, sqlite3_int64 length,
                                            const std::string &assembly = "",
                                            const std::string &refget_id = "",
+                                           const std::string &meta_json = "{}",
                                            sqlite3_int64 rid = -1,
                                            const std::string &attached_schema = "");
 

@@ -434,8 +434,9 @@ static string gri_refseq_ddl(const string &schema) {
     }
     ostringstream out;
     out << "CREATE TABLE IF NOT EXISTS " << schema_prefix << "__gri_refseq"
-        << "(gri_rid INTEGER NOT NULL PRIMARY KEY, gri_refseq_name TEXT NOT NULL, gri_assembly TEXT,"
-        << " gri_refget_id TEXT UNIQUE, gri_refseq_length INTEGER NOT NULL, UNIQUE(gri_assembly,gri_refseq_name))"
+        << "(_gri_rid INTEGER NOT NULL PRIMARY KEY, gri_refseq_name TEXT NOT NULL, gri_assembly TEXT,"
+        << " gri_refget_id TEXT UNIQUE, gri_refseq_length INTEGER NOT NULL, gri_refseq_meta_json TEXT NOT NULL DEFAULT '{}', "
+        << "UNIQUE(gri_assembly,gri_refseq_name))"
         << ";\nCREATE INDEX IF NOT EXISTS " << schema_prefix << "__gri_refseq_name ON "
         << schema_prefix << "__gri_refseq(gri_refseq_name)";
     return out.str();
@@ -663,7 +664,8 @@ static void sqlfn_genomic_range_rowids_safe_sql(sqlite3_context *ctx, int argc,
 
 string PutGenomicReferenceSequenceSQL(const string &name, sqlite3_int64 length,
                                       const string &assembly, const string &refget_id,
-                                      sqlite3_int64 rid, const string &schema, bool with_ddl) {
+                                      const string &meta_json, sqlite3_int64 rid,
+                                      const string &schema, bool with_ddl) {
     string schema_prefix;
     if (!schema.empty()) {
         schema_prefix = schema + ".";
@@ -673,40 +675,45 @@ string PutGenomicReferenceSequenceSQL(const string &name, sqlite3_int64 length,
         out << gri_refseq_ddl(schema) << ";\n";
     }
     out << "INSERT INTO " << schema_prefix
-        << "__gri_refseq(gri_rid,gri_refseq_name,gri_assembly,gri_refget_id,gri_refseq_length) VALUES("
+        << "__gri_refseq(_gri_rid,gri_refseq_name,gri_assembly,gri_refget_id,gri_refseq_length,gri_refseq_meta_json) VALUES("
         << (rid >= 0 ? std::to_string(rid) : "NULL") << "," << sqlquote(name) << ","
         << (assembly.empty() ? "NULL" : sqlquote(assembly)) << ","
         << (refget_id.empty() ? "NULL" : sqlquote(refget_id)) << "," << std::to_string(length)
-        << ")";
+        << "," << sqlquote(meta_json.empty() ? string("{}") : meta_json) << ")";
     return out.str();
 }
 
 string PutGenomicReferenceSequenceSQL(const string &name, sqlite3_int64 length,
                                       const string &assembly, const string &refget_id,
-                                      sqlite3_int64 rid, const string &schema) {
-    return PutGenomicReferenceSequenceSQL(name, length, assembly, refget_id, rid, schema, true);
+                                      const string &meta_json, sqlite3_int64 rid,
+                                      const string &schema) {
+    return PutGenomicReferenceSequenceSQL(name, length, assembly, refget_id, meta_json, rid, schema,
+                                          true);
 }
 
 extern "C" char *put_genomic_reference_sequence_sql(const char *name, sqlite3_int64 length,
                                                     const char *assembly, const char *refget_id,
-                                                    sqlite3_int64 rid, const char *schema) {
-    C_WRAPPER(PutGenomicReferenceSequenceSQL(name, length, assembly ? assembly : "",
-                                             refget_id ? refget_id : "", rid, schema ? schema : "",
-                                             true));
+                                                    const char *meta_json, sqlite3_int64 rid,
+                                                    const char *schema) {
+    C_WRAPPER(PutGenomicReferenceSequenceSQL(
+        name, length, assembly ? assembly : "", refget_id ? refget_id : "",
+        meta_json ? meta_json : "{}", rid, schema ? schema : "", true));
 }
 
 static void sqlfn_put_genomic_reference_sequence_sql(sqlite3_context *ctx, int argc,
                                                      sqlite3_value **argv) {
-    string name, assembly, refget_id, schema;
+    string name, assembly, refget_id, meta_json = "{}", schema;
     sqlite3_int64 length, rid = -1;
-    assert(argc >= 2 && argc <= 6);
+    assert(argc >= 2 && argc <= 7);
     ARG_TEXT(name, 0)
     ARG(length, 1, SQLITE_INTEGER, int64)
     ARG_TEXT_OPTIONAL(assembly, 2)
     ARG_TEXT_OPTIONAL(refget_id, 3)
-    ARG_OPTIONAL(rid, 4, SQLITE_INTEGER, int64)
-    ARG_TEXT_OPTIONAL(schema, 5);
-    SQL_WRAPPER(PutGenomicReferenceSequenceSQL(name, length, assembly, refget_id, rid, schema))
+    ARG_TEXT_OPTIONAL(meta_json, 4)
+    ARG_OPTIONAL(rid, 5, SQLITE_INTEGER, int64)
+    ARG_TEXT_OPTIONAL(schema, 6);
+    SQL_WRAPPER(
+        PutGenomicReferenceSequenceSQL(name, length, assembly, refget_id, meta_json, rid, schema))
 }
 
 struct hardcoded_refseq_t {
@@ -939,7 +946,7 @@ string PutGenomicReferenceAssemblySQL(const string &assembly, const string &sche
         const hardcoded_refseq_t &hcrs = hardcoded_refseqs[i];
         out << PutGenomicReferenceSequenceSQL(string(hcrs.name), hcrs.length, assembly,
                                               hcrs.refget_id ? string(hcrs.refget_id) : string(),
-                                              -1, schema, i == 0);
+                                              string("{}"), -1, schema, i == 0);
     }
     return out.str();
 }
@@ -963,7 +970,7 @@ GetGenomicReferenceSequencesByRid(sqlite3 *dbconn, const string &assembly, const
     string schema_prefix = schema.empty() ? "" : (schema + ".");
 
     string query =
-        "SELECT gri_rid, gri_refseq_name, gri_refseq_length, gri_assembly, gri_refget_id FROM " +
+        "SELECT _gri_rid, gri_refseq_name, gri_refseq_length, gri_assembly, gri_refget_id FROM " +
         schema_prefix + "__gri_refseq";
     if (!assembly.empty()) {
         query += " WHERE gri_assembly = ?";
@@ -1054,6 +1061,7 @@ static int register_genomicsqlite_functions(sqlite3 *db, const char **pzErrMsg,
                  {FPNM(put_genomic_reference_sequence_sql), 4, 0},
                  {FPNM(put_genomic_reference_sequence_sql), 5, 0},
                  {FPNM(put_genomic_reference_sequence_sql), 6, 0},
+                 {FPNM(put_genomic_reference_sequence_sql), 7, 0},
                  {FPNM(put_genomic_reference_assembly_sql), 1, 0},
                  {FPNM(put_genomic_reference_assembly_sql), 2, 0}};
 

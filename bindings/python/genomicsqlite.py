@@ -6,7 +6,7 @@ import os
 import sys
 import json
 import sqlite3
-from typing import Optional, NamedTuple, Dict
+from typing import Optional, NamedTuple, Dict, Any
 from ctypes.util import find_library
 
 # One-time global initialization -- load the extension shared-library
@@ -106,13 +106,15 @@ def put_reference_sequence_sql(
     length: int,
     assembly: Optional[str] = None,
     refget_id: Optional[str] = None,
+    meta: Optional[Dict[str, Any]] = None,
     rid: Optional[int] = None,
     schema: Optional[str] = None,
 ):
+    meta_json = json.dumps(meta) if meta else None
     return _execute1(
         conn,
-        "SELECT put_genomic_reference_sequence_sql(?,?,?,?,?,?)",
-        (name, length, assembly, refget_id, rid, schema),
+        "SELECT put_genomic_reference_sequence_sql(?,?,?,?,?,?,?)",
+        (name, length, assembly, refget_id, meta_json, rid, schema),
     )
 
 
@@ -131,7 +133,7 @@ def get_reference_sequences_by_rid(
     if schema:
         table = f"{schema}.{table}"
     sql = (
-        "SELECT gri_rid, gri_refseq_name, gri_refseq_length, gri_assembly, gri_refget_id FROM "
+        "SELECT _gri_rid, gri_refseq_name, gri_refseq_length, gri_assembly, gri_refget_id FROM "
         + table
     )
     params = []

@@ -218,7 +218,7 @@ def test_refseq():
     assert len(refseq_by_rid) == 195
 
     query = (
-        "SELECT gri_rid, beg, end, id FROM __gri_refseq, exons WHERE gri_refseq_name = rid AND exons._rowid_ IN "
+        "SELECT __gri_refseq._gri_rid, rid, beg, end, id FROM exons, __gri_refseq WHERE exons.rid = gri_refseq_name AND exons._rowid_ IN "
         + genomicsqlite.genomic_range_rowids_sql(con, "exons")
     )
     print("\n" + query)

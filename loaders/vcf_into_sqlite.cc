@@ -49,9 +49,9 @@ string schemaDDL(const string &table_prefix, vector<map<string, string>> &info_h
 
     OStringStream out;
     out << "CREATE TABLE " << table_prefix
-        << "variants (variant_rowid INTEGER NOT NULL PRIMARY KEY, rid INTEGER NOT NULL REFERENCES __gri_refseq(gri_rid), "
-           "POS INTEGER NOT NULL, rlen INTEGER NOT NULL, ID_jsarray TEXT, REF TEXT NOT NULL, "
-           "ALT_jsarray TEXT, QUAL REAL, FILTER_jsarray";
+        << "variants (variant_rowid INTEGER NOT NULL PRIMARY KEY, rid INTEGER NOT NULL REFERENCES __gri_refseq(_gri_rid), "
+           "POS INTEGER NOT NULL, rlen INTEGER NOT NULL, ID_jsarray TEXT DEFAULT '[]', REF TEXT NOT NULL, "
+           "ALT_jsarray TEXT NOT NULL DEFAULT '[]', QUAL REAL, FILTER_jsarray";
 
     // INFO columns
     for (auto &hrec : info_hrecs) {
@@ -60,7 +60,7 @@ string schemaDDL(const string &table_prefix, vector<map<string, string>> &info_h
             out << " INTEGER NOT NULL";
         } else if (hrec["Number"] != "1" &&
                    (hrec["Type"] == "Integer" || hrec["Type"] == "Float")) {
-            out << "_jsarray TEXT";
+            out << "_jsarray TEXT DEFAULT '[]'";
         } else if (hrec["Type"] == "Integer") {
             out << " INTEGER";
         } else if (hrec["Type"] == "Float") {
@@ -102,7 +102,7 @@ string schemaDDL(const string &table_prefix, vector<map<string, string>> &info_h
                 out << "\n, " << hrec["ID"];
                 if (hrec["Number"] != "1" &&
                     (hrec["Type"] == "Integer" || hrec["Type"] == "Float")) {
-                    out << "_jsarray TEXT";
+                    out << "_jsarray TEXT DEFAULT '[]'";
                 } else if (hrec["Type"] == "Integer") {
                     out << " INTEGER";
                 } else if (hrec["Type"] == "Float") {
@@ -736,7 +736,7 @@ int main(int argc, char *argv[]) {
             if (length <= 0 || errno) {
                 throw runtime_error("invalid contig length in VCF header");
             }
-            string sql = PutGenomicReferenceSequenceSQL(ctg["ID"], length, assembly, "", rid);
+            string sql = PutGenomicReferenceSequenceSQL(ctg["ID"], length, assembly, "", "{}", rid);
             if (rid == 0) {
                 progress &&cerr << sql << endl;
             } else if (rid == 1) {
