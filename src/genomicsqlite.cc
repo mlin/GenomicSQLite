@@ -22,7 +22,7 @@ using namespace std;
  * connection & tuning helpers
  **************************************************************************************************/
 
-std::string GenomicSQLiteVersionCheck() {
+std::string GenomicSQLiteVersion() {
     // The newest SQLite feature currently required is "Generated Columns"
     const int MIN_SQLITE_VERSION_NUMBER = 3031000;
     const string MIN_SQLITE_VERSION = "3.31.0";
@@ -50,7 +50,7 @@ std::string GenomicSQLiteVersionCheck() {
     }                                                                                              \
     return copy;
 
-extern "C" char *genomicsqlite_version_check() { C_WRAPPER(GenomicSQLiteVersionCheck()) }
+extern "C" char *genomicsqlite_version() { C_WRAPPER(GenomicSQLiteVersion()) }
 
 #define SQL_WRAPPER(invocation)                                                                    \
     try {                                                                                          \
@@ -62,8 +62,8 @@ extern "C" char *genomicsqlite_version_check() { C_WRAPPER(GenomicSQLiteVersionC
         sqlite3_result_error(ctx, exn.what(), -1);                                                 \
     }
 
-static void sqlfn_genomicsqlite_version_check(sqlite3_context *ctx, int argc, sqlite3_value **argv){
-    SQL_WRAPPER(GenomicSQLiteVersionCheck())}
+static void sqlfn_genomicsqlite_version(sqlite3_context *ctx, int argc,
+                                        sqlite3_value **argv){SQL_WRAPPER(GenomicSQLiteVersion())}
 
 std::string GenomicSQLiteDefaultConfigJSON() {
     return R"({
@@ -79,7 +79,7 @@ std::string GenomicSQLiteDefaultConfigJSON() {
 static unique_ptr<SQLite::Statement> ConfigExtractor(SQLite::Database &tmpdb,
                                                      const string &config_json) {
     string merged_json = GenomicSQLiteDefaultConfigJSON();
-    if (!config_json.empty()) {
+    if (config_json.size() > 2) { // "{}"
         SQLite::Statement patch(tmpdb, "SELECT json_patch(?,?)");
         patch.bind(1, merged_json);
         patch.bind(2, config_json);
@@ -266,30 +266,37 @@ static void sqlfn_genomicsqlite_tuning_sql(sqlite3_context *ctx, int argc, sqlit
 }
 
 bool _ext_loaded = false;
-int GenomicSQLiteOpen(const string &dbfile, sqlite3 **ppDb, int flags,
+int GenomicSQLiteOpen(const string &dbfile, sqlite3 **ppDb, string &errmsg_out, int flags,
                       const string &config_json) noexcept {
     // ensure extension is registered
     int ret;
+    char *zErrmsg = nullptr;
     *ppDb = nullptr;
     if (!_ext_loaded) {
         ret =
             sqlite3_open_v2(":memory:", ppDb, SQLITE_OPEN_READWRITE | SQLITE_OPEN_CREATE, nullptr);
         if (ret != SQLITE_OK) {
+            errmsg_out = sqlite3_errstr(ret);
             return ret;
         }
-        ret = sqlite3_load_extension(*ppDb, "libgenomicsqlite", nullptr, nullptr);
+        ret = sqlite3_load_extension(*ppDb, "libgenomicsqlite", nullptr, &zErrmsg);
         if (ret != SQLITE_OK) {
+            errmsg_out = "failed loading libgenomicsqlite shared library: ";
+            if (zErrmsg) {
+                errmsg_out += zErrmsg;
+                sqlite3_free(zErrmsg);
+            } else {
+                errmsg_out += sqlite3_errmsg(*ppDb);
+            }
+            sqlite3_close_v2(*ppDb);
+            *ppDb = nullptr;
             return ret;
         }
         ret = sqlite3_close_v2(*ppDb);
         *ppDb = nullptr;
         if (ret != SQLITE_OK) {
+            errmsg_out = sqlite3_errstr(ret);
             return ret;
-        }
-        try {
-            GenomicSQLiteVersionCheck();
-        } catch (std::exception &exn) {
-            return SQLITE_RANGE;
         }
         _ext_loaded = true;
     }
@@ -299,10 +306,23 @@ int GenomicSQLiteOpen(const string &dbfile, sqlite3 **ppDb, int flags,
         ret = sqlite3_open_v2(GenomicSQLiteURI(dbfile, config_json).c_str(), ppDb,
                               SQLITE_OPEN_URI | flags, nullptr);
         if (ret != SQLITE_OK) {
+            errmsg_out = sqlite3_errstr(ret);
             return ret;
         }
-        return sqlite3_exec(*ppDb, GenomicSQLiteTuningSQL(config_json).c_str(), nullptr, nullptr,
-                            nullptr);
+        ret = sqlite3_exec(*ppDb, GenomicSQLiteTuningSQL(config_json).c_str(), nullptr, nullptr,
+                           &zErrmsg);
+        if (ret != SQLITE_OK) {
+            if (zErrmsg) {
+                errmsg_out = zErrmsg;
+                sqlite3_free(zErrmsg);
+            } else {
+                errmsg_out = sqlite3_errmsg(*ppDb);
+            }
+            sqlite3_close_v2(*ppDb);
+            *ppDb = nullptr;
+            return ret;
+        }
+        return SQLITE_OK;
     } catch (SQLite::Exception &exn) {
         return exn.getErrorCode();
     } catch (std::exception &exn) {
@@ -310,9 +330,16 @@ int GenomicSQLiteOpen(const string &dbfile, sqlite3 **ppDb, int flags,
     }
 }
 
-extern "C" int genomicsqlite_open(const char *filename, sqlite3 **ppDb, int flags,
+extern "C" int genomicsqlite_open(const char *filename, sqlite3 **ppDb, char **pzErrMsg, int flags,
                                   const char *config_json) {
-    return GenomicSQLiteOpen(string(filename), ppDb, flags, config_json ? config_json : "");
+    string errmsg;
+    int ret =
+        GenomicSQLiteOpen(string(filename), ppDb, errmsg, flags, config_json ? config_json : "");
+    if (ret && !errmsg.empty() && pzErrMsg) {
+        *pzErrMsg = (char *)sqlite3_malloc(errmsg.size());
+        strcpy(*pzErrMsg, errmsg.c_str());
+    }
+    return ret;
 }
 
 unique_ptr<SQLite::Database> GenomicSQLiteOpen(const string &dbfile, int flags,
@@ -326,7 +353,6 @@ unique_ptr<SQLite::Database> GenomicSQLiteOpen(const string &dbfile, int flags,
             throw std::runtime_error("failed loading libgenomicsqlite shared library: " +
                                      string(exn.what()));
         }
-        GenomicSQLiteVersionCheck();
         _ext_loaded = true;
     }
     db.reset(new SQLite::Database(GenomicSQLiteURI(dbfile, config_json), SQLITE_OPEN_URI | flags));
@@ -1037,7 +1063,7 @@ static int register_genomicsqlite_functions(sqlite3 *db, const char **pzErrMsg,
         int flags;
     } fntab[] = {{FPNM(genomic_range_bin), 2, SQLITE_DETERMINISTIC},
                  {FPNM(genomic_range_bin), 3, SQLITE_DETERMINISTIC},
-                 {FPNM(genomicsqlite_version_check), 0, 0},
+                 {FPNM(genomicsqlite_version), 0, 0},
                  {FPNM(genomicsqlite_default_config_json), 0, 0},
                  {FPNM(genomicsqlite_uri), 1, 0},
                  {FPNM(genomicsqlite_uri), 2, 0},
@@ -1081,6 +1107,23 @@ static int register_genomicsqlite_functions(sqlite3 *db, const char **pzErrMsg,
 extern "C" int sqlite3_genomicsqlite_init(sqlite3 *db, char **pzErrMsg,
                                           const sqlite3_api_routines *pApi) {
     SQLITE_EXTENSION_INIT2(pApi);
+
+    // The newest SQLite feature currently required is "Generated Columns"
+    const int MIN_SQLITE_VERSION_NUMBER = 3031000;
+    const string MIN_SQLITE_VERSION = "3.31.0";
+    if (sqlite3_libversion_number() < MIN_SQLITE_VERSION_NUMBER) {
+        if (pzErrMsg) {
+            string version_msg = "SQLite library version " + string(sqlite3_libversion()) +
+                                 " is older than " + MIN_SQLITE_VERSION +
+                                 " which is required by Genomics Extension " GIT_REVISION;
+            *pzErrMsg = (char *)sqlite3_malloc(version_msg.size() + 1);
+            if (*pzErrMsg) {
+                strcpy(*pzErrMsg, version_msg.c_str());
+            }
+        }
+        return SQLITE_ERROR;
+    }
+
     int rc = (new ZstdVFS())->Register("zstd");
     if (rc != SQLITE_OK)
         return rc;

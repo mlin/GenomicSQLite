@@ -25,8 +25,6 @@ def _execute1(conn, sql, params=None):
     return next(conn.execute(sql, params) if params else conn.execute(sql))[0]
 
 
-# check SQLite version
-__version__ = _execute1(_MEMCONN, "SELECT genomicsqlite_version_check()")
 # load default configuration
 _DEFAULT_CONFIG = json.loads(_execute1(_MEMCONN, "SELECT genomicsqlite_default_config_json()"))
 
@@ -197,7 +195,7 @@ def _cli():
         "-cmd",
         ".databases",
         "-cmd",
-        'SELECT "GenomicSQLite " || genomicsqlite_version_check()',
+        'SELECT "GenomicSQLite " || genomicsqlite_version()',
         "-cmd",
         '.prompt "GenomicSQLite> "',
     ]

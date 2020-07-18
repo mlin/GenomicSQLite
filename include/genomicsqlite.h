@@ -18,9 +18,9 @@ extern "C" {
 #endif
 
 /*
- * Return the GenomicSQLite version. Also checks the SQLite version, failing if it's incompatible.
+ * Return the GenomicSQLite version.
  */
-char *genomicsqlite_version_check();
+char *genomicsqlite_version();
 
 /*
  * Get configuration defaults.
@@ -31,7 +31,8 @@ char *genomicsqlite_default_config_json();
  * Wrap sqlite3_open() and initialize the "connection" for use with GenomicSQLite. config_json if
  * supplied, will be merged into defaults (i.e. it's not necessary to include defaults)
  */
-int genomicsqlite_open(const char *dbfile, sqlite3 **ppDb, int flags, const char *config_json);
+int genomicsqlite_open(const char *dbfile, sqlite3 **ppDb, char **pzErrMsg, int flags,
+                       const char *config_json);
 
 /*
  * Generate SQL script to run on existing SQLite database (not necessarily GenomicSQLite) to cause
@@ -87,11 +88,11 @@ char *put_genomic_reference_sequence_sql(const char *name, sqlite3_int64 length,
 #include <map>
 #include <string>
 
-std::string GenomicSQLiteVersionCheck();
+std::string GenomicSQLiteVersion();
 std::string GenomicSQLiteDefaultConfigJSON();
 
-int GenomicSQLiteOpen(const std::string &dbfile, sqlite3 **ppDb, int flags,
-                      const std::string &config_json = "{}") noexcept;
+int GenomicSQLiteOpen(const std::string &dbfile, sqlite3 **ppDb, std::string &errmsg_out,
+                      int flags = 0, const std::string &config_json = "{}") noexcept;
 #ifdef SQLITECPP_VERSION
 /*
  * For use with SQLiteCpp -- https://github.com/SRombauts/SQLiteCpp
