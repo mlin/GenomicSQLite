@@ -1,13 +1,17 @@
 # Genomics Extension for SQLite
 
-![build](https://github.com/mlin/GenomicSQLite/workflows/build/badge.svg?branch=main)
+**("GenomicSQLite")**
 
-(**GenomicSQLite** for short!) Adds to the [ubiquitous](https://www.sqlite.org/mostdeployed.html) embedded RDBMS:
+This [SQLite3 loadable extension](https://www.sqlite.org/loadext.html) adds features to the [ubiquitous](https://www.sqlite.org/mostdeployed.html) embedded RDBMS supporting applications in genome bioinformatics:
 
 * genomic range indexing for overlap queries & joins
-* streaming storage compression using [Zstandard](https://facebook.github.io/zstd/) (also available [standalone](https://github.com/mlin/sqlite_zstd_vfs))
-* pre-tuned settings for "omics" scale datasets
+* streaming storage compression (also available [standalone](https://github.com/mlin/sqlite_zstd_vfs))
+* pre-tuned settings for "big data"
 
-Together, these make SQLite a [viable file format](https://www.sqlite.org/appfileformat.html) for storage, transport, and basic analysis of genomic data.
+Notice: this project is not associated with the SQLite developers.
 
-Notice: this project is *not* associated with the SQLite developers.
+## Under construction
+
+![build](https://github.com/mlin/GenomicSQLite/workflows/build/badge.svg?branch=main)
+
+The extension isn't quite ready for general use. The repo is public to facilitate "soft launch" preparations.

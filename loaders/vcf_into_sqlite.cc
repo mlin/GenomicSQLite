@@ -1,6 +1,6 @@
 /*
- * vcf_into_sqlite: load VCF/gVCF/pVCF into a GenomicSQLite database with a detailed schema
- * unpacking genotypes and all QC fields
+ * vcf_into_sqlite: load VCF/gVCF/pVCF into a GenomicSQLite database with an exhaustively detailed
+ * schema, representing all fields in SQL columns.
  * - if there are individual genotypes:
  *   - they & FORMAT fields go into a separate table keyed by (variant,sample)
  *   - sample names go into a dimension table referred to by integer ID elsewhere
