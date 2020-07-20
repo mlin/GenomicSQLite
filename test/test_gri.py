@@ -1,3 +1,4 @@
+import math
 import os
 import sqlite3
 import random
@@ -17,6 +18,17 @@ BIN_OFFSETS = [
     1 + 16 + 256 + 4096 + 65536 + 1048576,
     1 + 16 + 256 + 4096 + 65536 + 1048576 + 16777216,
     1 + 16 + 256 + 4096 + 65336 + 1048576 + 16777216 + 268435456,
+]
+POS_OFFSETS = [
+    0,
+    134217728,
+    8388608,
+    524288,
+    32768,
+    2048,
+    128,
+    8,
+    0,
 ]
 
 
@@ -189,6 +201,39 @@ def test_depth_detection():
     )
     query = genomicsqlite.genomic_range_rowids_sql(con, "features")[1:-1]
     assert fanout(query) == 9
+
+
+def test_boundaries():
+    # test abutting intervals near bin boundaries
+
+    con = sqlite3.connect(":memory:")
+    con.executescript("CREATE TABLE features(rid INTEGER, beg INTEGER, end INTEGER)")
+
+    insert = "INSERT INTO features(rid,beg,end) values(?,?,?)"
+    for depth in range(2, 9):
+        boundary = 3 * (16 ** (9 - depth)) + POS_OFFSETS[depth]
+        for ofs in range(-2, 3):
+            featlen = math.ceil(16 ** (9 - depth) / 2)
+            con.execute(insert, (42, boundary + ofs - featlen, boundary + ofs))
+            con.execute(insert, (42, boundary + ofs, boundary + ofs + featlen))
+
+    con.executescript(
+        genomicsqlite.create_genomic_range_index_sql(con, "features", "rid", "beg", "end")
+    )
+
+    query = genomicsqlite.genomic_range_rowids_sql(con, "features")[1:-1]
+    control = "SELECT _rowid_ FROM features NOT INDEXED WHERE rid = ? AND NOT (? > end OR ? < beg) ORDER BY _rowid_"
+    total_results = 0
+    for depth in range(2, 9):
+        boundary = 3 * (16 ** (9 - depth)) + POS_OFFSETS[depth]
+        for qlen in range(3):
+            for ofs in range(-3, 4):
+                tup = (42, boundary + ofs, boundary + ofs + qlen)
+                query_results = list(con.execute(query, tup))
+                control_results = list(con.execute(control, tup))
+                assert query_results == control_results
+                total_results += len(query_results)
+    assert total_results == 938
 
 
 def test_refseq():

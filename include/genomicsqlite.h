@@ -99,7 +99,7 @@ int GenomicSQLiteOpen(const std::string &dbfile, sqlite3 **ppDb, std::string &er
  * (include SQLiteCpp/SQLiteCpp.h first)
  */
 #include <memory>
-std::unique_ptr<SQLite::Database> GenomicSQLiteOpen(const std::string &dbfile, int flags,
+std::unique_ptr<SQLite::Database> GenomicSQLiteOpen(const std::string &dbfile, int flags = 0,
                                                     const std::string &config_json = "{}");
 #endif
 
@@ -109,7 +109,7 @@ std::string GenomicSQLiteVacuumIntoSQL(const std::string &dbfile,
 std::string CreateGenomicRangeIndexSQL(const std::string &table, const std::string &rid,
                                        const std::string &beg, const std::string &end,
                                        int max_depth = -1);
-std::string GenomicRangeRowidsSQL(const std::string &indexed_table, sqlite3 *dbconn = nullptr,
+std::string GenomicRangeRowidsSQL(const std::string &indexed_table, sqlite3 *dbconn,
                                   const std::string &qrid = "?1", const std::string &qbeg = "?2",
                                   const std::string &qend = "?3");
 
