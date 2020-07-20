@@ -123,6 +123,7 @@ class ReferenceSequence(NamedTuple):
     length: int
     assembly: Optional[str]
     refget_id: Optional[str]
+    meta: Dict[str, Any]
 
 
 def get_reference_sequences_by_rid(
@@ -132,7 +133,7 @@ def get_reference_sequences_by_rid(
     if schema:
         table = f"{schema}.{table}"
     sql = (
-        "SELECT _gri_rid, gri_refseq_name, gri_refseq_length, gri_assembly, gri_refget_id FROM "
+        "SELECT _gri_rid, gri_refseq_name, gri_refseq_length, gri_assembly, gri_refget_id, gri_refseq_meta_json FROM "
         + table
     )
     params = []
@@ -145,7 +146,12 @@ def get_reference_sequences_by_rid(
             isinstance(row[0], int) and row[0] not in ans
         ), "genomicsqlite: invalid or duplicate reference sequence rid"
         ans[row[0]] = ReferenceSequence(
-            rid=row[0], name=row[1], length=row[2], assembly=row[3], refget_id=row[4]
+            rid=row[0],
+            name=row[1],
+            length=row[2],
+            assembly=row[3],
+            refget_id=row[4],
+            meta=(json.loads(row[5]) if row[5] else {}),
         )
     return ans
 

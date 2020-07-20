@@ -124,10 +124,10 @@ std::string PutGenomicReferenceSequenceSQL(const std::string &name, sqlite3_int6
 
 /* Lookup helpers for stored reference sequence metadata (assumes it's finalized) */
 struct gri_refseq_t {
-    unsigned long long rid, length;
-    std::string name, assembly, refget_id;
+    long long rid, length;
+    std::string name, assembly, refget_id, meta_json = "{}";
 };
-std::map<unsigned long long, gri_refseq_t>
+std::map<long long, gri_refseq_t>
 GetGenomicReferenceSequencesByRid(sqlite3 *dbconn, const std::string &assembly = "",
                                   const std::string &attached_schema = "");
 std::map<std::string, gri_refseq_t>

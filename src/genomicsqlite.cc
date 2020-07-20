@@ -384,7 +384,7 @@ string GenomicSQLiteVacuumIntoSQL(const string &destfile, const string &config_j
         throw std::runtime_error("error processing config JSON $.inner_page_size");
     int inner_page_size = extract->getColumn(0).getInt();
 
-    string desturi = GenomicSQLiteURI(destfile, config_json);
+    string desturi = GenomicSQLiteURI(destfile, config_json) + "&outer_unsafe=true";
 
     ostringstream ans;
     ans << "PRAGMA page_size = " << inner_page_size << ";\nPRAGMA auto_vacuum = FULL"
@@ -990,13 +990,13 @@ static void sqlfn_put_genomic_reference_assembly_sql(sqlite3_context *ctx, int a
     SQL_WRAPPER(PutGenomicReferenceAssemblySQL(assembly, schema))
 }
 
-map<unsigned long long, gri_refseq_t>
+map<long long, gri_refseq_t>
 GetGenomicReferenceSequencesByRid(sqlite3 *dbconn, const string &assembly, const string &schema) {
-    map<unsigned long long, gri_refseq_t> ans;
+    map<long long, gri_refseq_t> ans;
     string schema_prefix = schema.empty() ? "" : (schema + ".");
 
     string query =
-        "SELECT _gri_rid, gri_refseq_name, gri_refseq_length, gri_assembly, gri_refget_id FROM " +
+        "SELECT _gri_rid, gri_refseq_name, gri_refseq_length, gri_assembly, gri_refget_id, gri_refseq_meta_json FROM " +
         schema_prefix + "__gri_refseq";
     if (!assembly.empty()) {
         query += " WHERE gri_assembly = ?";
@@ -1025,6 +1025,9 @@ GetGenomicReferenceSequencesByRid(sqlite3 *dbconn, const string &assembly, const
         }
         if (sqlite3_column_type(stmt.get(), 4) == SQLITE_TEXT) {
             item.refget_id = (const char *)sqlite3_column_text(stmt.get(), 4);
+        }
+        if (sqlite3_column_type(stmt.get(), 4) == SQLITE_TEXT) {
+            item.meta_json = (const char *)sqlite3_column_text(stmt.get(), 5);
         }
         ans[item.rid] = item;
     }
