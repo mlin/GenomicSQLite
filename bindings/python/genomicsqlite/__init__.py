@@ -4,15 +4,23 @@ GenomicSQLite Python binding
 """
 import os
 import sys
+import platform
 import json
 import sqlite3
 from typing import Optional, NamedTuple, Dict, Any
 from ctypes.util import find_library
 
-# One-time global initialization -- load the extension shared-library
-_DLL = find_library("genomicsqlite")
+HERE = os.path.dirname(__file__)
+
+# One-time global initialization -- locate shared library file; preferably the copy installed with
+# this package, otherwise look in the usual places.
+_DLL = None
+if platform.system() == "Linux" and os.path.isfile(os.path.join(HERE, "libgenomicsqlite.so")):
+    _DLL = os.path.join(HERE, "libgenomicsqlite.so")
+if not _DLL:
+    _DLL = find_library("genomicsqlite")
 assert _DLL, "couldn't locate genomicsqlite shared-library file"
-# open a dummy connection to :memory: just for setting up the extension.
+# open a dummy connection to :memory: just for loading the extension.
 _MEMCONN = sqlite3.connect(":memory:")
 _MEMCONN.enable_load_extension(True)
 _MEMCONN.load_extension(_DLL)

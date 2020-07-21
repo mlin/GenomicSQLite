@@ -40,12 +40,14 @@ jobs:
       run: docker build -t genomicsqlite . && docker run -v $(pwd):/mnt --rm genomicsqlite cp build/libgenomicsqlite.so /mnt/build/
     - name: test portable .so
       run: env -C build ctest -V
+    - name: prepare artifacts
+      run: cp build/libgenomicsqlite.so include/genomicsqlite.h .
     - uses: actions/upload-artifact@v2
       with:
         name: GenomicSQLite-Linux-x86_64-so-${{ env.GIT_REVISION }}
         path: |
-          build/libgenomicsqlite.so
-          include/genomicsqlite.h
+          libgenomicsqlite.so
+          genomicsqlite.h
 
   lint:
     runs-on: ubuntu-20.04
