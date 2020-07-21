@@ -485,8 +485,7 @@ string CreateGenomicRangeIndexSQL(const string &schema_table, const string &rid,
     }
     size_t p;
     ostringstream out;
-    out << gri_refseq_ddl(schema);
-    out << ";\nALTER TABLE " << schema_table << " ADD COLUMN _gri_rid INTEGER AS (" << rid
+    out << "ALTER TABLE " << schema_table << " ADD COLUMN _gri_rid INTEGER AS (" << rid
         << ") VIRTUAL";
     out << ";\nALTER TABLE " << schema_table << " ADD COLUMN _gri_beg INTEGER AS (" << beg
         << ") VIRTUAL";

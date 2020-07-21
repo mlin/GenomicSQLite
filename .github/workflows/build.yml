@@ -43,7 +43,9 @@ jobs:
     - uses: actions/upload-artifact@v2
       with:
         name: GenomicSQLite-Linux-x86_64-so-${{ env.GIT_REVISION }}
-        path: build/libgenomicsqlite.so
+        path: |
+          build/libgenomicsqlite.so
+          include/genomicsqlite.h
 
   lint:
     runs-on: ubuntu-20.04

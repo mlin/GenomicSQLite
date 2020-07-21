@@ -23,6 +23,7 @@ def _execute1(conn, sql, params=None):
     """
     conn.execute(sql,params) and return row 1 column 1
     """
+    assert isinstance(conn, sqlite3.Connection)
     return next(conn.execute(sql, params) if params else conn.execute(sql))[0]
 
 
@@ -182,7 +183,14 @@ def _cli():
             file=sys.stderr,
         )
         sys.exit(1)
-    uri = _execute1(_MEMCONN, "SELECT genomicsqlite_uri(?)", (sys.argv[1],))
+
+    dbfilename = sys.argv[1]
+    if os.path.islink(dbfilename):
+        target = os.path.realpath(dbfilename)
+        print(f"[warning] following symlink {dbfilename} -> {target}")
+        dbfilename = target
+
+    uri = _execute1(_MEMCONN, "SELECT genomicsqlite_uri(?)", (dbfilename,))
     tuning_sql = _execute1(_MEMCONN, "SELECT genomicsqlite_tuning_sql()")
 
     if "-readonly" in sys.argv:
