@@ -130,7 +130,7 @@ class ReferenceSequence(NamedTuple):
 def get_reference_sequences_by_rid(
     con: sqlite3.Connection, assembly: Optional[str] = None, schema: Optional[str] = None
 ) -> Dict[int, ReferenceSequence]:
-    table = "__gri_refseq"
+    table = "_gri_refseq"
     if schema:
         table = f"{schema}.{table}"
     sql = (

@@ -30,7 +30,7 @@ def test_gnomad_sites_small(tmp_path):
     con = genomicsqlite.connect(dbfile, read_only=True)
 
     query = (
-        "SELECT variant_rowid, id_jsarray FROM (SELECT _gri_rid AS rid FROM __gri_refseq WHERE gri_refseq_name=?1) AS query, gnomad_variants WHERE variant_rowid IN"
+        "SELECT variant_rowid, id_jsarray FROM (SELECT _gri_rid AS rid FROM _gri_refseq WHERE gri_refseq_name=?1) AS query, gnomad_variants WHERE variant_rowid IN"
         + genomicsqlite.genomic_range_rowids_sql(con, "gnomad_variants", "query.rid")
     )
     rs671 = ("chr12", 111803912, 111804012)
@@ -57,7 +57,7 @@ def test_gnomad_sites_small(tmp_path):
     results_rowids = set(vt[0] for vt in results)
     assert next(vt for vt in results if vt[1] and "rs671" in vt[1])
 
-    control = "SELECT variant_rowid FROM gnomad_variants NATURAL JOIN __gri_refseq WHERE gri_refseq_name = ? AND NOT ((pos+rlen) < ? OR pos > ?)"
+    control = "SELECT variant_rowid FROM gnomad_variants NATURAL JOIN _gri_refseq WHERE gri_refseq_name = ? AND NOT ((pos+rlen) < ? OR pos > ?)"
     control_rowids = set(vt[0] for vt in con.execute(control, rs671))
     assert len(control_rowids) == 22
     assert results_rowids == control_rowids

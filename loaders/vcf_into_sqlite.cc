@@ -49,7 +49,7 @@ string schemaDDL(const string &table_prefix, vector<map<string, string>> &info_h
 
     OStringStream out;
     out << "CREATE TABLE " << table_prefix
-        << "variants (variant_rowid INTEGER NOT NULL PRIMARY KEY, rid INTEGER NOT NULL REFERENCES __gri_refseq(_gri_rid), "
+        << "variants (variant_rowid INTEGER NOT NULL PRIMARY KEY, rid INTEGER NOT NULL REFERENCES _gri_refseq(_gri_rid), "
            "POS INTEGER NOT NULL, rlen INTEGER NOT NULL, ID_jsarray TEXT DEFAULT '[]', REF TEXT NOT NULL, "
            "ALT_jsarray TEXT NOT NULL DEFAULT '[]', QUAL REAL, FILTER_jsarray";
 

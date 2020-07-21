@@ -244,7 +244,7 @@ int main(int argc, char *argv[]) {
         // TODO: allow --append
         string ddl =
             "CREATE TABLE " + table_prefix +
-            "reads(rowid INTEGER PRIMARY KEY, flag INTEGER NOT NULL, rid INTEGER REFERENCES __gri_refseq(_gri_rid), pos INTEGER, endpos INTEGER, "
+            "reads(rowid INTEGER PRIMARY KEY, flag INTEGER NOT NULL, rid INTEGER REFERENCES _gri_refseq(_gri_rid), pos INTEGER, endpos INTEGER, "
             "mapq INTEGER, cigar TEXT, rnext INTEGER, pnext INTEGER, tlen INTEGER, "
             "rg_id INTEGER REFERENCES " +
             table_prefix + "readgroups(rg_id))";
