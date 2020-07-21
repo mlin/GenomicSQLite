@@ -21,5 +21,5 @@ trap cleanup EXIT
 
 rm -rf build dist *.egg-info
 python3 setup.py sdist
-echo -e "\033[0;31;5m -- Pushing $$(basename `ls -1 dist/*.tar.gz` .tar.gz) to PyPI! -- \033[0m"
+echo -e "\033[0;31;5m -- Pushing $(basename `ls -1 dist/*.tar.gz` .tar.gz) to PyPI! -- \033[0m"
 twine upload dist/*.tar.gz
