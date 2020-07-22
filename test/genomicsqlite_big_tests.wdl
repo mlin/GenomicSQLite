@@ -1,6 +1,6 @@
 version 1.0
 
-workflow genomicsqlite_integration_tests {
+workflow genomicsqlite_big_tests {
     input {
         String git_revision = "main"
 
@@ -74,6 +74,7 @@ task build {
 task test_sam {
     input {
         File reads
+        String cram_ref_fa_gz = "ftp://ftp.ncbi.nlm.nih.gov/genomes/all/GCA/000/001/405/GCA_000001405.15_GRCh38/seqs_for_alignment_pipelines.ucsc_ids/GCA_000001405.15_GRCh38_no_alt_analysis_set.fna.gz"
 
         File genomicsqlite_py
         File libgenomicsqlite_so
@@ -84,8 +85,9 @@ task test_sam {
 
     command <<<
         set -euxo pipefail
+        TMPDIR=${TMPDIR:-/tmp}
         apt-get -qq update
-        DEBIAN_FRONTEND=noninteractive apt-get -qq install -y sqlite3 samtools tabix libzstd1
+        DEBIAN_FRONTEND=noninteractive apt-get -qq install -y sqlite3 samtools tabix libzstd1 pigz wget
 
         cp ~{genomicsqlite_py} /usr/lib/python3.8/genomicsqlite.py
         cp ~{libgenomicsqlite_so} /usr/local/lib/libgenomicsqlite.so
@@ -94,8 +96,19 @@ task test_sam {
         cp ~{sam_into_sqlite} /usr/local/bin/sam_into_sqlite
         chmod +x /usr/local/bin/sam_into_sqlite
 
+        reads_file='~{reads}'
+        if [[ $reads_file == *.cram ]]; then
+            # CRAM given; make BAM to take reference downloads out of the timings
+            wget -nv -O - '~{cram_ref_fa_gz}' | pigz -dc > "${TMPDIR}/cram_ref.fa"
+            samtools faidx "${TMPDIR}/cram_ref.fa"
+            bam_file="${TMPDIR}/$(basename reads_file .cram).bam"
+            time samtools view -T "${TMPDIR}/cram_ref.fa" -h -O BAM -@ 8 "$reads_file" > "$bam_file"
+            reads_file=$bam_file
+        fi
+        >&2 ls -l "$reads_file"
+
         # load database
-        time sam_into_sqlite "~{reads}" "~{dbname}"
+        time sam_into_sqlite "$reads_file" "~{dbname}"
         >&2 ls -l "~{dbname}"
 
         # GRI query
@@ -168,7 +181,7 @@ task test_vcf {
         chr = genomicsqlite.get_reference_sequences_by_name(dbconn)
         query = 'SELECT count(*) FROM ' + genomicsqlite.genomic_range_rowids_sql(dbconn, 'variants')
         print(query, file=sys.stderr)
-        row = next(dbconn.execute(query, (chr['chr12'].rid,111803912,111804012))) #(chr['chr21'].rid, 34787801, 35049344)))
+        row = next(dbconn.execute(query, (chr['chr21'].rid, 34787801, 35049344))) #(chr['chr12'].rid,111803912,111804012)))
         print(f'result = {row[0]}', file=sys.stderr)
         print(row[0])
         EOF

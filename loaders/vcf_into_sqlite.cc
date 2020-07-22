@@ -45,7 +45,8 @@ vector<map<string, string>> extract_hrecs(bcf_hdr_t *hdr, const char *key,
 }
 
 string schemaDDL(const string &table_prefix, vector<map<string, string>> &info_hrecs,
-                 vector<map<string, string>> &format_hrecs, int ploidy) {
+                 vector<map<string, string>> &format_hrecs, int ploidy,
+                 bool genotypes_without_rowid) {
 
     OStringStream out;
     out << "CREATE TABLE " << table_prefix
@@ -120,7 +121,10 @@ string schemaDDL(const string &table_prefix, vector<map<string, string>> &info_h
                 }
             }
         }
-        out << "\n, PRIMARY KEY (variant_rowid, sample_id)) WITHOUT ROWID";
+        out << "\n, PRIMARY KEY (variant_rowid, sample_id))";
+        if (genotypes_without_rowid) {
+            out << " WITHOUT ROWID";
+        }
     }
 
     return string(out.Get());
@@ -612,30 +616,33 @@ void help() {
         << '\n'
         << "vcf_into_sqlite [options] in.vcf|- out.db" << '\n'
         << "Options: " << '\n'
-        << "  --table-prefix PREFIX  prefix to the name of each table created" << '\n'
-        << "  --ploidy N             set max ploidy => # GT columns (default 2)" << '\n'
-        << "  --no-gri               skip genomic range indexing" << '\n'
-        << "  -l,--level LEVEL       database compression level (-7 to 22, default 6)" << '\n'
-        << "  -q,--quiet             suppress progress information on standard error" << '\n'
-        << "  -h,--help              show this help message" << '\n'
+        << "  --table-prefix PREFIX      prefix to the name of each table created" << '\n'
+        << "  --ploidy N                 set max ploidy => # GT columns (default 2)" << '\n'
+        << "  --genotypes-without-rowid  make the genotypes table WITHOUT ROWID (advantageous if there are few/no FORMAT fields)"
+        << '\n'
+        << "  --no-gri                   skip genomic range indexing" << '\n'
+        << "  -l,--level LEVEL           database compression level (-7 to 22, default 6)" << '\n'
+        << "  -q,--quiet                 suppress progress information on standard error" << '\n'
+        << "  -h,--help                  show this help message" << '\n'
         << '\n';
 }
 
 int main(int argc, char *argv[]) {
     string table_prefix, infilename, outfilename;
-    bool gri = true, progress = true;
+    bool gri = true, progress = true, genotypes_without_rowid = false;
     int level = 6, ploidy = 2;
 
     static struct option long_options[] = {{"help", no_argument, 0, 'h'},
                                            {"quiet", no_argument, 0, 'q'},
                                            {"level", required_argument, 0, 'l'},
                                            {"ploidy", required_argument, 0, 'p'},
+                                           {"genotypes-without-rowid", no_argument, 0, 'R'},
                                            {"table-prefix", required_argument, 0, 't'},
                                            {"no-gri", no_argument, 0, 'G'},
                                            {0, 0, 0, 0}};
 
     int c;
-    while (-1 != (c = getopt_long(argc, argv, "hqGl:t:p:", long_options, nullptr))) {
+    while (-1 != (c = getopt_long(argc, argv, "hqGRl:t:p:", long_options, nullptr))) {
         switch (c) {
         case 'h':
             help();
@@ -645,6 +652,9 @@ int main(int argc, char *argv[]) {
             break;
         case 'G':
             gri = false;
+            break;
+        case 'R':
+            genotypes_without_rowid = true;
             break;
         case 't':
             table_prefix = optarg;
@@ -751,7 +761,8 @@ int main(int argc, char *argv[]) {
 
         // formulate & apply DDL
         // TODO: allow --append
-        string ddl = schemaDDL(table_prefix, info_hrecs, format_hrecs, ploidy);
+        string ddl =
+            schemaDDL(table_prefix, info_hrecs, format_hrecs, ploidy, genotypes_without_rowid);
         progress &&cerr << ddl << endl;
         db->exec(ddl);
 
