@@ -223,6 +223,7 @@ def _cli():
         'SELECT "GenomicSQLite " || genomicsqlite_version()',
         "-cmd",
         '.prompt "GenomicSQLite> "',
+        ":memory:",
     ]
     cmd.extend(sys.argv[2:])
     if sys.stdout.isatty():
