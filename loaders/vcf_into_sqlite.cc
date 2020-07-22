@@ -618,7 +618,7 @@ void help() {
         << "Options: " << '\n'
         << "  --table-prefix PREFIX      prefix to the name of each table created" << '\n'
         << "  --ploidy N                 set max ploidy => # GT columns (default 2)" << '\n'
-        << "  --genotypes-without-rowid  make the genotypes table WITHOUT ROWID (advantageous if there are few/no FORMAT fields)"
+        << "  --genotypes-without-rowid  make the genotypes table WITHOUT ROWID (advantageous if the FORMAT fields aren't too large)"
         << '\n'
         << "  --no-gri                   skip genomic range indexing" << '\n'
         << "  -l,--level LEVEL           database compression level (-7 to 22, default 6)" << '\n'

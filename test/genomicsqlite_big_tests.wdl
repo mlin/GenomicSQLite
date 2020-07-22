@@ -129,7 +129,7 @@ task test_sam {
 
         # add a QNAME-sorted seqs table
         chmod +x /usr/lib/python3.8/genomicsqlite.py
-        time /usr/lib/python3.8/genomicsqlite.py "~{dbname}" "CREATE TABLE reads_seqs_by_qname AS SELECT * from reads_seqs ORDER BY qname"
+        time /usr/lib/python3.8/genomicsqlite.py "~{dbname}" "CREATE TABLE reads_seqs_by_qname AS SELECT * from reads_seqs NOT INDEXED ORDER BY qname"
         >&2 ls -l "~{dbname}"
         time /usr/lib/python3.8/genomicsqlite.py "~{dbname}" "DROP TABLE reads_seqs_by_qname"
         >&2 ls -l "~{dbname}"
@@ -171,7 +171,7 @@ task test_vcf {
         chmod +x /usr/local/bin/vcf_into_sqlite
 
         # load database
-        time vcf_into_sqlite "~{variants}" "~{dbname}"
+        time vcf_into_sqlite --genotypes-without-rowid "~{variants}" "~{dbname}"
 
         # GRI query
         time python3 - <<"EOF"
