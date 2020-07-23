@@ -131,7 +131,7 @@ task test_sam {
         chmod +x /usr/lib/python3.8/genomicsqlite.py
         time /usr/lib/python3.8/genomicsqlite.py "~{dbname}" "CREATE TABLE reads_seqs_by_qname AS SELECT * from reads_seqs NOT INDEXED ORDER BY qname"
         >&2 ls -l "~{dbname}"
-        time /usr/lib/python3.8/genomicsqlite.py "~{dbname}" "DROP TABLE reads_seqs_by_qname"
+        time /usr/lib/python3.8/genomicsqlite.py "~{dbname}" "PRAGMA journal_mode=off; DROP TABLE reads_seqs_by_qname"
         >&2 ls -l "~{dbname}"
     >>>
 
