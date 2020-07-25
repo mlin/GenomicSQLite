@@ -69,11 +69,11 @@ static void sqlfn_genomicsqlite_version(sqlite3_context *ctx, int argc,
 std::string GenomicSQLiteDefaultConfigJSON() {
     return R"({
     "unsafe_load": false,
-    "page_cache_size": -1048576,
+    "page_cache_MiB": 1024,
     "threads": -1,
     "zstd_level": 6,
-    "inner_page_size": 16384,
-    "outer_page_size": 32768
+    "inner_page_KiB": 16,
+    "outer_page_KiB": 32
 })";
 }
 
@@ -118,11 +118,11 @@ string GenomicSQLiteURI(const string &dbfile, const string &config_json = "") {
     int threads = extract->getColumn(0).getInt();
     extract->reset();
 
-    extract->bind(2, "$.outer_page_size");
+    extract->bind(2, "$.outer_page_KiB");
     if (!extract->executeStep() || extract->getColumnCount() != 1 ||
         !extract->getColumn(0).isInteger())
-        throw std::runtime_error("error processing config JSON $.outer_page_size");
-    int outer_page_size = extract->getColumn(0).getInt();
+        throw std::runtime_error("error processing config JSON $.outer_page_KiB");
+    int outer_page_KiB = extract->getColumn(0).getInt();
     extract->reset();
 
     extract->bind(2, "$.zstd_level");
@@ -135,7 +135,7 @@ string GenomicSQLiteURI(const string &dbfile, const string &config_json = "") {
     ostringstream uri;
     uri << "file:" << dbfile << "?vfs=zstd";
     uri << "&threads=" << to_string(threads);
-    uri << "&outer_page_size=" << to_string(outer_page_size);
+    uri << "&outer_page_size=" << to_string(outer_page_KiB * 1024);
     uri << "&level=" << to_string(zstd_level);
     if (unsafe_load) {
         uri << "&outer_unsafe";
@@ -210,11 +210,11 @@ string GenomicSQLiteTuningSQL(const string &config_json, const string &schema = 
     bool unsafe_load = extract->getColumn(0).getInt() != 0;
     extract->reset();
 
-    extract->bind(2, "$.page_cache_size");
+    extract->bind(2, "$.page_cache_MiB");
     if (!extract->executeStep() || extract->getColumnCount() != 1 ||
         !extract->getColumn(0).isInteger())
-        throw std::runtime_error("error processing config JSON $.page_cache_size");
-    int page_cache_size = extract->getColumn(0).getInt();
+        throw std::runtime_error("error processing config JSON $.page_cache_MiB");
+    auto page_cache_MiB = extract->getColumn(0).getInt64();
     extract->reset();
 
     extract->bind(2, "$.threads");
@@ -224,11 +224,11 @@ string GenomicSQLiteTuningSQL(const string &config_json, const string &schema = 
     int threads = extract->getColumn(0).getInt();
     extract->reset();
 
-    extract->bind(2, "$.inner_page_size");
+    extract->bind(2, "$.inner_page_KiB");
     if (!extract->executeStep() || extract->getColumnCount() != 1 ||
         !extract->getColumn(0).isInteger())
-        throw std::runtime_error("error processing config JSON $.inner_page_size");
-    int inner_page_size = extract->getColumn(0).getInt();
+        throw std::runtime_error("error processing config JSON $.inner_page_KiB");
+    int inner_page_KiB = extract->getColumn(0).getInt();
     extract->reset();
 
     string schema_prefix;
@@ -236,7 +236,7 @@ string GenomicSQLiteTuningSQL(const string &config_json, const string &schema = 
         schema_prefix = schema + ".";
     }
     map<string, string> pragmas;
-    pragmas[schema_prefix + "cache_size"] = to_string(page_cache_size);
+    pragmas[schema_prefix + "cache_size"] = to_string(-1024 * page_cache_MiB);
     pragmas["threads"] = to_string(threads >= 0 ? threads : thread::hardware_concurrency());
     if (unsafe_load) {
         pragmas[schema_prefix + "journal_mode"] = "OFF";
@@ -247,7 +247,7 @@ string GenomicSQLiteTuningSQL(const string &config_json, const string &schema = 
     }
     ostringstream out;
     // must go first:
-    out << "PRAGMA " << schema_prefix << "page_size=" << to_string(inner_page_size);
+    out << "PRAGMA " << schema_prefix << "page_size=" << to_string(inner_page_KiB * 1024);
     for (const auto &p : pragmas) {
         out << "; PRAGMA " << p.first << "=" << p.second;
     }
@@ -379,16 +379,16 @@ static string sqlquote(const std::string &v) {
 string GenomicSQLiteVacuumIntoSQL(const string &destfile, const string &config_json) {
     SQLite::Database tmpdb(":memory:", SQLITE_OPEN_CREATE | SQLITE_OPEN_READWRITE);
     auto extract = ConfigExtractor(tmpdb, config_json);
-    extract->bind(2, "$.inner_page_size");
+    extract->bind(2, "$.inner_page_KiB");
     if (!extract->executeStep() || extract->getColumnCount() != 1 ||
         !extract->getColumn(0).isInteger())
-        throw std::runtime_error("error processing config JSON $.inner_page_size");
-    int inner_page_size = extract->getColumn(0).getInt();
+        throw std::runtime_error("error processing config JSON $.inner_page_KiB");
+    int inner_page_KiB = extract->getColumn(0).getInt();
 
     string desturi = GenomicSQLiteURI(destfile, config_json) + "&outer_unsafe=true";
 
     ostringstream ans;
-    ans << "PRAGMA page_size = " << inner_page_size << ";\nPRAGMA auto_vacuum = FULL"
+    ans << "PRAGMA page_size = " << (inner_page_KiB * 1024) << ";\nPRAGMA auto_vacuum = FULL"
         << ";\nVACUUM INTO " << sqlquote(desturi);
     return ans.str();
 }
