@@ -454,21 +454,6 @@ static void sqlfn_genomic_range_bin(sqlite3_context *ctx, int argc, sqlite3_valu
  * GRI implementation
  **************************************************************************************************/
 
-static string gri_refseq_ddl(const string &schema) {
-    string schema_prefix;
-    if (!schema.empty()) {
-        schema_prefix = schema + ".";
-    }
-    ostringstream out;
-    out << "CREATE TABLE IF NOT EXISTS " << schema_prefix << "_gri_refseq"
-        << "(_gri_rid INTEGER NOT NULL PRIMARY KEY, gri_refseq_name TEXT NOT NULL, gri_assembly TEXT,"
-        << " gri_refget_id TEXT UNIQUE, gri_refseq_length INTEGER NOT NULL, gri_refseq_meta_json TEXT NOT NULL DEFAULT '{}', "
-        << "UNIQUE(gri_assembly,gri_refseq_name))"
-        << ";\nCREATE INDEX IF NOT EXISTS " << schema_prefix << "_gri_refseq_name ON "
-        << schema_prefix << "_gri_refseq(gri_refseq_name)";
-    return out.str();
-}
-
 static pair<string, string> split_schema_table(const string &qtable) {
     auto p = qtable.find('.');
     if (p == string::npos) {
@@ -687,6 +672,21 @@ static void sqlfn_genomic_range_rowids_safe_sql(sqlite3_context *ctx, int argc,
 /**************************************************************************************************
  * reference sequence metadata (_gri_refseq) helpers
  **************************************************************************************************/
+
+static string gri_refseq_ddl(const string &schema) {
+    string schema_prefix;
+    if (!schema.empty()) {
+        schema_prefix = schema + ".";
+    }
+    ostringstream out;
+    out << "CREATE TABLE IF NOT EXISTS " << schema_prefix << "_gri_refseq"
+        << "(_gri_rid INTEGER NOT NULL PRIMARY KEY, gri_refseq_name TEXT NOT NULL, gri_assembly TEXT,"
+        << " gri_refget_id TEXT UNIQUE, gri_refseq_length INTEGER NOT NULL, gri_refseq_meta_json TEXT NOT NULL DEFAULT '{}', "
+        << "UNIQUE(gri_assembly,gri_refseq_name))"
+        << ";\nCREATE INDEX IF NOT EXISTS " << schema_prefix << "_gri_refseq_name ON "
+        << schema_prefix << "_gri_refseq(gri_refseq_name)";
+    return out.str();
+}
 
 string PutGenomicReferenceSequenceSQL(const string &name, sqlite3_int64 length,
                                       const string &assembly, const string &refget_id,
