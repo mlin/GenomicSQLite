@@ -77,15 +77,10 @@ def vacuum_into_sql(conn: sqlite3.Connection, destfile: str, **config) -> None:
 
 
 def create_genomic_range_index_sql(
-    conn: sqlite3.Connection,
-    table: str,
-    rid: str,
-    beg: str,
-    end: str,
-    max_depth: Optional[int] = None,
+    conn: sqlite3.Connection, table: str, rid: str, beg: str, end: str, floor: Optional[int] = None,
 ) -> str:
     return _execute1(
-        conn, "SELECT create_genomic_range_index_sql(?,?,?,?,?)", (table, rid, beg, end, max_depth)
+        conn, "SELECT create_genomic_range_index_sql(?,?,?,?,?)", (table, rid, beg, end, floor)
     )
 
 
@@ -95,12 +90,13 @@ def genomic_range_rowids_sql(
     qrid: Optional[str] = None,
     qbeg: Optional[str] = None,
     qend: Optional[str] = None,
-    safe: bool = False,
+    ceiling: Optional[int] = None,
+    floor: Optional[int] = None,
 ) -> str:
     return _execute1(
         conn,
-        f"SELECT genomic_range_rowids_{'safe_' if safe else ''}sql(?,?,?,?)",
-        (indexed_table, qrid, qbeg, qend),
+        "SELECT genomic_range_rowids_sql(?,?,?,?,?,?)",
+        (indexed_table, qrid, qbeg, qend, ceiling, floor),
     )
 
 

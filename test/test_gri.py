@@ -1,4 +1,3 @@
-import math
 import os
 import sqlite3
 import random
@@ -8,69 +7,32 @@ import genomicsqlite
 HERE = os.path.dirname(__file__)
 BUILD = os.path.abspath(os.path.join(HERE, "..", "build"))
 
-BIN_OFFSETS = [
-    0,
-    1,
-    1 + 16,
-    1 + 16 + 256,
-    1 + 16 + 256 + 4096,
-    1 + 16 + 256 + 4096 + 65536,
-    1 + 16 + 256 + 4096 + 65536 + 1048576,
-    1 + 16 + 256 + 4096 + 65536 + 1048576 + 16777216,
-    1 + 16 + 256 + 4096 + 65336 + 1048576 + 16777216 + 268435456,
-]
-POS_OFFSETS = [
-    0,
-    134217728,
-    8388608,
-    524288,
-    32768,
-    2048,
-    128,
-    8,
-    0,
-]
 
-
-def test_genomic_range_bin():
-    examples = [
-        (1048576, 1048577, 65536 + BIN_OFFSETS[-1]),
-        (1048575, 1048577, 4095 + BIN_OFFSETS[-2]),
-        (1048560, 1048575, 65535 + BIN_OFFSETS[-1]),
-        (1048560, 1048576, 4095 + BIN_OFFSETS[-2]),
-        (1048559, 1048560, 4095 + BIN_OFFSETS[-2]),
-        (1, 68719476734, 0),
-        (4294967296 + 134217728, 4294967296 * 2 + 134217728 - 1, 2),
-        (4294967296, 4294967296 * 2 - 1, 0),
-        (2, 1, -1),
-        (0, 68719476736, -1),
-        (-1, 42, -1),
-    ]
+def test_gri_lvl():
     con = sqlite3.connect(":memory:")
-    stmt = "SELECT genomic_range_bin(?,?)"
-    for (beg, end, gri_bin) in examples:
-        if gri_bin >= 0:
-            assert next(con.execute(stmt, (beg, end)))[0] == gri_bin, str((beg, end))
-        else:
-            with pytest.raises(sqlite3.OperationalError):
-                con.execute(stmt, (beg, end))
-
-    examples = [
-        (0, BIN_OFFSETS[0]),
-        (1, BIN_OFFSETS[1]),
-        (2, BIN_OFFSETS[2]),
-        (3, BIN_OFFSETS[3]),
-        (4, BIN_OFFSETS[4]),
-        (5, 15 + BIN_OFFSETS[5]),
-        (6, 255 + BIN_OFFSETS[6]),
-        (7, 4095 + BIN_OFFSETS[7]),
-        (8, 65536 + BIN_OFFSETS[8]),
-    ]
-    for (max_depth, gri_bin) in examples:
-        assert (
-            next(con.execute("SELECT genomic_range_bin(?,?,?)", (1048576, 1048577, max_depth)))[0]
-            == gri_bin
-        ), str(max_depth)
+    con.executescript(
+        "CREATE TABLE features(rid INTEGER, beg INTEGER, end INTEGER, expected_lvl INTEGER)"
+    )
+    for lvl in range(16):
+        for ofs in (-2, -1, 0, 1):
+            featlen = 16 ** lvl + ofs
+            tup = (420, 420 + featlen, (0 - lvl if ofs < 1 else 0 - lvl - 1))
+            con.execute("INSERT INTO features VALUES(42,?,?,?)", tup)
+    con.executescript(
+        genomicsqlite.create_genomic_range_index_sql(con, "features", "rid", "beg", "end")
+    )
+    assert (
+        next(
+            con.execute("SELECT count(*) FROM features WHERE expected_lvl == ifnull(_gri_lvl,999)")
+        )[0]
+        == 62
+    )
+    assert (
+        next(
+            con.execute("SELECT count(*) FROM features WHERE expected_lvl != ifnull(_gri_lvl,999)")
+        )[0]
+        == 2
+    )
 
 
 def test_indexing():
@@ -135,15 +97,16 @@ def test_depth_detection():
         return sum(
             1
             for expl in con.execute("EXPLAIN QUERY PLAN " + query, (None, None, None))
-            if "((_gri_rid,_gri_bin)>(?,?) AND (_gri_rid,_gri_bin)<(?,?))" in expl[3]
+            if "((_gri_rid,_gri_lvl,_gri_beg)>(?,?,?) AND (_gri_rid,_gri_lvl,_gri_beg)<(?,?,?))"
+            in expl[3]
         )
 
-    assert fanout(genomicsqlite.genomic_range_rowids_sql(con, "features")[1:-1]) == 9
+    assert fanout(genomicsqlite.genomic_range_rowids_sql(con, "features")[1:-1]) == 16
 
     con.executescript(
         "INSERT INTO features VALUES(NULL, NULL, NULL); INSERT INTO features VALUES(NULL, 0, 10000000000)"
     )
-    assert fanout(genomicsqlite.genomic_range_rowids_sql(con, "features")[1:-1]) == 9
+    assert fanout(genomicsqlite.genomic_range_rowids_sql(con, "features")[1:-1]) == 16
     assert not list(
         con.execute(genomicsqlite.genomic_range_rowids_sql(con, "features")[1:-1], (None, 123, 456))
     )
@@ -151,7 +114,7 @@ def test_depth_detection():
     con.executescript("INSERT INTO features VALUES(42, 1048568, 1048584)")
     query = genomicsqlite.genomic_range_rowids_sql(con, "features")[1:-1]
     print("\n" + query)
-    assert " / 4096)" in query  # level 6
+    assert "-1" in query and "-0x10)" in query
     assert not list(
         con.execute(
             genomicsqlite.genomic_range_rowids_sql(con, "features")[1:-1], (42, None, 1048584)
@@ -168,11 +131,17 @@ def test_depth_detection():
     )
     query = genomicsqlite.genomic_range_rowids_sql(con, "features")[1:-1]
     print("\n" + query)
-    assert " / 65536)" in query  # level 5
-    assert " / 4096)" in query  # level 6
-    assert fanout(query) == 2
+    assert "-4," in query and "-0x10000)" in query
+    assert "-3," in query and "-0x1000)" in query
+    assert "-2," in query and "-0x100)" in query
+    assert "-1," in query and "-0x10)" in query
+    assert fanout(query) == 4
 
-    assert fanout(genomicsqlite.genomic_range_rowids_sql(con, "features", safe=True)[1:-1]) == 9
+    assert fanout(genomicsqlite.genomic_range_rowids_sql(con, "features", ceiling=6)[1:-1]) == 7
+    assert (
+        fanout(genomicsqlite.genomic_range_rowids_sql(con, "features", ceiling=6, floor=3)[1:-1])
+        == 4
+    )
 
     con.executescript(
         """
@@ -180,60 +149,28 @@ def test_depth_detection():
         INSERT INTO features VALUES(44, 0, NULL)
         """
     )
-    assert fanout(genomicsqlite.genomic_range_rowids_sql(con, "features")[1:-1]) == 2
-
-    con.executescript(
-        """
-    INSERT INTO features VALUES(43, 0, 10000000000);
-    INSERT INTO features VALUES(43, 32, 48)
-    """
-    )
-    query = genomicsqlite.genomic_range_rowids_sql(con, "features")[1:-1]
-    print("\n" + query)
-    assert " / 16)" not in query
-    assert fanout(query) == 8
+    assert fanout(genomicsqlite.genomic_range_rowids_sql(con, "features")[1:-1]) == 4
 
     con.executescript(
         """
         INSERT INTO features VALUES(43, 0, 10000000000);
-        INSERT INTO features VALUES(43, 32, 47)
+        INSERT INTO features VALUES(43, 32, 33)
         """
     )
     query = genomicsqlite.genomic_range_rowids_sql(con, "features")[1:-1]
-    assert fanout(query) == 9
-
-
-def test_boundaries():
-    # test abutting intervals near bin boundaries
-
-    con = sqlite3.connect(":memory:")
-    con.executescript("CREATE TABLE features(rid INTEGER, beg INTEGER, end INTEGER)")
-
-    insert = "INSERT INTO features(rid,beg,end) values(?,?,?)"
-    for depth in range(2, 9):
-        boundary = 3 * (16 ** (9 - depth)) + POS_OFFSETS[depth]
-        for ofs in range(-2, 3):
-            featlen = math.ceil(16 ** (9 - depth) / 2)
-            con.execute(insert, (42, boundary + ofs - featlen, boundary + ofs))
-            con.execute(insert, (42, boundary + ofs, boundary + ofs + featlen))
+    print("\n" + query)
+    assert fanout(query) == 10
 
     con.executescript(
-        genomicsqlite.create_genomic_range_index_sql(con, "features", "rid", "beg", "end")
+        """
+        INSERT INTO features VALUES(43, 0, 10000000000);
+        INSERT INTO features VALUES(43, 32, 32)
+        """
     )
-
     query = genomicsqlite.genomic_range_rowids_sql(con, "features")[1:-1]
-    control = "SELECT _rowid_ FROM features NOT INDEXED WHERE rid = ? AND NOT (? > end OR ? < beg) ORDER BY _rowid_"
-    total_results = 0
-    for depth in range(2, 9):
-        boundary = 3 * (16 ** (9 - depth)) + POS_OFFSETS[depth]
-        for qlen in range(3):
-            for ofs in range(-3, 4):
-                tup = (42, boundary + ofs, boundary + ofs + qlen)
-                query_results = list(con.execute(query, tup))
-                control_results = list(con.execute(control, tup))
-                assert query_results == control_results
-                total_results += len(query_results)
-    assert total_results == 938
+    assert fanout(query) == 10
+    assert len(list(con.execute(query, (43, 32, 33)))) == 4
+    assert len(list(con.execute(query, (43, 33, 33)))) == 3
 
 
 def test_refseq():
@@ -247,7 +184,7 @@ def test_refseq():
     assert len([line for line in lines if "INSERT INTO" not in line]) == 2
     con.executescript(create_assembly)
 
-    _fill_exons(con, max_depth=7)
+    _fill_exons(con, floor=2)
     con.commit()
 
     refseq_by_rid = genomicsqlite.get_reference_sequences_by_rid(con)
@@ -267,7 +204,7 @@ def test_refseq():
         + genomicsqlite.genomic_range_rowids_sql(con, "exons")
     )
     print("\n" + query)
-    assert len([line for line in query.split("\n") if "BETWEEN" in line]) == 3
+    assert len([line for line in query.split("\n") if "BETWEEN" in line]) == 2
     assert len(list(con.execute(query, ("chr17", 43115725, 43125370)))) == 56
 
 
@@ -275,7 +212,7 @@ def test_join():
     con = sqlite3.connect(":memory:")
     con.executescript(genomicsqlite.put_reference_assembly_sql(con, "GRCh38_no_alt_analysis_set"))
     _fill_exons(con, table="exons")
-    _fill_exons(con, max_depth=7, table="exons2")
+    _fill_exons(con, floor=2, table="exons2")
     con.commit()
 
     query = (
@@ -289,9 +226,12 @@ def test_join():
     indexed = 0
     for expl in con.execute("EXPLAIN QUERY PLAN " + query):
         print(expl[3])
-        if "USING INDEX exons2__gri" in expl[3]:
+        if (
+            "((_gri_rid,_gri_lvl,_gri_beg)>(?,?,?) AND (_gri_rid,_gri_lvl,_gri_beg)<(?,?,?))"
+            in expl[3]
+        ):
             indexed += 1
-    assert indexed == 3
+    assert indexed == 2
     results = list(con.execute(query))
     assert len(results) == 5191
     assert len([result for result in results if result[1] is None]) == 5
@@ -320,7 +260,7 @@ def test_connect(tmp_path):
     assert len(results) == 5191
 
 
-def _fill_exons(con, max_depth=-1, table="exons"):
+def _fill_exons(con, floor=None, table="exons"):
     con.execute(
         f"CREATE TABLE {table}(rid TEXT NOT NULL, beg INTEGER NOT NULL, end INTEGER NOT NULL, id TEXT NOT NULL)"
     )
@@ -331,9 +271,7 @@ def _fill_exons(con, max_depth=-1, table="exons"):
             (line[0], int(line[1]) - 1, int(line[2]), line[3]),
         )
     con.executescript(
-        genomicsqlite.create_genomic_range_index_sql(
-            con, table, "rid", "beg", "end", max_depth=max_depth
-        )
+        genomicsqlite.create_genomic_range_index_sql(con, table, "rid", "beg", "end", floor=floor)
     )
 
 

@@ -97,7 +97,7 @@ def test_pvcf_glnexus(tmp_path):
     assert next(con.execute("SELECT COUNT(*) FROM genotypes")) == (rows * samples,)
     assert next(con.execute("SELECT SUM(DP) FROM genotypes")) == (134178640,)
     assert round(next(con.execute("SELECT SUM(QUAL) FROM variants"))[0]) == 118146
-    assert next(con.execute("SELECT SUM(_gri_bin) FROM variants")) == (545225262781,)
+    assert next(con.execute("SELECT SUM(_gri_lvl) FROM variants")) == (-158,)
     assert list(
         con.execute(
             "SELECT GT1, GT2, COUNT(*) AS ct FROM genotypes GROUP BY GT1, GT2 ORDER BY ct DESC LIMIT 8"

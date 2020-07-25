@@ -79,6 +79,16 @@ def test_txdbquery(genomicsqlite_txdb):
     random.seed(0xBADF00D)
     for tbl in ("transcript", "cds"):
         query = genomicsqlite.genomic_range_rowids_sql(conn, tbl)[1:-1]
+        fanout = 0
+        for expl in conn.execute("EXPLAIN QUERY PLAN " + query, (None, None, None)):
+            print(expl[3])
+            if (
+                "((_gri_rid,_gri_lvl,_gri_beg)>(?,?,?) AND (_gri_rid,_gri_lvl,_gri_beg)<(?,?,?))"
+                in expl[3]
+            ):
+                fanout += 1
+        assert fanout in (5, 6)
+
         pfx = "tx" if tbl == "transcript" else tbl
         control_query = f"SELECT _rowid_ FROM {tbl} NOT INDEXED WHERE {pfx}_chrom = ? AND NOT ({pfx}_end < ? OR {pfx}_start > ?) ORDER BY _rowid_"
 
@@ -99,6 +109,16 @@ def test_txdbquery(genomicsqlite_txdb):
         + genomicsqlite.genomic_range_rowids_sql(conn, "exon", "cds_chrom", "cds_start", "cds_end")
         + " AND cds_start >= exon_start and cds_end <= exon_end GROUP BY cds._rowid_"
     )
+    print(cds_exon_counts)
+    fanout = 0
+    for expl in conn.execute("EXPLAIN QUERY PLAN " + cds_exon_counts):
+        print(expl[3])
+        if (
+            "((_gri_rid,_gri_lvl,_gri_beg)>(?,?,?) AND (_gri_rid,_gri_lvl,_gri_beg)<(?,?,?))"
+            in expl[3]
+        ):
+            fanout += 1
+    assert fanout == 6
     cds_exon_count_hist = list(
         conn.execute(
             f"SELECT containing_exons, count(cds_id) AS cds_count FROM ({cds_exon_counts}) GROUP BY containing_exons ORDER BY containing_exons"
