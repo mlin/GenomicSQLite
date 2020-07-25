@@ -564,9 +564,16 @@ string GenomicRangeRowidsSQL(sqlite3 *dbconn, const string &indexed_table, const
         lvq << "SELECT _rowid_ FROM " << it << " INDEXED BY " << table << "__gri WHERE"
             << "\n   (" << it << "._gri_rid," << it << "._gri_lvl," << it << "._gri_beg) BETWEEN (("
             << qrid << "),-" << lv << ",(" << qbeg << ")-0x1" << string(lv, '0') << ") AND (("
-            << qrid << "),-" << lv << ",(" << qend << ")+0)"
+            << qrid << "),-" << lv << ",(" << qend << ")-0)" // (*)
             << "\n   AND (" << it << "._gri_beg+" << it << "._gri_len) >= (" << qbeg << ")";
-        // the (qend)+0 is for some reason needed to get the right query plan for joins :(
+        /*
+         * (*) For some reason, we have to obfuscate qend a little (such as with unary *+*, or by
+         * adding or subtracting zero) or else SQLite generates an inefficient query plan for joins
+         * (where qbeg & qend name columns of another table). Regular queries, where qbeg & qend
+         * name bound parameters, don't seem to mind one way or the other.
+         * We preferred subtracting zero over unary *+* to avoid any possible pitfalls from the
+         * latter's type affinity stripping (Sec 8.1 in https://www.sqlite.org/optoverview.html)
+         */
     }
     lvq << ")";
     string ans = "(SELECT _rowid_ FROM\n" + lvq.str() + "\n ORDER BY _rowid_)";

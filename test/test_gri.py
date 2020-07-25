@@ -98,7 +98,9 @@ def test_abutment():
     con.executescript(
         genomicsqlite.create_genomic_range_index_sql(con, "features", "rid", "beg", "end")
     )
-    query = genomicsqlite.genomic_range_rowids_sql(con, "features", "42", str(pos0), str(pos0 + 123))[1:-1]
+    query = genomicsqlite.genomic_range_rowids_sql(
+        con, "features", "42", str(pos0), str(pos0 + 123)
+    )[1:-1]
     control_query = f"SELECT _rowid_ FROM features NOT INDEXED WHERE rid = 42 AND NOT (end < {pos0} OR beg > {pos0+123}) ORDER BY _rowid_"
     assert list(con.execute(query)) == list(con.execute(control_query))
 
@@ -229,35 +231,38 @@ def test_refseq():
 
 
 def test_join():
-    con = sqlite3.connect(":memory:")
-    con.executescript(genomicsqlite.put_reference_assembly_sql(con, "GRCh38_no_alt_analysis_set"))
-    _fill_exons(con, table="exons")
-    _fill_exons(con, floor=2, table="exons2")
-    con.commit()
-
-    query = (
-        "SELECT exons.id, exons2.id FROM exons LEFT JOIN exons2 ON exons2._rowid_ IN\n"
-        + genomicsqlite.genomic_range_rowids_sql(
-            con, "exons2", "exons.rid", "exons.beg", "exons.end"
+    for len_gri in (False, True):
+        con = sqlite3.connect(":memory:")
+        con.executescript(
+            genomicsqlite.put_reference_assembly_sql(con, "GRCh38_no_alt_analysis_set")
         )
-        + " AND exons.id != exons2.id ORDER BY exons.id, exons2.id"
-    )
-    print(query)
-    indexed = 0
-    for expl in con.execute("EXPLAIN QUERY PLAN " + query):
-        print(expl[3])
-        if (
-            "((_gri_rid,_gri_lvl,_gri_beg)>(?,?,?) AND (_gri_rid,_gri_lvl,_gri_beg)<(?,?,?))"
-            in expl[3]
-        ):
-            indexed += 1
-    assert indexed == 2
-    results = list(con.execute(query))
-    assert len(results) == 5191
-    assert len([result for result in results if result[1] is None]) == 5
-    control = "SELECT exons.id, exons2.id FROM exons LEFT JOIN exons2 NOT INDEXED ON NOT (exons2.end < exons.beg OR exons2.beg > exons.end) AND exons.id != exons2.id ORDER BY exons.id, exons2.id"
-    control = list(con.execute(control))
-    assert results == control
+        _fill_exons(con, table="exons")
+        _fill_exons(con, floor=2, table="exons2", len_gri=len_gri)
+        con.commit()
+
+        query = (
+            "SELECT exons.id, exons2.id FROM exons LEFT JOIN exons2 ON exons2._rowid_ IN\n"
+            + genomicsqlite.genomic_range_rowids_sql(
+                con, "exons2", "exons.rid", "exons.beg", "exons.end"
+            )
+            + " AND exons.id != exons2.id ORDER BY exons.id, exons2.id"
+        )
+        print(query)
+        indexed = 0
+        for expl in con.execute("EXPLAIN QUERY PLAN " + query):
+            print(expl[3])
+            if (
+                "((_gri_rid,_gri_lvl,_gri_beg)>(?,?,?) AND (_gri_rid,_gri_lvl,_gri_beg)<(?,?,?))"
+                in expl[3]
+            ):
+                indexed += 1
+        assert indexed == 2
+        results = list(con.execute(query))
+        assert len(results) == 5191
+        assert len([result for result in results if result[1] is None]) == 5
+        control = "SELECT exons.id, exons2.id FROM exons LEFT JOIN exons2 NOT INDEXED ON NOT (exons2.end < exons.beg OR exons2.beg > exons.end) AND exons.id != exons2.id ORDER BY exons.id, exons2.id"
+        control = list(con.execute(control))
+        assert results == control
 
 
 def test_connect(tmp_path):
@@ -280,18 +285,20 @@ def test_connect(tmp_path):
     assert len(results) == 5191
 
 
-def _fill_exons(con, floor=None, table="exons"):
+def _fill_exons(con, floor=None, table="exons", len_gri=False):
     con.execute(
-        f"CREATE TABLE {table}(rid TEXT NOT NULL, beg INTEGER NOT NULL, end INTEGER NOT NULL, id TEXT NOT NULL)"
+        f"CREATE TABLE {table}(rid TEXT NOT NULL, beg INTEGER NOT NULL, end INTEGER NOT NULL, len INTEGER NOT NULL, id TEXT NOT NULL)"
     )
     for line in _EXONS.strip().split("\n"):
         line = line.split("\t")
         con.execute(
-            f"INSERT INTO {table}(rid,beg,end,id) VALUES(?,?,?,?)",
-            (line[0], int(line[1]) - 1, int(line[2]), line[3]),
+            f"INSERT INTO {table}(rid,beg,end,len,id) VALUES(?,?,?,?,?)",
+            (line[0], int(line[1]) - 1, int(line[2]), int(line[2]) - int(line[1]) + 1, line[3]),
         )
     con.executescript(
-        genomicsqlite.create_genomic_range_index_sql(con, table, "rid", "beg", "end", floor=floor)
+        genomicsqlite.create_genomic_range_index_sql(
+            con, table, "rid", "beg", ("beg+len" if len_gri else "end"), floor=floor
+        )
     )
 
 
