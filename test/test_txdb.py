@@ -33,19 +33,15 @@ def genomicsqlite_txdb(txdb):
     conn = genomicsqlite.connect(outfile)
     conn.executescript(
         genomicsqlite.create_genomic_range_index_sql(
-            conn, "transcript", "tx_chrom", "tx_start", "tx_end"
+            conn, "transcript", "tx_chrom", "tx_start", "tx_end", floor=2
         )
     )
     conn.executescript(
         genomicsqlite.create_genomic_range_index_sql(
-            conn, "exon", "exon_chrom", "exon_start", "exon_end"
+            conn, "cds", "cds_chrom", "cds_start", "cds_end", floor=2
         )
     )
-    conn.executescript(
-        genomicsqlite.create_genomic_range_index_sql(
-            conn, "cds", "cds_chrom", "cds_start", "cds_end"
-        )
-    )
+    # intentionally left exon unindexed
     conn.close()
     return outfile
 
@@ -79,6 +75,16 @@ def test_txdbquery(genomicsqlite_txdb):
     random.seed(0xBADF00D)
     for tbl in ("transcript", "cds"):
         query = genomicsqlite.genomic_range_rowids_sql(conn, tbl)[1:-1]
+        fanout = 0
+        for expl in conn.execute("EXPLAIN QUERY PLAN " + query, (None, None, None)):
+            print(expl[3])
+            if (
+                "((_gri_rid,_gri_lvl,_gri_beg)>(?,?,?) AND (_gri_rid,_gri_lvl,_gri_beg)<(?,?,?))"
+                in expl[3]
+            ):
+                fanout += 1
+        assert (tbl, fanout) in (("transcript", 5), ("cds", 3))
+
         pfx = "tx" if tbl == "transcript" else tbl
         control_query = f"SELECT _rowid_ FROM {tbl} NOT INDEXED WHERE {pfx}_chrom = ? AND NOT ({pfx}_end < ? OR {pfx}_start > ?) ORDER BY _rowid_"
 
@@ -93,18 +99,29 @@ def test_txdbquery(genomicsqlite_txdb):
             total_results += len(control_ids)
         assert total_results in (7341, 2660)
 
-    # join cds to exon
-    cds_exon_counts = (
-        "SELECT cds._rowid_ AS cds_id, COUNT(exon._rowid_) AS containing_exons FROM cds, exon WHERE exon._rowid_ IN "
-        + genomicsqlite.genomic_range_rowids_sql(conn, "exon", "cds_chrom", "cds_start", "cds_end")
-        + " AND cds_start >= exon_start and cds_end <= exon_end GROUP BY cds._rowid_"
+    # join exon to cds ("which exons are coding?")
+    exon_cds_counts = (
+        "SELECT exon._rowid_ AS exon_id, COUNT(cds._rowid_) AS contained_cds FROM exon LEFT JOIN cds ON cds._rowid_ IN "
+        + genomicsqlite.genomic_range_rowids_sql(
+            conn, "cds", "exon_chrom", "exon_start", "exon_end"
+        )
+        + " AND (exon_start = cds_start AND exon_end >= cds_start OR exon_start <= cds_start AND exon_end = cds_end) GROUP BY exon._rowid_"
     )
+    print(exon_cds_counts)
+    fanout = 0
+    for expl in conn.execute("EXPLAIN QUERY PLAN " + exon_cds_counts):
+        print(expl[3])
+        if (
+            "((_gri_rid,_gri_lvl,_gri_beg)>(?,?,?) AND (_gri_rid,_gri_lvl,_gri_beg)<(?,?,?))"
+            in expl[3]
+        ):
+            fanout += 1
+    assert fanout == 3
     cds_exon_count_hist = list(
         conn.execute(
-            f"SELECT containing_exons, count(cds_id) AS cds_count FROM ({cds_exon_counts}) GROUP BY containing_exons ORDER BY containing_exons"
+            f"SELECT contained_cds, count(exon_id) AS exon_count FROM ({exon_cds_counts}) GROUP BY contained_cds ORDER BY contained_cds"
         )
     )
     for elt in cds_exon_count_hist:
         print(elt)
-    assert cds_exon_count_hist[0] == (1, 168266)
-    assert cds_exon_count_hist[1] == (2, 71159)
+    assert cds_exon_count_hist[:2] == [(0, 270532), (1, 310059)]

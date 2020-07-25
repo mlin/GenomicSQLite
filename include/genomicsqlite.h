@@ -1,9 +1,5 @@
 #include <sqlite3.h>
 
-#define GRI_MAX_POS (68719476735LL)
-#define GRI_LEVELS (9)
-#define GRI_MAX_LEVEL (GRI_LEVELS - 1)
-
 /*
  * C bindings
  *
@@ -47,7 +43,7 @@ char *genomicsqlite_vacuum_into_sql(const char *destfile, const char *config_jso
  * end: column name or simple SQL expression for the interval end position
  */
 char *create_genomic_range_index_sql(const char *table, const char *rid, const char *beg,
-                                     const char *end, int max_depth);
+                                     const char *end, int floor);
 
 /*
  * Generate parenthesized SELECT statement to query the existing genomic range index of the
@@ -67,8 +63,8 @@ char *create_genomic_range_index_sql(const char *table, const char *rid, const c
  * qbeg: query range begin position; defaults to "?2"
  * qend: query range end position; defaults to "?3"
  */
-char *genomic_range_rowids_sql(const char *indexed_table, sqlite3 *dbconn, const char *qrid,
-                               const char *qbeg, const char *qend);
+char *genomic_range_rowids_sql(sqlite3 *dbconn, const char *indexed_table, const char *qrid,
+                               const char *qbeg, const char *qend, int ceiling, int floor);
 
 /*
  * Optional storage of refrence sequence metadata
@@ -108,10 +104,10 @@ std::string GenomicSQLiteVacuumIntoSQL(const std::string &dbfile,
 
 std::string CreateGenomicRangeIndexSQL(const std::string &table, const std::string &rid,
                                        const std::string &beg, const std::string &end,
-                                       int max_depth = -1);
-std::string GenomicRangeRowidsSQL(const std::string &indexed_table, sqlite3 *dbconn,
+                                       int floor = 0);
+std::string GenomicRangeRowidsSQL(sqlite3 *dbconn, const std::string &indexed_table,
                                   const std::string &qrid = "?1", const std::string &qbeg = "?2",
-                                  const std::string &qend = "?3");
+                                  const std::string &qend = "?3", int ceiling = -1, int floor = -1);
 
 std::string PutGenomicReferenceAssemblySQL(const std::string &assembly,
                                            const std::string &attached_schema = "");

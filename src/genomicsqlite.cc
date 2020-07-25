@@ -406,51 +406,6 @@ static void sqlfn_genomicsqlite_vacuum_into_sql(sqlite3_context *ctx, int argc,
 }
 
 /**************************************************************************************************
- * genomic_range_bin() SQL function to calculate bin number from beg,end (optional: max_depth)
- **************************************************************************************************/
-
-const sqlite3_int64 GRI_BIN_OFFSETS[] = {
-    0,
-    1,
-    1 + 16,
-    1 + 16 + 256,
-    1 + 16 + 256 + 4096,
-    1 + 16 + 256 + 4096 + 65536,
-    1 + 16 + 256 + 4096 + 65536 + 1048576,
-    1 + 16 + 256 + 4096 + 65536 + 1048576 + 16777216,
-    1 + 16 + 256 + 4096 + 65336 + 1048576 + 16777216 + 268435456,
-};
-const sqlite3_int64 GRI_POS_OFFSETS[] = {
-    0, 134217728, 8388608, 524288, 32768, 2048, 128, 8, 0,
-};
-const sqlite3_int64 GRI_BIN_COUNT = GRI_BIN_OFFSETS[GRI_MAX_LEVEL] + 4294967296LL;
-
-static void sqlfn_genomic_range_bin(sqlite3_context *ctx, int argc, sqlite3_value **argv) {
-    assert(argc == 2 || argc == 3);
-    if (sqlite3_value_type(argv[0]) == SQLITE_NULL || sqlite3_value_type(argv[1]) == SQLITE_NULL) {
-        sqlite3_result_null(ctx);
-        return;
-    }
-    sqlite3_int64 beg, end, max_depth = GRI_MAX_LEVEL;
-    ARG(beg, 0, SQLITE_INTEGER, int64)
-    ARG(end, 1, SQLITE_INTEGER, int64)
-    ARG_OPTIONAL(max_depth, 2, SQLITE_INTEGER, int64)
-    if (beg < 0 || end < beg || end > GRI_MAX_POS || max_depth < 0 || max_depth >= GRI_LEVELS) {
-        sqlite3_result_error(ctx, "genomic_range_bin() domain error", -1);
-        return;
-    }
-    int lv = max_depth;
-    sqlite3_int64 divisor = 1LL << (4 * (GRI_LEVELS - lv));
-    for (; ((beg - GRI_POS_OFFSETS[lv]) / divisor) != ((end - GRI_POS_OFFSETS[lv]) / divisor);
-         --lv, divisor *= 16)
-        ;
-    assert(lv >= 0);
-    sqlite3_int64 ans = (beg - GRI_POS_OFFSETS[lv]) / divisor;
-    assert(ans >= 0);
-    sqlite3_result_int64(ctx, ans + GRI_BIN_OFFSETS[lv]);
-}
-
-/**************************************************************************************************
  * GRI implementation
  **************************************************************************************************/
 
@@ -463,11 +418,14 @@ static pair<string, string> split_schema_table(const string &qtable) {
 }
 
 string CreateGenomicRangeIndexSQL(const string &schema_table, const string &rid, const string &beg,
-                                  const string &end, int max_depth) {
+                                  const string &end, int floor) {
     auto split = split_schema_table(schema_table);
     string schema = split.first, table = split.second;
-    if (max_depth < 0 || max_depth > GRI_MAX_LEVEL) {
-        max_depth = GRI_MAX_LEVEL;
+    if (floor == -1) {
+        floor = 0;
+    }
+    if (!(floor >= 0 && floor < 16)) {
+        throw std::invalid_argument("GenomicSQLite: must have 0 <= floor < 16");
     }
     size_t p;
     ostringstream out;
@@ -478,63 +436,53 @@ string CreateGenomicRangeIndexSQL(const string &schema_table, const string &rid,
     out << ";\nALTER TABLE " << schema_table << " ADD COLUMN _gri_len INTEGER AS ((" << end << ")-("
         << beg << ")) VIRTUAL";
     out << ";\nALTER TABLE " << schema_table
-        << " ADD COLUMN _gri_bin INTEGER AS (genomic_range_bin(_gri_beg,_gri_beg+_gri_len,"
-        << max_depth << ")) VIRTUAL";
+        << " ADD COLUMN _gri_lvl INTEGER AS (CASE WHEN _gri_len IS NULL OR _gri_len < 0 THEN NULL";
+    for (int lv = floor; lv < 16; ++lv) {
+        // note: negate _gri_lvl so that most index b-tree insertions (small features on levels
+        //       closest to 0) will be rightmost
+        out << " WHEN _gri_len <= 0x1" << string(lv, '0') << " THEN -" << lv;
+    }
+    out << " ELSE NULL END) VIRTUAL";
     out << ";\nCREATE INDEX " << schema_table << "__gri ON " << table
-        << "(_gri_rid, _gri_bin, _gri_beg, _gri_len)";
+        << "(_gri_rid, _gri_lvl, _gri_beg, _gri_len)";
     return out.str();
 }
 
 extern "C" char *create_genomic_range_index_sql(const char *table, const char *rid, const char *beg,
-                                                const char *end, int max_depth) {
+                                                const char *end, int floor) {
     assert(table && table[0]);
     assert(rid && rid[0]);
     assert(beg && beg[0]);
     assert(end && end[0]);
-    C_WRAPPER(CreateGenomicRangeIndexSQL(string(table), rid, beg, end, max_depth));
+    C_WRAPPER(CreateGenomicRangeIndexSQL(string(table), rid, beg, end, floor));
 }
 
 static void sqlfn_create_genomic_range_index_sql(sqlite3_context *ctx, int argc,
                                                  sqlite3_value **argv) {
     string schema_table, rid, beg, end;
-    sqlite3_int64 max_depth = -1;
+    sqlite3_int64 floor = -1;
     assert(argc == 4 || argc == 5);
     ARG_TEXT(schema_table, 0)
     ARG_TEXT(rid, 1)
     ARG_TEXT(beg, 2)
     ARG_TEXT(end, 3)
-    ARG_OPTIONAL(max_depth, 4, SQLITE_INTEGER, int64)
-    SQL_WRAPPER(CreateGenomicRangeIndexSQL(schema_table, rid, beg, end, max_depth))
+    ARG_OPTIONAL(floor, 4, SQLITE_INTEGER, int64)
+    SQL_WRAPPER(CreateGenomicRangeIndexSQL(schema_table, rid, beg, end, floor))
 }
 
-static int gri_bin_depth(sqlite3_int64 bin) {
-    assert(bin >= 0 && bin < GRI_BIN_COUNT);
-    for (int lv = 0; lv < GRI_MAX_LEVEL; ++lv) {
-        if (bin < GRI_BIN_OFFSETS[lv + 1]) {
-            return lv;
-        }
-    }
-    return GRI_MAX_LEVEL;
-}
-
-struct gri_depth_range_t {
-    int min_depth = 0, max_depth = GRI_MAX_LEVEL;
-};
-
-static gri_depth_range_t DetectDepthRange(sqlite3 *dbconn, const string &schema_table) {
+static pair<int, int> DetectLevelRange(sqlite3 *dbconn, const string &schema_table) {
     string table = split_schema_table(schema_table).second;
 
-    // Detect min & max bin depth (level) occupied in the table's GRI. Since bin numbers increase
-    // with depth, we can find the min and max bin numbers & then figure their respective depths.
+    // Detect min & max level actually occupied in the table's GRI.
     //
-    // We'd like to write simply SELECT MIN(_gri_bin), MAX(_gri_bin) ... and trust SQLite to plan
-    // an efficient skip-scan of the GRI on (_gri_rid, _gri_bin, ...). Unfortunately it doesn't do
-    // that, so instead we write convoluted SQL that forces the efficient plan.
+    // We'd like to write simply SELECT MIN(_gri_lvl), MAX(_gri_lvl) ... and trust SQLite to plan
+    // an efficient skip-scan of the GRI on (_gri_rid, _gri_lvl, ...). Unfortunately it doesn't do
+    // that, so instead we have to write convoluted SQL explicating the efficient plan.
     //
     // This consists of --
     // (i) recursive CTE to find the set of relevant _gri_rid (because even
-    //       SELECT DISTINCT _gri_rid ... triggers a full index scan)
-    // (ii) for each _gri_rid: pick out the min/max bins with ORDER BY _gri_bin [DESC] LIMIT 1
+    //       SELECT DISTINCT _gri_rid ... triggers a full scan of the index)
+    // (ii) for each _gri_rid: pick out the min/max level with ORDER BY _gri_lvl [DESC] LIMIT 1
     // (iii) min() and  max() over the per-rid answers
     // We do the (iii) aggregation externally to ensure SQLite only does one pass through the index
 
@@ -549,124 +497,110 @@ static gri_depth_range_t DetectDepthRange(sqlite3 *dbconn, const string &schema_
         tbl_gri +
         " WHERE _gri_rid > __rid ORDER BY _gri_rid LIMIT 1) AS __rid_i FROM __distinct WHERE __rid_i IS NOT NULL)\n"
         "SELECT\n"
-        " (SELECT _gri_bin FROM " +
+        " (SELECT _gri_lvl FROM " +
         tbl_gri +
-        " WHERE _gri_rid = __rid AND _gri_bin >= 0 ORDER BY _gri_rid, _gri_bin LIMIT 1),\n"
-        " (SELECT _gri_bin FROM " +
+        " WHERE _gri_rid = __rid AND _gri_lvl <= 0 ORDER BY _gri_rid, _gri_lvl LIMIT 1),\n"
+        " (SELECT _gri_lvl FROM " +
         tbl_gri +
-        " WHERE _gri_rid = __rid AND _gri_bin >= 0 ORDER BY _gri_rid DESC, _gri_bin DESC LIMIT 1)\n"
+        " WHERE _gri_rid = __rid AND _gri_lvl <= 0 ORDER BY _gri_rid DESC, _gri_lvl DESC LIMIT 1)\n"
         "FROM __distinct";
-    //_DBG << endl << query << endl;
+    _DBG << endl << query << endl;
     shared_ptr<sqlite3_stmt> stmt;
     {
         sqlite3_stmt *pStmt = nullptr;
         if (sqlite3_prepare_v3(dbconn, query.c_str(), -1, 0, &pStmt, nullptr) != SQLITE_OK) {
-            throw runtime_error(sqlite3_errmsg(dbconn));
-            throw runtime_error("GenomicSQLite: table has no genomic range index");
+            throw runtime_error("GenomicSQLite: table is probably missing genomic range index; " +
+                                string(sqlite3_errmsg(dbconn)));
         }
         stmt = shared_ptr<sqlite3_stmt>(pStmt, sqlite3_finalize);
     }
 
-    sqlite3_int64 min_bin = GRI_BIN_COUNT, max_bin = -1;
+    sqlite3_int64 min_lvl = 15, max_lvl = 0;
     int rc;
     while ((rc = sqlite3_step(stmt.get())) == SQLITE_ROW) {
+        // un-negating as we go
         if (sqlite3_column_type(stmt.get(), 0) == SQLITE_INTEGER) {
-            min_bin = min(min_bin, sqlite3_column_int64(stmt.get(), 0));
+            max_lvl = max(max_lvl, 0 - sqlite3_column_int64(stmt.get(), 0));
         }
         if (sqlite3_column_type(stmt.get(), 1) == SQLITE_INTEGER) {
-            max_bin = max(max_bin, sqlite3_column_int64(stmt.get(), 1));
+            min_lvl = min(min_lvl, 0 - sqlite3_column_int64(stmt.get(), 1));
         }
     }
     if (rc != SQLITE_DONE) {
-        throw runtime_error("GenomicSQLite: error inspecting genomic range index");
+        throw runtime_error("GenomicSQLite: error inspecting GRI; " +
+                            string(sqlite3_errmsg(dbconn)));
     }
-
-    // set min/max depth based on min/max bin
-    gri_depth_range_t ans;
-    if (min_bin < GRI_BIN_COUNT) {
-        ans.min_depth = gri_bin_depth(min_bin);
+    if (min_lvl == 15 && max_lvl == 0) {
+        // empty
+        swap(min_lvl, max_lvl);
     }
-    if (max_bin >= 0) {
-        ans.max_depth = gri_bin_depth(max_bin);
+    if (!(0 <= min_lvl && min_lvl <= max_lvl && max_lvl < 16)) {
+        throw runtime_error("GenomicSQLite: GRI corrupted");
     }
-    assert(ans.min_depth >= 0 && ans.min_depth <= ans.max_depth && ans.max_depth < GRI_LEVELS);
-    return ans;
+    return std::pair<int, int>(min_lvl, max_lvl);
 }
 
-static string BetweenTerm(const string &qrid, const string &q, int lv) {
-    assert(lv >= 0 && lv < GRI_LEVELS);
-    sqlite3_int64 divisor = 1LL << (4 * (GRI_LEVELS - lv));
-    string ans;
-    if (GRI_POS_OFFSETS[lv]) {
-        ans = "(" + q + ") - " + to_string(GRI_POS_OFFSETS[lv]);
-    } else {
-        ans = q;
+string GenomicRangeRowidsSQL(sqlite3 *dbconn, const string &indexed_table, const string &qrid,
+                             const string &qbeg, const string &qend, int ceiling, int floor) {
+    if (ceiling < 0) {
+        auto p = DetectLevelRange(dbconn, indexed_table);
+        floor = floor >= 0 ? floor : p.first;
+        ceiling = p.second;
+    } else if (floor == -1) {
+        floor = 0;
     }
-    ans = "(" + ans + ") / " + to_string(divisor);
-    if (GRI_BIN_OFFSETS[lv]) {
-        ans = "(" + ans + ") + " + to_string(GRI_BIN_OFFSETS[lv]);
-    }
-    ans = "((" + qrid + "),(" + ans + "))";
-    return ans;
-}
-
-static string FilterTerm(const string &indexed_table, const string &qbegs, const string &qends) {
-    ostringstream ans;
-    ans << "AND NOT ((" << qbegs << ") > (" << indexed_table << "._gri_beg + " << indexed_table
-        << "._gri_len) OR (" << qends << ") < " << indexed_table << "._gri_beg)";
-    return ans.str();
-}
-
-string GenomicRangeRowidsSQL(const string &indexed_table, sqlite3 *dbconn, const string &qrid,
-                             const string &qbeg, const string &qend) {
-    gri_depth_range_t table_gri;
-    if (dbconn) {
-        table_gri = DetectDepthRange(dbconn, indexed_table);
+    if (!(0 <= floor && floor <= ceiling && ceiling < 16)) {
+        throw invalid_argument("GenomicSQLite: invalid floor/ceiling");
     }
     string table = split_schema_table(indexed_table).second;
 
     ostringstream lvq; // per-level queries
     lvq << " (";
-    for (int lv = table_gri.max_depth; lv >= table_gri.min_depth; --lv) {
-        if (lv < table_gri.max_depth) {
+    for (int lv = ceiling; lv >= floor; --lv) {
+        if (lv < ceiling) {
             lvq << "\n  UNION ALL\n  ";
         }
-        lvq << "SELECT _rowid_ FROM " << indexed_table << " INDEXED BY " << table << "__gri WHERE"
-            << "\n   ((" << indexed_table << "._gri_rid," << indexed_table << "._gri_bin) ";
-        lvq << "BETWEEN " << BetweenTerm(qrid, qbeg, lv) << " AND " << BetweenTerm(qrid, qend, lv);
-        lvq << "\n   " << FilterTerm(indexed_table, qbeg, qend) << ")";
+        const string &it = indexed_table;
+        lvq << "SELECT _rowid_ FROM " << it << " INDEXED BY " << table << "__gri WHERE"
+            << "\n   (" << it << "._gri_rid," << it << "._gri_lvl," << it << "._gri_beg) BETWEEN (("
+            << qrid << "),-" << lv << ",(" << qbeg << ")-0x1" << string(lv, '0') << ") AND (("
+            << qrid << "),-" << lv << ",(" << qend << ")-0)" // (*)
+            << "\n   AND (" << it << "._gri_beg+" << it << "._gri_len) >= (" << qbeg << ")";
+        /*
+         * (*) For some reason, we have to obfuscate qend a little (such as with unary *+*, or by
+         * adding or subtracting zero) or else SQLite generates an inefficient query plan for joins
+         * (where qbeg & qend name columns of another table). Regular queries, where qbeg & qend
+         * name bound parameters, don't seem to mind one way or the other.
+         * We preferred subtracting zero over unary *+* to avoid any possible pitfalls from the
+         * latter's type affinity stripping (Sec 8.1 in https://www.sqlite.org/optoverview.html)
+         */
     }
-    lvq << ") ";
-    return "(SELECT _rowid_ FROM\n" + lvq.str() + "\n ORDER BY _rowid_)";
+    lvq << ")";
+    string ans = "(SELECT _rowid_ FROM\n" + lvq.str() + "\n ORDER BY _rowid_)";
+    _DBG << ans << endl;
+    return ans;
 }
 
-extern "C" char *genomic_range_rowids_sql(const char *table, sqlite3 *dbconn, const char *qrid,
-                                          const char *qbeg, const char *qend) {
-    C_WRAPPER(GenomicRangeRowidsSQL(string(table), dbconn, (qrid && qrid[0]) ? qrid : "?1",
+extern "C" char *genomic_range_rowids_sql(sqlite3 *dbconn, const char *table, const char *qrid,
+                                          const char *qbeg, const char *qend, int ceiling,
+                                          int floor) {
+    C_WRAPPER(GenomicRangeRowidsSQL(dbconn, string(table), (qrid && qrid[0]) ? qrid : "?1",
                                     (qbeg && qbeg[0]) ? qbeg : "?2",
-                                    (qend && qend[0]) ? qend : "?3"));
+                                    (qend && qend[0]) ? qend : "?3", ceiling, floor));
 }
 
 static void sqlfn_genomic_range_rowids_sql(sqlite3_context *ctx, int argc, sqlite3_value **argv) {
     string indexed_table, qrid = "?1", qbeg = "?2", qend = "?3";
-    assert(argc >= 1 && argc <= 4);
+    sqlite3_int64 ceiling = -1, floor = -1;
+    assert(argc >= 1 && argc <= 6);
     ARG_TEXT(indexed_table, 0)
     ARG_TEXT_OPTIONAL(qrid, 1)
     ARG_TEXT_OPTIONAL(qbeg, 2)
     ARG_TEXT_OPTIONAL(qend, 3)
-    SQL_WRAPPER(
-        GenomicRangeRowidsSQL(indexed_table, sqlite3_context_db_handle(ctx), qrid, qbeg, qend))
-}
-
-static void sqlfn_genomic_range_rowids_safe_sql(sqlite3_context *ctx, int argc,
-                                                sqlite3_value **argv) {
-    string indexed_table, qrid = "?1", qbeg = "?2", qend = "?3";
-    assert(argc >= 1 && argc <= 4);
-    ARG_TEXT(indexed_table, 0)
-    ARG_TEXT_OPTIONAL(qrid, 1)
-    ARG_TEXT_OPTIONAL(qbeg, 2)
-    ARG_TEXT_OPTIONAL(qend, 3)
-    SQL_WRAPPER(GenomicRangeRowidsSQL(indexed_table, nullptr, qrid, qbeg, qend))
+    ARG_OPTIONAL(ceiling, 4, SQLITE_INTEGER, int64)
+    ARG_OPTIONAL(floor, 5, SQLITE_INTEGER, int64)
+    SQL_WRAPPER(GenomicRangeRowidsSQL(sqlite3_context_db_handle(ctx), indexed_table, qrid, qbeg,
+                                      qend, (int)ceiling, (int)floor))
 }
 
 /**************************************************************************************************
@@ -851,9 +785,7 @@ static int register_genomicsqlite_functions(sqlite3 *db, const char **pzErrMsg,
         void (*fp)(sqlite3_context *, int, sqlite3_value **);
         int nArg;
         int flags;
-    } fntab[] = {{FPNM(genomic_range_bin), 2, SQLITE_DETERMINISTIC},
-                 {FPNM(genomic_range_bin), 3, SQLITE_DETERMINISTIC},
-                 {FPNM(genomicsqlite_version), 0, 0},
+    } fntab[] = {{FPNM(genomicsqlite_version), 0, 0},
                  {FPNM(genomicsqlite_default_config_json), 0, 0},
                  {FPNM(genomicsqlite_uri), 1, 0},
                  {FPNM(genomicsqlite_uri), 2, 0},
@@ -868,10 +800,8 @@ static int register_genomicsqlite_functions(sqlite3 *db, const char **pzErrMsg,
                  {FPNM(genomic_range_rowids_sql), 2, 0},
                  {FPNM(genomic_range_rowids_sql), 3, 0},
                  {FPNM(genomic_range_rowids_sql), 4, 0},
-                 {FPNM(genomic_range_rowids_safe_sql), 1, 0},
-                 {FPNM(genomic_range_rowids_safe_sql), 2, 0},
-                 {FPNM(genomic_range_rowids_safe_sql), 3, 0},
-                 {FPNM(genomic_range_rowids_safe_sql), 4, 0},
+                 {FPNM(genomic_range_rowids_sql), 5, 0},
+                 {FPNM(genomic_range_rowids_sql), 6, 0},
                  {FPNM(put_genomic_reference_sequence_sql), 2, 0},
                  {FPNM(put_genomic_reference_sequence_sql), 3, 0},
                  {FPNM(put_genomic_reference_sequence_sql), 4, 0},
