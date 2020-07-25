@@ -9,6 +9,8 @@ BUILD = os.path.abspath(os.path.join(HERE, "..", "build"))
 
 
 def test_gri_lvl():
+    # Test the _gri_lvl generated column which calculates each feature's level number based on its
+    # length.
     con = sqlite3.connect(":memory:")
     con.executescript(
         "CREATE TABLE features(rid INTEGER, beg INTEGER, end INTEGER, expected_lvl INTEGER)"
@@ -84,8 +86,26 @@ def test_indexing():
         genomicsqlite.genomic_range_rowids_sql(con, "nonexistent_table")
 
 
-def test_depth_detection():
-    # test corner cases for the bit of genomic_range_rowids() which detects the depth range
+def test_abutment():
+    # Test GRI query correctness with various cases of features abutting the query range
+    con = sqlite3.connect(":memory:")
+    con.executescript("CREATE TABLE features(rid INTEGER, beg INTEGER, end INTEGER)")
+    pos0 = 10000000000
+    for lvl in range(9):
+        for ofs in (-1, 0, 1):
+            for tup in ((pos0 - 16 ** lvl, pos0 + ofs), (pos0 + 123 + ofs, pos0 + 123 + 16 ** 9)):
+                con.execute("INSERT INTO features VALUES(42,?,?)", tup)
+    con.executescript(
+        genomicsqlite.create_genomic_range_index_sql(con, "features", "rid", "beg", "end")
+    )
+    query = genomicsqlite.genomic_range_rowids_sql(con, "features", "42", str(pos0), str(pos0 + 123))[1:-1]
+    control_query = f"SELECT _rowid_ FROM features NOT INDEXED WHERE rid = 42 AND NOT (end < {pos0} OR beg > {pos0+123}) ORDER BY _rowid_"
+    assert list(con.execute(query)) == list(con.execute(control_query))
+
+
+def test_level_detection():
+    # test corner cases for the bit of genomic_range_rowids() which detects the level range of
+    # extant features
 
     con = sqlite3.connect(":memory:")
     con.executescript("CREATE TABLE features(rid INTEGER, beg INTEGER, end INTEGER)")
