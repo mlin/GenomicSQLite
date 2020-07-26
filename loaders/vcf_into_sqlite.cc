@@ -7,8 +7,6 @@
  * - array values are stored as JSON
  */
 #include "common.hpp"
-#include <atomic>
-#include <chrono>
 #include <cmath>
 #include <functional>
 #include <getopt.h>
@@ -16,9 +14,7 @@
 #include <map>
 #include <set>
 #include <sstream>
-#include <thread>
 #include <unistd.h>
-#include <vector>
 
 // unpack each bcf_hrec_t with the key type (e.g. INFO, FORMAT) into an easier-to-use map
 vector<map<string, string>> extract_hrecs(bcf_hdr_t *hdr, const char *key,
@@ -513,98 +509,33 @@ void insert_genotypes(bcf_hdr_t *hdr, bcf1_t *rec, vector<map<string, string>> &
 }
 
 // stream BCF records using background thread
-class BCFReader {
+class BCFReader : public BackgroundProducer<shared_ptr<bcf1_t>> {
+  public:
+    BCFReader(vcfFile *vcf, bcf_hdr_t *hdr, int ringsize)
+        : BackgroundProducer<shared_ptr<bcf1_t>>(ringsize), vcf_(vcf), hdr_(hdr) {}
+
+  private:
     vcfFile *vcf_;
     bcf_hdr_t *hdr_;
 
-    vector<unique_ptr<bcf1_t, void (*)(bcf1_t *)>> ring_;
-    unique_ptr<thread> worker_;
-    atomic<bool> stop_;
-    int err_ = 0, errcode_ = 0;
-    atomic<long long> p_, // produced
-        c_;               // if c_>0 then item (c_-1)%R is currently being consumed
-    chrono::duration<double> p_spin_ = chrono::duration<double>::zero(),
-                             c_spin_ = chrono::duration<double>::zero();
-    chrono::time_point<chrono::high_resolution_clock> t0_;
-
-    void background() {
-        t0_ = chrono::high_resolution_clock::now();
-        auto R = ring_.size();
-        do {
-            assert(p_ >= c_);
-            bcf1_t *rec = ring_[p_ % R].get();
-            int ret = bcf_read(vcf_, hdr_, rec);
-            if (ret != 0) {
-                if (ret != -1 || rec->errcode) {
-                    err_ = ret;
-                    errcode_ = rec->errcode;
-                }
-                stop_ = true;
-            } else {
-                ret = bcf_unpack(rec, BCF_UN_ALL);
-                if (ret != 0) {
-                    err_ = ret;
-                    stop_ = true;
-                } else {
-                    ++p_;
-                }
-            }
-            auto t_spin = chrono::high_resolution_clock::now();
-            for (int i = 0; !stop_ && p_ - max(c_.load(), 1LL) == R - 1; ++i) {
-                this_thread::sleep_for(chrono::milliseconds(1));
-            }
-            p_spin_ += chrono::high_resolution_clock::now() - t_spin;
-        } while (!stop_);
-    }
-
-  public:
-    BCFReader(vcfFile *vcf, bcf_hdr_t *hdr, int ringsize) : vcf_(vcf), hdr_(hdr) {
-        assert(ringsize > 1);
-        stop_ = false;
-        p_ = 0;
-        c_ = 0;
-        for (int i = 0; i < ringsize; i++) {
-            ring_.emplace_back(bcf_init(), &bcf_destroy);
+    bool Produce(shared_ptr<bcf1_t> &it) override {
+        if (!it) {
+            it = shared_ptr<bcf1_t>(bcf_init(), &bcf_destroy);
         }
-    }
-
-    bcf1_t *read() {
-        if (!worker_) {
-            worker_.reset(new thread([this]() { this->background(); }));
+        int ret = bcf_read(vcf_, hdr_, it.get());
+        if (ret == -1) {
+            return false;
+        } else if (ret != 0 || it->errcode) {
+            ostringstream msg;
+            msg << "VCF parser failed: bcf1_read() -> " << ret
+                << ", bcf1_t::errcode = " << it->errcode;
+            throw runtime_error(msg.str());
         }
-        auto t_spin = chrono::high_resolution_clock::now();
-        while (!stop_ && p_ == c_)
-            this_thread::yield();
-        c_spin_ += chrono::high_resolution_clock::now() - t_spin;
-        if (stop_) {
-            if (err_ || errcode_) {
-                worker_->join();
-                ostringstream msg;
-                msg << "vcf_into_sqlite: failed reading VCF; bcf_read() -> " << err_
-                    << " bcf1_t::errcode = " << errcode_ << '\n';
-                throw runtime_error(msg.str());
-            }
-            if (c_ == p_) {
-                worker_->join();
-                return nullptr;
-            }
+        ret = bcf_unpack(it.get(), BCF_UN_ALL);
+        if (ret != 0) {
+            throw runtime_error("Corrupt VCF/BCF record; bcf_unpack() -> " + to_string(ret));
         }
-        assert(c_ < p_);
-        return ring_[c_++ % ring_.size()].get();
-    }
-
-    void cancel() {
-        stop_ = true;
-        if (worker_) {
-            worker_->join();
-        }
-    }
-
-    void log() {
-        chrono::duration<double> elapsed = chrono::high_resolution_clock::now() - t0_;
-        cerr << c_ << " record(s) processed in " << elapsed.count() << "s"
-             << "; producer thread spun for " << p_spin_.count() << "s"
-             << "; consumer thread spun for " << c_spin_.count() << "s" << endl;
+        return true;
     }
 };
 
@@ -778,8 +709,9 @@ int main(int argc, char *argv[]) {
                         << (format_hrecs.empty() ? "..." : " & genotypes...") << endl;
 
         BCFReader reader(vcf.get(), hdr.get(), 64);
-        bcf1_t *rec;
-        while ((rec = reader.read())) {
+        while (reader.next()) {
+            bcf1_t *rec = reader.item().get();
+            assert(rec);
             try {
                 insert_variant(hdr.get(), rec, info_hrecs, *insert_variant_stmt);
                 if (!format_hrecs.empty()) {
@@ -791,11 +723,11 @@ int main(int argc, char *argv[]) {
                                      *insert_genotype_stmt);
                 }
             } catch (exception &exn) {
-                reader.cancel();
+                reader.abort();
                 throw exn;
             }
         }
-        progress && (reader.log(), true);
+        progress &&cerr << reader.log() << endl;
 
         // create GRI
         if (gri) {
