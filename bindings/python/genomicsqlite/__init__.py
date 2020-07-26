@@ -10,16 +10,18 @@ import sqlite3
 from typing import Optional, NamedTuple, Dict, Any
 from ctypes.util import find_library
 
-HERE = os.path.dirname(__file__)
+_HERE = os.path.dirname(__file__)
+_YES = ("1", "true", "t", "yes", "y")
 
-# One-time global initialization -- locate shared library file; preferably the copy installed with
-# this package, otherwise look in the usual places.
+# Module initialization -- locate shared library file; preferably the copy installed with this
+# package, otherwise look in the usual places.
 _DLL = None
-if platform.system() == "Linux" and os.path.isfile(os.path.join(HERE, "libgenomicsqlite.so")):
-    _DLL = os.path.join(HERE, "libgenomicsqlite.so")
+if os.environ.get("GENOMICSQLITE_SYSTEM_LIBRARY", "").strip().lower() not in _YES:
+    if platform.system() == "Linux" and os.path.isfile(os.path.join(_HERE, "libgenomicsqlite.so")):
+        _DLL = os.path.join(_HERE, "libgenomicsqlite.so")
 if not _DLL:
     _DLL = find_library("genomicsqlite")
-assert _DLL, "couldn't locate genomicsqlite shared-library file"
+assert _DLL, "Unable to locate genomicsqlite shared-library file"
 # open a dummy connection to :memory: just for loading the extension.
 _MEMCONN = sqlite3.connect(":memory:")
 _MEMCONN.enable_load_extension(True)

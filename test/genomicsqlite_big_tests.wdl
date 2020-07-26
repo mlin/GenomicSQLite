@@ -130,9 +130,9 @@ task test_sam {
 
         # add a QNAME-sorted seqs table
         chmod +x /usr/lib/python3.8/genomicsqlite.py
-        time /usr/lib/python3.8/genomicsqlite.py "~{dbname}" "PRAGMA cache_size=-4194304; CREATE TABLE reads_seqs_by_qname AS SELECT * from reads_seqs NOT INDEXED ORDER BY qname"
+        time /usr/lib/python3.8/genomicsqlite.py "~{dbname}" "PRAGMA journal_mode=off; PRAGMA synchronous=off; PRAGMA cache_size=-4194304; CREATE TABLE reads_seqs_by_qname AS SELECT * from reads_seqs NOT INDEXED ORDER BY qname"
         >&2 ls -l "~{dbname}"
-        time /usr/lib/python3.8/genomicsqlite.py "~{dbname}" "PRAGMA journal_mode=off; DROP TABLE reads_seqs_by_qname"
+        time /usr/lib/python3.8/genomicsqlite.py "~{dbname}" "PRAGMA journal_mode=off; PRAGMA synchronous=off; DROP TABLE reads_seqs_by_qname"
         >&2 ls -l "~{dbname}"
     >>>
 

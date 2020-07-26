@@ -136,6 +136,7 @@ string GenomicSQLiteURI(const string &dbfile, const string &config_json = "") {
     uri << "file:" << dbfile << "?vfs=zstd";
     uri << "&threads=" << to_string(threads);
     uri << "&outer_page_size=" << to_string(outer_page_KiB * 1024);
+    uri << "&outer_cache_size=-65536"; // enlarge to hold index b-tree pages for large db's
     uri << "&level=" << to_string(zstd_level);
     if (unsafe_load) {
         uri << "&outer_unsafe";
@@ -237,7 +238,8 @@ string GenomicSQLiteTuningSQL(const string &config_json, const string &schema = 
     }
     map<string, string> pragmas;
     pragmas[schema_prefix + "cache_size"] = to_string(-1024 * page_cache_MiB);
-    pragmas["threads"] = to_string(threads >= 0 ? threads : thread::hardware_concurrency());
+    pragmas["threads"] =
+        to_string(threads >= 0 ? threads : std::min(8, (int)thread::hardware_concurrency()));
     if (unsafe_load) {
         pragmas[schema_prefix + "journal_mode"] = "OFF";
         pragmas[schema_prefix + "synchronous"] = "OFF";

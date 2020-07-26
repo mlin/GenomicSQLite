@@ -191,7 +191,7 @@ int main(int argc, char *argv[]) {
     hts_set_threads(sam.get(), max(2U, thread::hardware_concurrency() / 4));
     unique_ptr<sam_hdr_t, void (*)(sam_hdr_t *)> hdr(sam_hdr_read(sam.get()), &sam_hdr_destroy);
     if (!hdr) {
-        cerr << "sam_into_sqlite: failed reading VCF header from " << infilename << '\n';
+        cerr << "sam_into_sqlite: failed reading SAM header from " << infilename << '\n';
         return 1;
     }
 
