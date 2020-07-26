@@ -38,7 +38,13 @@ def main():
     print(next(conn.execute("SELECT sqlite_version()"))[0])
 
     print("genomicsqlite: ", end="")
-    import genomicsqlite
+    try:
+        import genomicsqlite
+    except ImportError as exn:
+        print(f"\n\nUnable to import genomicsqlite: {exn}")
+        print("The Python genomicsqlite package may need to be installed via pip3 or conda,")
+        print("or its location may need to be added to PYTHONPATH.")
+        sys.exit(1)
 
     print(genomicsqlite.__version__)
     print(f"genomicsqlite library: {genomicsqlite._DLL}")
@@ -103,7 +109,7 @@ def main():
                 "** Please redirect this log to a file and send to maintainers @ https://github.com/mlin/GenomicSQLite\n"
             )
 
-            sys.exit(1)
+            sys.exit(2)
 
         dbconn.close()
         print("\n ✓ GenomicSQLite smoke test OK\n")
@@ -475,4 +481,4 @@ try:
 except Exception:
     print()
     traceback.print_exc(file=sys.stdout)
-    sys.exit(2)
+    sys.exit(1)

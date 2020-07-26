@@ -21,7 +21,7 @@ if os.environ.get("GENOMICSQLITE_SYSTEM_LIBRARY", "").strip().lower() not in _YE
         _DLL = os.path.join(_HERE, "libgenomicsqlite.so")
 if not _DLL:
     _DLL = find_library("genomicsqlite")
-assert _DLL, "Unable to locate genomicsqlite shared-library file"
+assert _DLL, "Unable to locate a suitable genomicsqlite shared-library file"
 # open a dummy connection to :memory: just for loading the extension.
 _MEMCONN = sqlite3.connect(":memory:")
 _MEMCONN.enable_load_extension(True)
