@@ -527,7 +527,7 @@ class BCFReader : public BackgroundProducer<shared_ptr<bcf1_t>> {
             return false;
         } else if (ret != 0 || it->errcode) {
             ostringstream msg;
-            msg << "VCF parser failed: bcf1_read() -> " << ret
+            msg << "VCF parser error: bcf1_read() -> " << ret
                 << ", bcf1_t::errcode = " << it->errcode;
             throw runtime_error(msg.str());
         }

@@ -18,8 +18,8 @@
 using namespace std;
 
 // auto-destructing htslib kstring_t
-unique_ptr<kstring_t, void (*)(kstring_t *)> kstringXX() {
-    return unique_ptr<kstring_t, void (*)(kstring_t *)>(new kstring_t{0, 0, 0}, [](kstring_t *p) {
+shared_ptr<kstring_t> kstringXX() {
+    return shared_ptr<kstring_t>(new kstring_t{0, 0, 0}, [](kstring_t *p) {
         free(p->s);
         delete p;
     });
@@ -107,6 +107,50 @@ int write_tags_json(const map<string, int> &readgroups, const vector<char *> &sa
     out << '}';
     return rg_id;
 }
+
+struct SamItem {
+    shared_ptr<kstring_t> line;
+    vector<char *> fields;
+    shared_ptr<bam1_t> rec;
+};
+
+class SamReader : public BackgroundProducer<SamItem> {
+  public:
+    SamReader(samFile *sam, bam_hdr_t *hdr, int ringsize)
+        : BackgroundProducer<SamItem>(ringsize), sam_(sam), hdr_(hdr) {}
+
+  private:
+    samFile *sam_;
+    bam_hdr_t *hdr_;
+
+    bool Produce(SamItem &it) override {
+        if (!it.line) {
+            it.line = kstringXX();
+        }
+        it.line->l = 0;
+        it.fields.clear();
+        if (!it.rec) {
+            it.rec = shared_ptr<bam1_t>(bam_init1(), &bam_destroy1);
+        }
+        int ret = sam_read1(sam_, hdr_, it.rec.get());
+        if (ret == -1) {
+            return false;
+        } else if (ret < 0) {
+            throw runtime_error("SAM parser error: sam_read1() -> " + to_string(ret));
+        }
+        // Load the tab-split SAM line too, as some fields are easier to access that way
+        ret = sam_format1(hdr_, it.rec.get(), it.line.get());
+        if (ret < 0) {
+            throw runtime_error("Corrupt SAM record; sam_format1() -> " + to_string(ret));
+        }
+        split(it.line->s, '\t', back_inserter(it.fields));
+        if (it.fields.size() < 11) {
+            throw runtime_error("Corrupt SAM record; fields.size() = " +
+                                to_string(it.fields.size()));
+        }
+        return true;
+    }
+};
 
 void help() {
     cout << "sam_into_sqlite: import SAM/BAM/CRAM into GenomicSQLite database" << '\n'
@@ -270,19 +314,12 @@ int main(int argc, char *argv[]) {
 
         // stream bam1_t records
         progress &&cerr << "inserting reads...";
-        unique_ptr<bam1_t, void (*)(bam1_t *)> rec(bam_init1(), bam_destroy1);
+        SamReader reader(sam.get(), hdr.get(), 64);
         OStringStream cigarstr, tagsbuf;
-        auto sam_line = kstringXX();
-        vector<char *> sam_fields;
-        int rc;
-        while ((rc = sam_read1(sam.get(), hdr.get(), rec.get())) >= 0) {
-            // Load the tab-split SAM line too, as some fields are easier to access that way
-            if (sam_format1(hdr.get(), rec.get(), sam_line.get()) < 0) {
-                throw runtime_error("corrupt SAM");
-            }
-            sam_fields.clear();
-            split(sam_line->s, '\t', back_inserter(sam_fields));
-            assert(sam_fields.size() >= 11);
+        while (reader.next()) {
+            SamItem &it = reader.item();
+            bam1_t *rec = it.rec.get();
+            auto &sam_fields = it.fields;
 
             insert_read.reset();
             insert_read.clearBindings();
@@ -292,7 +329,7 @@ int main(int argc, char *argv[]) {
                 insert_read.bind(2, rec->core.tid); // rid
             if (rec->core.pos >= 0) {
                 insert_read.bind(3, rec->core.pos); // pos
-                auto endpos = bam_endpos(rec.get());
+                auto endpos = bam_endpos(rec);
                 if (endpos >= rec->core.pos) {
                     insert_read.bind(4, endpos); // endpos
                 }
@@ -322,7 +359,7 @@ int main(int argc, char *argv[]) {
             insert_seqs.reset();
             insert_seqs.clearBindings();
             insert_seqs.bind(1, rowid);
-            insert_seqs.bindNoCopy(2, bam_get_qname(rec.get())); // qname
+            insert_seqs.bindNoCopy(2, bam_get_qname(rec)); // qname
             char *seq = sam_fields[9];
             if (*seq && strcmp(seq, "*"))
                 insert_seqs.bindNoCopy(3, seq); // seq
@@ -336,9 +373,7 @@ int main(int argc, char *argv[]) {
             insert_tags.bind(2, tagsbuf.Get()); // tags_json
             insert_tags.exec();
         }
-        if (rc != -1) {
-            throw std::runtime_error("error reading SAM records");
-        }
+        progress &&cerr << reader.log() << endl;
 
         // create indices
         if (gri) {
