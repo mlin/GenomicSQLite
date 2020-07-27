@@ -154,8 +154,8 @@ template <class Item> class BackgroundProducer {
 
     void background_thread() {
         t0_ = chrono::high_resolution_clock::now();
+        long long p = 0;
         do {
-            auto p = p_.load(memory_order_acquire);
             bool ok = false;
             try {
                 ok = Produce(ring_[p % R_]);
@@ -167,14 +167,13 @@ template <class Item> class BackgroundProducer {
                 stop_.store(true, memory_order_release);
             }
             if (ok) {
-                ++p;
-                p_.store(p, memory_order_release);
+                p_.store(++p, memory_order_release);
                 if (p - max(c_.load(memory_order_acquire), 1LL) == R_ - 1) {
                     auto t_spin = chrono::high_resolution_clock::now();
                     do {
-                        // assumption -- producer will usually be faster than the consumer, and
-                        // ringsize_ provides buffer if that's occasionally not the case
-                        this_thread::sleep_for(chrono::milliseconds(1));
+                        // assumption -- producer is usually faster than the consumer, and ringsize
+                        // provides a buffer if that's occasionally not the case
+                        this_thread::sleep_for(chrono::nanoseconds(10000));
                     } while (!stop_.load(memory_order_relaxed) &&
                              (p - max(c_.load(memory_order_acquire), 1LL) == R_ - 1));
                     p_blocked_ += chrono::high_resolution_clock::now() - t_spin;
@@ -204,7 +203,7 @@ template <class Item> class BackgroundProducer {
             }
             worker_.reset(new thread([this]() { this->background_thread(); }));
         }
-        auto c = c_.load(memory_order_acquire), p = p_.load(memory_order_acquire);
+        long long p = p_.load(memory_order_acquire), c = c_.load(memory_order_relaxed);
         if (c == p) {
             auto t_spin = chrono::high_resolution_clock::now();
             while (c == p && !stop_.load(memory_order_relaxed)) {

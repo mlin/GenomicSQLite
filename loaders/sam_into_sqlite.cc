@@ -76,10 +76,9 @@ map<string, int> import_readgroups(const string &table_prefix, sam_hdr_t *hdr, S
 
 // Given tab-split SAM line, write JSON dict of read's tags (aux) into out; return rg_id or -1
 int write_tags_json(const map<string, int> &readgroups, const vector<char *> &sam_fields,
-                    OStringStream &out) {
+                    vector<char *> &tag, OStringStream &out) {
     out << '{';
     int rg_id = -1;
-    vector<char *> tag;
     bool first = true;
     for (int c = 11; c < sam_fields.size(); ++c) {
         tag.clear();
@@ -139,6 +138,7 @@ class SamReader : public BackgroundProducer<SamItem> {
     bam_hdr_t *hdr_;
     const map<string, int> &readgroups_;
     OStringStream tagsbuf_;
+    vector<char *> tagsparsebuf_;
 
     bool Produce(SamItem &it) override {
         it.Clear();
@@ -158,9 +158,9 @@ class SamReader : public BackgroundProducer<SamItem> {
             throw runtime_error("Corrupt SAM record; fields.size() = " +
                                 to_string(it.fields.size()));
         }
-        // formulate tags JSON on here on background thread
+        // formulate tags JSON here on background thread
         tagsbuf_.Clear();
-        it.rg_id = write_tags_json(readgroups_, it.fields, tagsbuf_);
+        it.rg_id = write_tags_json(readgroups_, it.fields, tagsparsebuf_, tagsbuf_);
         it.tags_json = tagsbuf_.Get();
         return true;
     }
@@ -327,8 +327,8 @@ int main(int argc, char *argv[]) {
                                                "reads_tags(rowid,tags_json) VALUES(?,?)");
 
         // stream bam1_t records
-        progress &&cerr << "inserting reads...";
-        SamReader reader(sam.get(), hdr.get(), readgroups, 64);
+        progress &&cerr << "inserting reads..." << endl;
+        SamReader reader(sam.get(), hdr.get(), readgroups, 256);
         while (reader.next()) {
             const SamItem &it = reader.item();
             bam1_t *rec = it.rec.get();
