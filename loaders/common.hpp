@@ -133,48 +133,56 @@ template <class Item> class BackgroundProducer {
     virtual bool Produce(Item &) = 0;
 
   private:
-    vector<Item> ring_;
+    // ~constant:
     int R_;
     unique_ptr<thread> worker_;
+
+    // writable by either thread:
     atomic<bool> stop_;
+
+    // writable by background producer thread:
+    vector<Item> ring_;
+    atomic<long long> p_; // # produced
     string errmsg_;
-    atomic<long long> p_, // produced
-        c_;               // if c_>0 then item (c_-1)%R is currently being consumed
-    chrono::duration<double> p_blocked_ = chrono::duration<double>::zero(),
-                             c_blocked_ = chrono::duration<double>::zero();
     chrono::time_point<chrono::high_resolution_clock> t0_;
+    chrono::duration<double> p_blocked_ = chrono::duration<double>::zero();
 
-    bool empty() { return p_ == c_; }
-
-    bool full() { return p_ - max(c_.load(), 1LL) == R_ - 1; }
+    // writable by consumer thread:
+    atomic<long long> c_; // if c_>0 then item (c_-1)%R is currently being consumed
+    const Item *item_ = nullptr;
+    chrono::duration<double> c_blocked_ = chrono::duration<double>::zero();
 
     void background_thread() {
         t0_ = chrono::high_resolution_clock::now();
         do {
-            assert(p_ >= c_);
+            auto p = p_.load(memory_order_acquire);
             bool ok = false;
             try {
-                ok = Produce(ring_[p_ % R_]);
+                ok = Produce(ring_[p % R_]);
             } catch (exception &exn) {
                 errmsg_ = exn.what();
                 if (errmsg_.empty()) {
                     errmsg_ = "unknown error on producer thread";
                 }
-                stop_ = true;
+                stop_.store(true, memory_order_release);
             }
             if (ok) {
-                ++p_;
-                if (full()) {
+                ++p;
+                p_.store(p, memory_order_release);
+                if (p - max(c_.load(memory_order_acquire), 1LL) == R_ - 1) {
                     auto t_spin = chrono::high_resolution_clock::now();
                     do {
+                        // assumption -- producer will usually be faster than the consumer, and
+                        // ringsize_ provides buffer if that's occasionally not the case
                         this_thread::sleep_for(chrono::milliseconds(1));
-                    } while (!stop_ && full());
+                    } while (!stop_.load(memory_order_relaxed) &&
+                             (p - max(c_.load(memory_order_acquire), 1LL) == R_ - 1));
                     p_blocked_ += chrono::high_resolution_clock::now() - t_spin;
                 }
             } else {
-                stop_ = true;
+                stop_.store(true, memory_order_relaxed);
             }
-        } while (!stop_);
+        } while (!stop_.load(memory_order_relaxed));
     }
 
   public:
@@ -192,36 +200,36 @@ template <class Item> class BackgroundProducer {
     bool next() {
         if (!worker_) {
             while (ring_.size() < R_) {
-                ring_.push_back(Item());
+                ring_.emplace_back();
             }
             worker_.reset(new thread([this]() { this->background_thread(); }));
         }
-        if (empty()) {
-            auto t_start = chrono::high_resolution_clock::now();
-            while (!stop_ && empty()) {
+        auto c = c_.load(memory_order_acquire), p = p_.load(memory_order_acquire);
+        if (c == p) {
+            auto t_spin = chrono::high_resolution_clock::now();
+            while (c == p && !stop_.load(memory_order_relaxed)) {
                 this_thread::yield();
+                p = p_.load(memory_order_acquire);
             }
-            c_blocked_ += chrono::high_resolution_clock::now() - t_start;
+            c_blocked_ += chrono::high_resolution_clock::now() - t_spin;
         }
-        if (stop_ && empty()) {
+        if (c == p && stop_.load(memory_order_acquire)) {
             if (!errmsg_.empty()) {
                 throw runtime_error(errmsg_);
             }
             return false;
         }
-        assert(c_ < p_);
-        c_++;
+        assert(c < p);
+        item_ = &ring_[c % R_];
+        c_.store(c + 1, memory_order_release);
         return true;
     }
 
     // get current item for consumption; defined only after next() returned true
-    Item &item() {
-        assert(c_ && errmsg_.empty());
-        return ring_[(c_ - 1) % R_];
-    }
+    const Item &item() { return *item_; }
 
     void abort() {
-        stop_ = true;
+        stop_.store(true, memory_order_relaxed);
         if (worker_) {
             worker_->join();
         }

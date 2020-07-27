@@ -112,26 +112,36 @@ struct SamItem {
     shared_ptr<kstring_t> line;
     vector<char *> fields;
     shared_ptr<bam1_t> rec;
+
+    string tags_json;
+    int rg_id = -1;
+
+    SamItem() {
+        line = kstringXX();
+        rec = shared_ptr<bam1_t>(bam_init1(), &bam_destroy1);
+    }
+
+    void Clear() {
+        line->l = 0;
+        fields.clear();
+        tags_json.clear();
+        rg_id = -1;
+    }
 };
 
 class SamReader : public BackgroundProducer<SamItem> {
   public:
-    SamReader(samFile *sam, bam_hdr_t *hdr, int ringsize)
-        : BackgroundProducer<SamItem>(ringsize), sam_(sam), hdr_(hdr) {}
+    SamReader(samFile *sam, bam_hdr_t *hdr, const map<string, int> &readgroups, int ringsize)
+        : BackgroundProducer<SamItem>(ringsize), sam_(sam), hdr_(hdr), readgroups_(readgroups) {}
 
   private:
     samFile *sam_;
     bam_hdr_t *hdr_;
+    const map<string, int> &readgroups_;
+    OStringStream tagsbuf_;
 
     bool Produce(SamItem &it) override {
-        if (!it.line) {
-            it.line = kstringXX();
-        }
-        it.line->l = 0;
-        it.fields.clear();
-        if (!it.rec) {
-            it.rec = shared_ptr<bam1_t>(bam_init1(), &bam_destroy1);
-        }
+        it.Clear();
         int ret = sam_read1(sam_, hdr_, it.rec.get());
         if (ret == -1) {
             return false;
@@ -148,6 +158,10 @@ class SamReader : public BackgroundProducer<SamItem> {
             throw runtime_error("Corrupt SAM record; fields.size() = " +
                                 to_string(it.fields.size()));
         }
+        // formulate tags JSON on here on background thread
+        tagsbuf_.Clear();
+        it.rg_id = write_tags_json(readgroups_, it.fields, tagsbuf_);
+        it.tags_json = tagsbuf_.Get();
         return true;
     }
 };
@@ -314,10 +328,9 @@ int main(int argc, char *argv[]) {
 
         // stream bam1_t records
         progress &&cerr << "inserting reads...";
-        SamReader reader(sam.get(), hdr.get(), 64);
-        OStringStream cigarstr, tagsbuf;
+        SamReader reader(sam.get(), hdr.get(), readgroups, 64);
         while (reader.next()) {
-            SamItem &it = reader.item();
+            const SamItem &it = reader.item();
             bam1_t *rec = it.rec.get();
             auto &sam_fields = it.fields;
 
@@ -347,10 +360,8 @@ int main(int argc, char *argv[]) {
             if (rec->core.isize)
                 insert_read.bind(9, rec->core.isize); // tlen
 
-            tagsbuf.Clear();
-            int rg_id = write_tags_json(readgroups, sam_fields, tagsbuf);
-            if (rg_id >= 0 && rg_id < readgroups.size()) {
-                insert_read.bind(10, rg_id); // rg_id
+            if (it.rg_id >= 0 && it.rg_id < readgroups.size()) {
+                insert_read.bind(10, it.rg_id); // rg_id
             }
 
             insert_read.exec();
@@ -370,7 +381,7 @@ int main(int argc, char *argv[]) {
 
             insert_tags.reset();
             insert_tags.bind(1, rowid);
-            insert_tags.bind(2, tagsbuf.Get()); // tags_json
+            insert_tags.bindNoCopy(2, it.tags_json.c_str()); // tags_json
             insert_tags.exec();
         }
         progress &&cerr << reader.log() << endl;
