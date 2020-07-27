@@ -169,11 +169,15 @@ template <class Item> class BackgroundProducer {
             if (ok) {
                 p_.store(++p, memory_order_release);
                 if (p - max(c_.load(memory_order_acquire), 1LL) == R_ - 1) {
+                    // Ring is full; enter semi-busy wait with adaptive sleep. Goal is to keep the
+                    // consumer well-fed, without excessively wasteful busy-loop, using atomics for
+                    // coordination. Underlying assumption: producer is usually faster than the
+                    // consumer, while the ring provides a buffer if it has the occasional hiccup.
                     auto t_spin = chrono::high_resolution_clock::now();
+                    long long spin = 0;
                     do {
-                        // assumption -- producer is usually faster than the consumer, and ringsize
-                        // provides a buffer if that's occasionally not the case
-                        this_thread::sleep_for(chrono::nanoseconds(10000));
+                        this_thread::sleep_for(
+                            chrono::nanoseconds(10000 + 990000 * min(spin++, 100LL) / 100));
                     } while (!stop_.load(memory_order_relaxed) &&
                              (p - max(c_.load(memory_order_acquire), 1LL) == R_ - 1));
                     p_blocked_ += chrono::high_resolution_clock::now() - t_spin;
@@ -194,8 +198,8 @@ template <class Item> class BackgroundProducer {
 
     virtual ~BackgroundProducer() { abort(); }
 
-    // advance to next item for consumption, return false when item stream has ended successfully,
-    // or throw an exception.
+    // advance to next item for consumption & return true, return false when item stream has ended
+    // with success, or throw an exception.
     bool next() {
         if (!worker_) {
             while (ring_.size() < R_) {
@@ -205,6 +209,7 @@ template <class Item> class BackgroundProducer {
         }
         long long p = p_.load(memory_order_acquire), c = c_.load(memory_order_relaxed);
         if (c == p) {
+            // Ring is empty; enter busy wait
             auto t_spin = chrono::high_resolution_clock::now();
             while (c == p && !stop_.load(memory_order_relaxed)) {
                 this_thread::yield();
