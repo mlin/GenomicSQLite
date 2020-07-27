@@ -6,6 +6,7 @@ small test database and check GRI query plan on it.
 import sys
 import time
 import os
+import subprocess
 import traceback
 import platform
 import textwrap
@@ -19,6 +20,33 @@ def main():
         uname: {os.uname()}
         python: {platform.python_implementation()} {platform.python_version()}"""
     print(textwrap.dedent(header))
+
+    print("cpu", end="")
+    try:
+        if platform.system() == "Linux":
+            with open("/proc/cpuinfo") as cpuinfo:
+                modelname = (
+                    line.strip().replace("\t", "")
+                    for line in cpuinfo
+                    if line.lower().strip().startswith("model name")
+                )
+                print(" " + next(modelname, ": ???"))
+        elif platform.system() == "Darwin":
+            sysctl = subprocess.run(
+                ["sysctl", "-n", "machdep.cpu.brand_string"],
+                check=True,
+                universal_newlines=True,
+                stdout=subprocess.PIPE,
+                stderr=subprocess.PIPE,
+            )
+            if sysctl.returncode == 0 and sysctl.stdout.strip():
+                print(": " + sysctl.stdout.strip())
+            else:
+                print(": ???")
+        else:
+            print(": ???")
+    except Exception:
+        print(": ???")
 
     env_keys = [
         k
@@ -103,7 +131,7 @@ def main():
                 print("  " + str(expl))
 
             print(
-                "\n** WARNING: GRI yielded correct results, but possibly with a suboptimal query plan."
+                "\n** WARNING: GRI yielded correct results, but with a possibly suboptimal query plan."
             )
             print(
                 "** Please redirect this log to a file and send to maintainers @ https://github.com/mlin/GenomicSQLite\n"
