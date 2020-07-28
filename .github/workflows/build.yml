@@ -28,7 +28,9 @@ jobs:
     steps:
     - uses: actions/checkout@v2
     - name: detect GIT_REVISION
-      run: echo "::set-env name=GIT_REVISION::$(git describe --tags --always)"
+      run: |
+        git fetch origin --tags
+        echo "::set-env name=GIT_REVISION::$(git describe --tags --always)"
     - name: build loaders
       run: |
         sudo apt-get install -y $APT_DEPS
