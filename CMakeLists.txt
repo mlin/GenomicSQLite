@@ -18,7 +18,7 @@ endif()
 FetchContent_Declare(
     sqlite_zstd_vfs
     GIT_REPOSITORY  https://github.com/mlin/sqlite_zstd_vfs.git
-    GIT_TAG         cd4c5ee
+    GIT_TAG         600758d
 )
 FetchContent_MakeAvailable(sqlite_zstd_vfs)
 include_directories(${sqlite_zstd_vfs_SOURCE_DIR}/src)
