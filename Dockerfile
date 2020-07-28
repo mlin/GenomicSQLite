@@ -19,8 +19,9 @@ WORKDIR /work
 RUN wget -nv https://www.sqlite.org/2020/sqlite-amalgamation-${SQLITE_VERSION}.zip \
         && unzip -o sqlite-amalgamation-${SQLITE_VERSION}.zip
 WORKDIR /work/sqlite-amalgamation-${SQLITE_VERSION}
-RUN gcc -shared -o libsqlite3.so -fPIC -shared -Wl,-soname,libsqlite3.so -g ${CFLAGS} sqlite3.c
-RUN cp libsqlite3.so /usr/local/lib && cp *.h /usr/local/include
+RUN gcc -shared -o libsqlite3.so.0 -fPIC -shared -Wl,-soname,libsqlite3.so.0 -g ${CFLAGS} sqlite3.c
+RUN cp libsqlite3.so.0 /usr/local/lib && cp *.h /usr/local/include
+RUN ln -s /usr/local/lib/libsqlite3.so.0 /usr/local/lib/libsqlite3.so
 
 # Zstandard -- hacked with -fPIC for use with ZSTD_WHOLE_ARCHIVE
 WORKDIR /work

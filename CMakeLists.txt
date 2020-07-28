@@ -31,16 +31,16 @@ set(CMAKE_CXX_STANDARD 11)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_EXTENSIONS OFF)
 
-execute_process(COMMAND git describe --tags --long --always --dirty
+execute_process(COMMAND git describe --tags --always --dirty
                 OUTPUT_VARIABLE GIT_REVISION OUTPUT_STRIP_TRAILING_WHITESPACE)
                 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -DGIT_REVISION=\"\\\"${GIT_REVISION}\\\"\"")
 
 include_directories(${CMAKE_CURRENT_SOURCE_DIR}/include)
 add_library(genomicsqlite SHARED src/genomicsqlite.cc include/genomicsqlite.h src/json1.c src/hardcoded_refseq.hpp)
 if(ZSTD_WHOLE_ARCHIVE)
-    target_link_libraries(genomicsqlite PRIVATE sqlite3 SQLiteCpp -Wl,--whole-archive libzstd.a -Wl,--no-whole-archive)
+    target_link_libraries(genomicsqlite PRIVATE libsqlite3.so.0 SQLiteCpp -Wl,--whole-archive libzstd.a -Wl,--no-whole-archive)
 else()
-    target_link_libraries(genomicsqlite PRIVATE sqlite3 SQLiteCpp zstd)
+    target_link_libraries(genomicsqlite PRIVATE libsqlite3.so.0 SQLiteCpp zstd)
 endif()
 
 
