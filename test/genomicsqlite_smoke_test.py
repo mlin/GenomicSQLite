@@ -140,7 +140,7 @@ def main():
             sys.exit(2)
 
         dbconn.close()
-        print("\n ✓ GenomicSQLite smoke test OK\n")
+        print("\nGenomicSQLite smoke test OK =)\n")
     finally:
         os.remove(dbfile)
 
