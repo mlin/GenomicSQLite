@@ -1,6 +1,6 @@
 # Genomics Extension for SQLite
 
-## ("GenomicSQLite")
+### ("GenomicSQLite")
 
 This [SQLite3 loadable extension](https://www.sqlite.org/loadext.html) adds features to the [ubiquitous](https://www.sqlite.org/mostdeployed.html) embedded RDBMS supporting applications in genome bioinformatics:
 
@@ -28,9 +28,9 @@ The extension makes SQLite an efficient foundation for:
 
 ### Contraindications
 
-1. Huge numerical arrays: see [HDF5](https://www.hdfgroup.org/solutions/hdf5/), [Zarr](https://zarr.readthedocs.io/en/stable/), [Parquet](https://parquet.apache.org/), [Arrow](https://arrow.apache.org/). <small>SQLite's [BLOB I/O](https://www.sqlite.org/c3ref/blob_open.html) leaves the door open for mash-ups!</small>
+1. Huge numerical arrays: see [HDF5](https://www.hdfgroup.org/solutions/hdf5/), [Zarr](https://zarr.readthedocs.io/en/stable/), [Parquet](https://parquet.apache.org/), [Arrow](https://arrow.apache.org/). SQLite's [BLOB I/O](https://www.sqlite.org/c3ref/blob_open.html) leaves the door open for mash-ups!
 
-2. Parallel SQL analytics / OLAP: see [Spark](https://spark.apache.org/), [DuckDB](https://duckdb.org/), many commercial products. <small>Some bases can be covered with a sharding harness for a pool of threads with their own SQLite connections...</small>
+2. Parallel SQL analytics / OLAP: see [Spark](https://spark.apache.org/), [DuckDB](https://duckdb.org/), many commercial products. (Some bases can be covered with a sharding harness for a pool of threads with their own SQLite connections...)
 
 3. Streaming: SQLite I/O, while often highly sequential in practice, relies on randomly seeking throughout the database file.
 
