@@ -39,4 +39,4 @@ RUN rsync -a cmake-${CMAKE_VERSION}-Linux-x86_64/ /usr/local/
 ADD . /work/GenomicSQLite
 WORKDIR /work/GenomicSQLite
 RUN rm -rf build && cmake -DCMAKE_BUILD_TYPE=Release -DZSTD_WHOLE_ARCHIVE=true -B build . && cmake --build build --target genomicsqlite -j $(nproc)
-RUN ldd -v build/libgenomicsqlite.so
+RUN ldd -v -r build/libgenomicsqlite.so

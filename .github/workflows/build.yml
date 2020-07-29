@@ -50,6 +50,7 @@ jobs:
         path: |
           libgenomicsqlite.so
           genomicsqlite.h
+          LICENSE
 
   lint:
     runs-on: ubuntu-20.04

@@ -1,0 +1,45 @@
+{% set name = "genomicsqlite" %}
+
+package:
+  name: {{ name|lower }}
+  version: {{ GENOMICSQLITE_VERSION }}
+
+source:
+  url: https://pypi.io/packages/source/{{ name[0] }}/{{ name }}/{{ name }}-{{ GENOMICSQLITE_VERSION }}.tar.gz
+  sha256: {{ GENOMICSQLITE_SHA256 }}
+
+build:
+  noarch: python
+  number: 0
+  entry_points:
+    - genomicsqlite = genomicsqlite:_cli
+  script: "{{ PYTHON }} -m pip install . -vv"
+
+requirements:
+  host:
+    - python
+    - pip
+  run:
+    - python >=3.6
+    - sqlite >=3.31.0
+
+test:
+  imports:
+    - genomicsqlite
+  commands:
+    - 'ldd -v -r ${CONDA_PREFIX}/lib/python3.*/site-packages/genomicsqlite/libgenomicsqlite.so'  # [linux64]
+    - 'wget -nv -O - https://raw.githubusercontent.com/mlin/GenomicSQLite/release/test/genomicsqlite_smoke_test.py | python3 -'  # [linux64]
+    - which genomicsqlite
+
+about:
+  home: https://github.com/mlin/GenomicSQLite
+  license: Apache-2.0
+  license_file: LICENSE
+  summary: 'Genomics Extension for SQLite'
+  description:
+  doc_url: https://genomicsqlite.readthedocs.io/
+  dev_url: https://github.com/mlin/GenomicSQLite
+
+extra:
+  recipe-maintainers:
+    - mlin

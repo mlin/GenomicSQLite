@@ -17,6 +17,7 @@ setup(
     long_description_content_type="text/markdown",
     author="Mike Lin",
     author_email="dna@mlin.net",
+    license="Apache",
     packages=find_packages(),
     package_data={"": ["genomicsqlite/libgenomicsqlite.so"]},
     include_package_data=True,
