@@ -470,6 +470,7 @@
 <h2 id="other-routines">Other routines</h2>
 <p>The other routines are much simpler. The binding for each just takes its required and optional arguments, passes them through to a <code>SELECT routine(...)</code> statement on the caller-supplied connection object, and returns the single text answer.</p>
 <ul>
+<li><code>SELECT genomicsqlite_vacuum_into_sql(destfilename, config_json)</code></li>
 <li><code>SELECT create_genomic_range_index_sql(tableName, chromosome, beginPosition, endPosition[, floor])</code>: floor is an integer, others text.</li>
 <li><code>SELECT genomic_range_rowids_sql(tableName[, qrid, qbeg, qend][, ceiling[, floor]])</code> ceiling and floor are integers.</li>
 <li><code>SELECT put_reference_assembly_sql(assembly)</code></li>
