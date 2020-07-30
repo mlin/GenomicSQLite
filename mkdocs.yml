@@ -1,0 +1,11 @@
+site_name: Genomics Extension for SQLite
+nav:
+    - Intro & Install: index.md
+    - Programming Guide: guide.md
+    - Language Bindings Guide: bindings.md
+    - Internals: internals.md
+theme: material
+markdown_extensions:
+    - codehilite
+    - pymdownx.tabbed
+    - pymdownx.superfences
