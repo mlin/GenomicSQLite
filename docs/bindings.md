@@ -8,7 +8,7 @@ The extension is a C++11 library, and C/C++ programs compile against it in the u
 
 The key routines are also exposed as [custom SQL functions](https://www.sqlite.org/appfunc.html), which can be invoked by SELECT statements on any SQLite connection, once the extension has been loaded. New language bindings consist largely of ~one-liner functions that pass arguments through to `SELECT routine(arg1,arg2,...)` and return the result, usually a TEXT value. None are performance-sensitive, as long as developers use prepared, parameterized SQLite3 statements for GRI queries in loops.
 
-Bindings should endeavor to integrate "naturally" with the host language and its existing SQLite3 bindings. For example, the object returned by the Open procedure should be an idiomatic SQLite3 connection object. Also, APIs should follow the host language's conventions for naming style and handling optional/keyword arguments.
+Bindings should endeavor to integrate "naturally" with the host language and its existing SQLite3 bindings. For example, the object returned by the Open procedure should be an idiomatic SQLite3 connection object. Also, APIs should follow the host language's conventions for naming style and optional/keyword arguments.
 
  Our [Python module](https://github.com/mlin/GenomicSQLite/blob/main/bindings/python/genomicsqlite/__init__.py) can be followed as an illustrative example.
 
@@ -59,6 +59,7 @@ At this point the connection is ready to go, and it should not be necessary to w
 
 The other routines are much simpler. The binding for each just takes its required and optional arguments, passes them through to a `SELECT routine(...)` statement on the caller-supplied connection object, and returns the single text answer.
 
+* `SELECT genomicsqlite_vacuum_into_sql(destfilename, config_json)`
 * `SELECT create_genomic_range_index_sql(tableName, chromosome, beginPosition, endPosition[, floor])`: floor is an integer, others text.
 * `SELECT genomic_range_rowids_sql(tableName[, qrid, qbeg, qend][, ceiling[, floor]])` ceiling and floor are integers.
 * `SELECT put_reference_assembly_sql(assembly)`
@@ -66,7 +67,7 @@ The other routines are much simpler. The binding for each just takes its require
 
 Optional text arguments can default to NULL, and optional integers can default to -1.
 
-The bindings for **Get Reference Sequences by {Rid, Name}** just read the `_gri_refseq` table like,
+The bindings for **Get Reference Sequences by Rid** just read the `_gri_refseq` table like,
 
 ```
 SELECT 
@@ -77,7 +78,7 @@ SELECT
 FROM _gri_refseq
 ```
 
-and load the results into some linguistically-natural data structure that'll provide quick lookup of those attributes by rid or name.
+and loads the results into some linguistically-natural data structure that'll provide quick lookup of those attributes by rid. Then, **Get Reference Sequences by Name** can simply call that and "invert" the results.
 
 ## Packaging
 
