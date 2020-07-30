@@ -477,7 +477,7 @@
 <li><code>SELECT put_reference_sequence_sql(name, length[, assembly, refget_id, meta_json, rid])</code> length and rid are integers.</li>
 </ul>
 <p>Optional text arguments can default to NULL, and optional integers can default to -1.</p>
-<p>The bindings for <strong>Get Reference Sequences by {Rid, Name}</strong> just read the <code>_gri_refseq</code> table like,</p>
+<p>The bindings for <strong>Get Reference Sequences by Rid</strong> just read the <code>_gri_refseq</code> table like,</p>
 <div class="highlight"><pre><span></span><code>SELECT 
     _gri_rid,
     gri_refseq_name, gri_refseq_length,
@@ -486,7 +486,7 @@
 FROM _gri_refseq
 </code></pre></div>
 
-<p>and load the results into some linguistically-natural data structure that'll provide quick lookup of those attributes by rid or name. Only one needs to be implemented this way; the other can just call it and "invert" the results.</p>
+<p>and loads the results into some linguistically-natural data structure that'll provide quick lookup of those attributes by rid. Then, <strong>Get Reference Sequences by Name</strong> can simply call that and "invert" the results.</p>
 <h2 id="packaging">Packaging</h2>
 <p>Our <a href="https://github.com/mlin/GenomicSQLite/releases">GitHub Releases</a> supply prebuilt extension binaries intended to be compatible with most modern hosts. There are at least three packaging options:</p>
 <ol>
