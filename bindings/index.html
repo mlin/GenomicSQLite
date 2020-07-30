@@ -440,7 +440,7 @@
 <h2 id="overview">Overview</h2>
 <p>The extension is a C++11 library, and C/C++ programs compile against it in the usual way to invoke the routines outlined in the Programming Guide. But for other programming languages, another option should make it <strong>unnecessary to use a C/C++ foreign-function interface</strong>.</p>
 <p>The key routines are also exposed as <a href="https://www.sqlite.org/appfunc.html">custom SQL functions</a>, which can be invoked by SELECT statements on any SQLite connection, once the extension has been loaded. New language bindings consist largely of ~one-liner functions that pass arguments through to <code>SELECT routine(arg1,arg2,...)</code> and return the result, usually a TEXT value. None are performance-sensitive, as long as developers use prepared, parameterized SQLite3 statements for GRI queries in loops.</p>
-<p>Bindings should endeavor to integrate "naturally" with the host language and its existing SQLite3 bindings. For example, the object returned by the Open procedure should be an idiomatic SQLite3 connection object. Also, APIs should follow the host language's conventions for naming style and handling optional/keyword arguments.</p>
+<p>Bindings should endeavor to integrate "naturally" with the host language and its existing SQLite3 bindings. For example, the object returned by the Open procedure should be an idiomatic SQLite3 connection object. Also, APIs should follow the host language's conventions for naming style and optional/keyword arguments.</p>
 <p>Our <a href="https://github.com/mlin/GenomicSQLite/blob/main/bindings/python/genomicsqlite/__init__.py">Python module</a> can be followed as an illustrative example.</p>
 <h2 id="locating-loading-the-extension-library">Locating &amp; loading the extension library</h2>
 <p>The module should first locate the extension shared-library file (e.g. <code>libgenomicsqlite.so</code> on Linux), but it doesn't actually load it; instead, it <em>tells SQLite to load it</em>. This can occur either during global module initialization or on the first connection attempt.</p>
@@ -486,7 +486,7 @@
 FROM _gri_refseq
 </code></pre></div>
 
-<p>and load the results into some linguistically-natural data structure that'll provide quick lookup of those attributes by rid or name.</p>
+<p>and load the results into some linguistically-natural data structure that'll provide quick lookup of those attributes by rid or name. Only one needs to be implemented this way; the other can just call it and "invert" the results.</p>
 <h2 id="packaging">Packaging</h2>
 <p>Our <a href="https://github.com/mlin/GenomicSQLite/releases">GitHub Releases</a> supply prebuilt extension binaries intended to be compatible with most modern hosts. There are at least three packaging options:</p>
 <ol>
