@@ -100,8 +100,8 @@ The aforementioned tuned settings can be further adjusted. Some bindings (e.g. C
 * **page_cache_MiB = 1024**: database cache size. Use a large cache to avoid repeated decompression in successive and complex queries. 
 * **threads = -1**: worker thread budget for compression and sort operations; -1 to match up to 8 host processors.
 * **zstd_level = 6**: Zstandard compression level for newly written data (-5 to 22)
-* **inner_page_KiB = 16**: [SQLite page size](https://www.sqlite.org/pragma.html#pragma_page_size) for new databases, any of {1, 4, 8, 16, 32, 64}. Larger pages are more compressible, but increase random I/O amplification.
-* **outer_page_KiB = 32**: compression layer page size for new databases, any of {1, 4, 8, 16, 32, 64}. Recommend doubling the inner page size.
+* **inner_page_KiB = 16**: [SQLite page size](https://www.sqlite.org/pragma.html#pragma_page_size) for new databases, any of {1, 2, 4, 8, 16, 32, 64}. Larger pages are more compressible, but increase random I/O amplification.
+* **outer_page_KiB = 32**: compression layer page size for new databases, any of {1, 2, 4, 8, 16, 32, 64}. Recommend doubling the inner page size.
 
 The connection's potential memory usage can usually be budgeted as roughly the page cache size, plus the size of any uncommitted write transaction (unless unsafe_load), plus some safety factor. ❗However, this can *multiply by (threads+1)* during queries whose results are at least that large and must be re-sorted. That includes index creation, when the indexed columns total such size.
 
@@ -137,7 +137,7 @@ Once indexed, the table can be queried for all features overlapping a query rang
 
 ### Conventions
 
-Range positions are considered [**zero-based & half-open**](http://www.cs.utexas.edu/users/EWD/transcriptions/EWD08xx/EWD831.html), so the length of a feature is exactly endPosition-beginPosition nucleotides. The implementation doesn't strictly require this convention, but we strongly recommend observing it to minimize confusion. There is no practical limit on chromosome length, as position values may go up to 2<sup>60</sup>, but query runtime has a runtime factor logarithmic in the maximum feature length.
+Range positions are considered [**zero-based & half-open**](http://www.cs.utexas.edu/users/EWD/transcriptions/EWD08xx/EWD831.html), so the length of a feature is exactly endPosition-beginPosition nucleotides. The implementation doesn't strictly require this convention, but we strongly recommend observing it to minimize confusion. There is no practical limit on chromosome length, as position values may go up to 2<sup>60</sup>, but queries have a runtime factor logarithmic in the maximum feature length.
 
 The extension provides routines to populate a small `_gri_refseq` table describing the genomic reference sequences, which other tables can reference by integer ID ("rid") instead of storing a column with textual sequence names like 'chr10'. This convention is not required, as the GRI can index either chromosome name or rid columns, but reasons to observe it include:
 

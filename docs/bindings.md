@@ -8,7 +8,7 @@ The extension is a C++11 library, and C/C++ programs compile against it in the u
 
 The key routines are also exposed as [custom SQL functions](https://www.sqlite.org/appfunc.html), which can be invoked by SELECT statements on any SQLite connection, once the extension has been loaded. New language bindings consist largely of ~one-liner functions that pass arguments through to `SELECT routine(arg1,arg2,...)` and return the result, usually a TEXT value. None are performance-sensitive, as long as developers use prepared, parameterized SQLite3 statements for GRI queries in loops.
 
-Bindings should endeavor to integrate "naturally" with the host language and its existing SQLite3 bindings. For example, the object returned by the Connect procedure should be an idiomatic SQLite3 connection object. Also, APIs should follow the host language's conventions for naming style and handling optional/keyword arguments.
+Bindings should endeavor to integrate "naturally" with the host language and its existing SQLite3 bindings. For example, the object returned by the Open procedure should be an idiomatic SQLite3 connection object. Also, APIs should follow the host language's conventions for naming style and handling optional/keyword arguments.
 
  Our [Python module](https://github.com/mlin/GenomicSQLite/blob/main/bindings/python/genomicsqlite/__init__.py) can be followed as an illustrative example.
 
@@ -23,9 +23,9 @@ The module should first locate the extension shared-library file (e.g. `libgenom
 
 The extension needs to be loaded only once per process: upon first loading, it [registers itself](https://www.sqlite.org/c3ref/auto_extension.html) to activate automatically on each new connection opened.
 
-## GenomicSQLite Connect
+## GenomicSQLite Open
 
-The Connect method should "look like" the language's existing wrapper around `sqlite3_open()`, taking similar arguments and returning the same type of connection object. It uses two routines from the GenomicSQLite library, exposed as SQL functions, which help with activating the compression layer and tuning various settings.
+The Open method should "look like" the language's existing wrapper around `sqlite3_open()`, taking similar arguments and returning the same type of connection object. It uses two routines from the GenomicSQLite library, exposed as SQL functions, which help with activating the compression layer and tuning various settings.
 
 Given a database filename, the method follows these steps:
 
@@ -33,15 +33,15 @@ Given a database filename, the method follows these steps:
 
 This helper generates a text [URI](https://www.sqlite.org/uri.html) based on the given filename, which tells SQLite how to open it with the compression layer activated. Call it on your `:memory:` connection.
 
-`config_json` is the text of a JSON object containing keys and values for the several tuning options shown in the Programming Guide. Any supplied settings are merged into a hard-coded default JSON, so it's only necessary to specify values that need to be overridden, and fine to pass `'{}'` if there are none. The Connect method should allow the caller to supply these optional arguments in some linguistically natural way, then take care of formulating the JSON object from them.
+`config_json` is the text of a JSON object containing keys and values for the several tuning options shown in the Programming Guide. Any supplied settings are merged into a hard-coded default JSON, so it's only necessary to specify values that need to be overridden, and fine to pass `'{}'` if there are none. The Open method should allow the caller to supply these optional arguments in some linguistically natural way, then take care of formulating the JSON text.
 
 You can access the hard-coded defaults with `SELECT genomicsqlite_default_config_json()`, which may be useful to determine the available keys. (For example, the Python bindings use this to distinguish the GenomicSQLite options from other optional arguments meant to be passed through to SQLite.) 
 
 #### 2. Call `sqlite3_open()` using the connection string
 
-Give the URI connection string to the normal SQLite open/connect method. You must set the `SQLITE_OPEN_URI` flag or equivalent for this to work.
+Give the URI connection string to the normal SQLite open method. You must set the `SQLITE_OPEN_URI` flag or equivalent for this to work.
 
-The Connect method should pass other flags based on optional arguments in the same way as the existing SQLite3 wrapper. If the caller requested a read-only connection, Connect can either set `SQLITE_OPEN_READONLY` or append `&mode=ro` to the connection string.
+The Open method should pass other flags based on optional arguments in the same way as the existing SQLite3 wrapper. If the caller requested a read-only connection, Open can either set `SQLITE_OPEN_READONLY` or append `&mode=ro` to the connection string.
 
 #### 3. Generate tuning script with `SELECT genomicsqlite_tuning_sql(config_json)`
 
