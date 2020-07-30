@@ -1,0 +1,513 @@
+
+
+
+<!doctype html>
+<html lang="en" class="no-js">
+  <head>
+    
+      <meta charset="utf-8">
+      <meta name="viewport" content="width=device-width,initial-scale=1">
+      
+      
+      
+      <link rel="shortcut icon" href="assets/images/favicon.png">
+      <meta name="generator" content="mkdocs-1.1.2, mkdocs-material-5.4.0">
+    
+    
+      
+        <title>Genomics Extension for SQLite</title>
+      
+    
+    
+      <link rel="stylesheet" href="assets/stylesheets/main.fe0cca5b.min.css">
+      
+      
+    
+    
+    
+      
+        <link href="https://fonts.gstatic.com" rel="preconnect" crossorigin>
+        <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Roboto:300,400,400i,700%7CRoboto+Mono&display=fallback">
+        <style>body,input{font-family:"Roboto",-apple-system,BlinkMacSystemFont,Helvetica,Arial,sans-serif}code,kbd,pre{font-family:"Roboto Mono",SFMono-Regular,Consolas,Menlo,monospace}</style>
+      
+    
+    
+    
+    
+      
+    
+    
+  </head>
+  
+  
+    <body dir="ltr">
+  
+    
+    <input class="md-toggle" data-md-toggle="drawer" type="checkbox" id="__drawer" autocomplete="off">
+    <input class="md-toggle" data-md-toggle="search" type="checkbox" id="__search" autocomplete="off">
+    <label class="md-overlay" for="__drawer"></label>
+    <div data-md-component="skip">
+      
+        
+        <a href="#genomics-extension-for-sqlite" class="md-skip">
+          Skip to content
+        </a>
+      
+    </div>
+    <div data-md-component="announce">
+      
+    </div>
+    
+      <header class="md-header" data-md-component="header">
+  <nav class="md-header-nav md-grid" aria-label="Header">
+    <a href="." title="Genomics Extension for SQLite" class="md-header-nav__button md-logo" aria-label="Genomics Extension for SQLite">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 003-3 3 3 0 00-3-3 3 3 0 00-3 3 3 3 0 003 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54z"/></svg>
+
+    </a>
+    <label class="md-header-nav__button md-icon" for="__drawer">
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M3 6h18v2H3V6m0 5h18v2H3v-2m0 5h18v2H3v-2z"/></svg>
+    </label>
+    <div class="md-header-nav__title" data-md-component="header-title">
+      
+        <div class="md-header-nav__ellipsis">
+          <span class="md-header-nav__topic md-ellipsis">
+            Genomics Extension for SQLite
+          </span>
+          <span class="md-header-nav__topic md-ellipsis">
+            
+              Intro & Install
+            
+          </span>
+        </div>
+      
+    </div>
+    
+      <label class="md-header-nav__button md-icon" for="__search">
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0116 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.516 6.516 0 019.5 16 6.5 6.5 0 013 9.5 6.5 6.5 0 019.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5z"/></svg>
+      </label>
+      
+<div class="md-search" data-md-component="search" role="dialog">
+  <label class="md-search__overlay" for="__search"></label>
+  <div class="md-search__inner" role="search">
+    <form class="md-search__form" name="search">
+      <input type="text" class="md-search__input" name="query" aria-label="Search" placeholder="Search" autocapitalize="off" autocorrect="off" autocomplete="off" spellcheck="false" data-md-component="search-query" data-md-state="active">
+      <label class="md-search__icon md-icon" for="__search">
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0116 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.516 6.516 0 019.5 16 6.5 6.5 0 013 9.5 6.5 6.5 0 019.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5z"/></svg>
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11h12z"/></svg>
+      </label>
+      <button type="reset" class="md-search__icon md-icon" aria-label="Clear" data-md-component="search-reset" tabindex="-1">
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12 19 6.41z"/></svg>
+      </button>
+    </form>
+    <div class="md-search__output">
+      <div class="md-search__scrollwrap" data-md-scrollfix>
+        <div class="md-search-result" data-md-component="search-result">
+          <div class="md-search-result__meta">
+            Initializing search
+          </div>
+          <ol class="md-search-result__list"></ol>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+    
+    
+  </nav>
+</header>
+    
+    <div class="md-container" data-md-component="container">
+      
+        
+      
+      
+        
+      
+      <main class="md-main" data-md-component="main">
+        <div class="md-main__inner md-grid">
+          
+            
+              <div class="md-sidebar md-sidebar--primary" data-md-component="navigation">
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    <nav class="md-nav md-nav--primary" aria-label="Navigation" data-md-level="0">
+  <label class="md-nav__title" for="__drawer">
+    <a href="." title="Genomics Extension for SQLite" class="md-nav__button md-logo" aria-label="Genomics Extension for SQLite">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 003-3 3 3 0 00-3-3 3 3 0 00-3 3 3 3 0 003 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54z"/></svg>
+
+    </a>
+    Genomics Extension for SQLite
+  </label>
+  
+  <ul class="md-nav__list" data-md-scrollfix>
+    
+      
+      
+      
+
+  
+
+
+  <li class="md-nav__item md-nav__item--active">
+    
+    <input class="md-nav__toggle md-toggle" data-md-toggle="toc" type="checkbox" id="__toc">
+    
+      
+    
+    
+      <label class="md-nav__link md-nav__link--active" for="__toc">
+        Intro & Install
+        <span class="md-nav__icon md-icon">
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M3 9h14V7H3v2m0 4h14v-2H3v2m0 4h14v-2H3v2m16 0h2v-2h-2v2m0-10v2h2V7h-2m0 6h2v-2h-2v2z"/></svg>
+        </span>
+      </label>
+    
+    <a href="." title="Intro & Install" class="md-nav__link md-nav__link--active">
+      Intro & Install
+    </a>
+    
+      
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon">
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11h12z"/></svg>
+      </span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#genomicsqlite" class="md-nav__link">
+    ("GenomicSQLite")
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#sqlite-3310-required" class="md-nav__link">
+    SQLite &ge; 3.31.0 required
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#installation" class="md-nav__link">
+    Installation
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#smoke-test" class="md-nav__link">
+    Smoke test
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#use-cases" class="md-nav__link">
+    Use cases
+  </a>
+  
+    <nav class="md-nav" aria-label="Use cases">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#contraindications" class="md-nav__link">
+    Contraindications
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+    
+  </li>
+
+    
+      
+      
+      
+
+
+  <li class="md-nav__item">
+    <a href="guide/" title="Programming Guide" class="md-nav__link">
+      Programming Guide
+    </a>
+  </li>
+
+    
+      
+      
+      
+
+
+  <li class="md-nav__item">
+    <a href="bindings/" title="Language Bindings Guide" class="md-nav__link">
+      Language Bindings Guide
+    </a>
+  </li>
+
+    
+      
+      
+      
+
+
+  <li class="md-nav__item">
+    <a href="internals/" title="Internals" class="md-nav__link">
+      Internals
+    </a>
+  </li>
+
+    
+  </ul>
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+            
+              <div class="md-sidebar md-sidebar--secondary" data-md-component="toc">
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon">
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11h12z"/></svg>
+      </span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#genomicsqlite" class="md-nav__link">
+    ("GenomicSQLite")
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#sqlite-3310-required" class="md-nav__link">
+    SQLite &ge; 3.31.0 required
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#installation" class="md-nav__link">
+    Installation
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#smoke-test" class="md-nav__link">
+    Smoke test
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#use-cases" class="md-nav__link">
+    Use cases
+  </a>
+  
+    <nav class="md-nav" aria-label="Use cases">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#contraindications" class="md-nav__link">
+    Contraindications
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+          
+          <div class="md-content">
+            <article class="md-content__inner md-typeset">
+              
+                
+                
+                  
+                
+                
+                <h1 id="genomics-extension-for-sqlite">Genomics Extension for SQLite</h1>
+<h3 id="genomicsqlite">("GenomicSQLite")</h3>
+<p><a href="https://github.com/mlin/GenomicSQLite">https://github.com/mlin/GenomicSQLite</a></p>
+<p>This <a href="https://www.sqlite.org/loadext.html">SQLite3 loadable extension</a> supports applications in genome bioinformatics by adding:</p>
+<ul>
+<li>genomic range indexing for overlap queries &amp; joins</li>
+<li>streaming storage compression using multithreaded <a href="https://facebook.github.io/zstd/">Zstandard</a></li>
+<li>pre-tuned settings for "big data"</li>
+</ul>
+<p>Our <strong><a href="https://colab.research.google.com/drive/1ZqRjs0IFnGvb7TARUybkkfzpFQ_xrrgm?usp=sharing">Colab notebook</a></strong> demonstrates the Python interface.</p>
+<p><strong>USE AT YOUR OWN RISK:</strong> The extension makes fundamental changes to the database storage layer. While designed to preserve ACID transaction safety, it's young and unlikely to have zero bugs. This project is not associated with the SQLite developers.</p>
+<h2 id="sqlite-3310-required">SQLite &ge; 3.31.0 required</h2>
+<p><strong>To use the Genomics Extension you might first need to upgrade SQLite itself.</strong> The host program must link <a href="https://www.sqlite.org/releaselog/3_31_0.html">SQLite version 3.31.0 (2020-01-22)</a> or newer. In your shell, <code>sqlite3 --version</code> displays the version installed with your OS, which is probably what your programs use; if in doubt, cause a program to report the result of <code>SELECT sqlite_version()</code>.</p>
+<p>If this is too old, then upgrade the system/environment SQLite3 library if possible &amp; applicable. Otherwise, modify your program's linking step or runtime environment to cause it to use an up-to-date version, for example by setting rpath or LD_LIBRARY_PATH/DYLD_LIBRARY_PATH to the location of an up-to-date shared library file. Resources:</p>
+<ul>
+<li><a href="https://www.sqlite.org/howtocompile.html">How To Compile SQLite</a></li>
+<li><a href="https://help.dreamhost.com/hc/en-us/articles/360028047592-Installing-a-custom-version-of-SQLite3">DreamHost Knowledge Base - Installing a custom version of SQLite3</a></li>
+<li><a href="https://launchpad.net/~dqlite/+archive/ubuntu/stable">Ubuntu PPA</a> with <code>sqlite3</code></li>
+<li><a href="https://rpmfind.net/linux/rpm2html/search.php?query=libsqlite3&amp;submit=Search+...&amp;system=&amp;arch=">Rpmfind: libsqlite3</a></li>
+<li><a href="https://anaconda.org/anaconda/sqlite">Sqlite :: Anaconda Cloud</a></li>
+<li>Homebrew <a href="https://formulae.brew.sh/formula/sqlite">formula/sqlite</a>, <a href="https://formulae.brew.sh/formula-linux/sqlite">formula-linux/sqlite</a></li>
+</ul>
+<p>You can always <code>SELECT sqlite_version()</code> to verify the upgrade in your program.</p>
+<h2 id="installation">Installation</h2>
+<p>It's usually easiest to obtain the extension as a pre-compiled shared library (Linux .so or <em>coming soon</em> <s>macOS .dylib</s>), either installed with a package manager, or downloaded from <a href="https://github.com/mlin/GenomicSQLite/releases">GitHub Releases</a>.</p>
+<div class="tabbed-set" data-tabs="1:2"><input checked="checked" id="__tabbed_1_1" name="__tabbed_1" type="radio" /><label for="__tabbed_1_1">Python</label><div class="tabbed-content">
+<div class="highlight"><pre><span></span><code>pip3 install <span class="o">[</span>--user<span class="p">|</span>--system<span class="o">]</span> genomicsqlite
+<span class="c1"># -or-</span>
+conda install -c mlin genomicsqlite
+
+<span class="c1"># The package loads a bundled shared library by default. To ignore the bundled</span>
+<span class="c1"># file and search the regular dynamic-linking paths instead, set environment</span>
+<span class="c1"># GENOMICSQLITE_SYSTEM_LIBRARY=1</span>
+</code></pre></div>
+
+</div>
+<input id="__tabbed_1_2" name="__tabbed_1" type="radio" /><label for="__tabbed_1_2">C/C++</label><div class="tabbed-content">
+<div class="highlight"><pre><span></span><code>Download zip of shared library and genomicsqlite.h from GitHub Releases:
+    https://github.com/mlin/GenomicSQLite/releases
+Build your program with the shared library, and also ensure the dynamic linker
+will find it at runtime, by either --
+    <span class="m">1</span>. installing it in a system or user lib directory <span class="o">(</span>+ refresh cache<span class="o">)</span>
+    <span class="m">2</span>. setting LD_LIBRARY_PATH or DYLD_LIBRARY_PATH environment variable
+    <span class="m">3</span>. building with -rpath
+
+Recommendation: -also- install the Python package, which includes a useful
+                command-line shell and smoke-test script.
+</code></pre></div>
+
+</div>
+</div>
+<p>See our <a href="https://github.com/mlin/GenomicSQLite">GitHub README</a> for the source build procedure, if needed.</p>
+<p>We're eager for community contributions of new language bindings; see the Language Bindings Guide if interested.</p>
+<h2 id="smoke-test">Smoke test</h2>
+<p>We recommend trying our "smoke test" script to quickly verify your local system's compatibility. It requires the Python package installed per the instructions above.</p>
+<div class="highlight"><pre><span></span><code>wget -nv -O - https://raw.githubusercontent.com/mlin/GenomicSQLite/release/test/genomicsqlite_smoke_test.py <span class="se">\</span>
+    <span class="p">|</span> python3 -
+</code></pre></div>
+
+<p>Even if you're not planning to use Python, this test's detailed logs may be useful to diagnose general problems loading the extension.</p>
+<h2 id="use-cases">Use cases</h2>
+<p>The extension makes SQLite an efficient foundation for:</p>
+<ol>
+<li>Integrative genomics data warehouse<ul>
+<li>BED, GFF/GTF, FASTA, FASTQ, SAM, VCF, ...</li>
+<li>One file, zero administration, portable between platforms and languages</li>
+</ul>
+</li>
+<li>Slicing &amp; basic analysis with indexed SQL queries, joins, &amp; aggregations</li>
+<li>Transactional storage engine for API services, incremental reanalysis, real-time basecalling &amp; metagenomics, ...</li>
+<li>Experimental new data models, before dedicated storage format &amp; tooling are warranted, if ever.</li>
+</ol>
+<h3 id="contraindications">Contraindications</h3>
+<ol>
+<li>Huge numerical arrays: see <a href="https://www.hdfgroup.org/solutions/hdf5/">HDF5</a>, <a href="https://zarr.readthedocs.io/en/stable/">Zarr</a>, <a href="https://parquet.apache.org/">Parquet</a>, <a href="https://arrow.apache.org/">Arrow</a>. <small>SQLite's <a href="https://www.sqlite.org/c3ref/blob_open.html">BLOB I/O</a> leaves the door open for mash-ups!</small></li>
+<li>Parallel SQL analytics / OLAP: see <a href="https://spark.apache.org/">Spark</a>, <a href="https://duckdb.org/">DuckDB</a>, many commercial products. <small>(Some bases can be covered with a sharding harness for a pool of threads with their own SQLite connections...)</small></li>
+<li>Streaming: SQLite storage relies on randomly reading &amp; writing throughout the database file.</li>
+</ol>
+                
+              
+              
+                
+
+
+              
+            </article>
+          </div>
+        </div>
+      </main>
+      
+        
+<footer class="md-footer">
+  
+    <div class="md-footer-nav">
+      <nav class="md-footer-nav__inner md-grid" aria-label="Footer">
+        
+        
+          <a href="guide/" title="Programming Guide" class="md-footer-nav__link md-footer-nav__link--next" rel="next">
+            <div class="md-footer-nav__title">
+              <div class="md-ellipsis">
+                <span class="md-footer-nav__direction">
+                  Next
+                </span>
+                Programming Guide
+              </div>
+            </div>
+            <div class="md-footer-nav__button md-icon">
+              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M4 11v2h12l-5.5 5.5 1.42 1.42L19.84 12l-7.92-7.92L10.5 5.5 16 11H4z"/></svg>
+            </div>
+          </a>
+        
+      </nav>
+    </div>
+  
+  <div class="md-footer-meta md-typeset">
+    <div class="md-footer-meta__inner md-grid">
+      <div class="md-footer-copyright">
+        
+        Made with
+        <a href="https://squidfunk.github.io/mkdocs-material/" target="_blank" rel="noopener">
+          Material for MkDocs
+        </a>
+      </div>
+      
+    </div>
+  </div>
+</footer>
+      
+    </div>
+    
+      <script src="assets/javascripts/vendor.d710d30a.min.js"></script>
+      <script src="assets/javascripts/bundle.b39636ac.min.js"></script><script id="__lang" type="application/json">{"clipboard.copy": "Copy to clipboard", "clipboard.copied": "Copied to clipboard", "search.config.lang": "en", "search.config.pipeline": "trimmer, stopWordFilter", "search.config.separator": "[\\s\\-]+", "search.result.placeholder": "Type to start searching", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents"}</script>
+      
+      <script>
+        app = initialize({
+          base: ".",
+          features: [],
+          search: Object.assign({
+            worker: "assets/javascripts/worker/search.a68abb33.min.js"
+          }, typeof search !== "undefined" && search)
+        })
+      </script>
+      
+    
+  </body>
+</html>

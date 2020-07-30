@@ -1,0 +1,1478 @@
+
+
+
+<!doctype html>
+<html lang="en" class="no-js">
+  <head>
+    
+      <meta charset="utf-8">
+      <meta name="viewport" content="width=device-width,initial-scale=1">
+      
+      
+      
+      <link rel="shortcut icon" href="../assets/images/favicon.png">
+      <meta name="generator" content="mkdocs-1.1.2, mkdocs-material-5.4.0">
+    
+    
+      
+        <title>Programming Guide - Genomics Extension for SQLite</title>
+      
+    
+    
+      <link rel="stylesheet" href="../assets/stylesheets/main.fe0cca5b.min.css">
+      
+      
+    
+    
+    
+      
+        <link href="https://fonts.gstatic.com" rel="preconnect" crossorigin>
+        <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Roboto:300,400,400i,700%7CRoboto+Mono&display=fallback">
+        <style>body,input{font-family:"Roboto",-apple-system,BlinkMacSystemFont,Helvetica,Arial,sans-serif}code,kbd,pre{font-family:"Roboto Mono",SFMono-Regular,Consolas,Menlo,monospace}</style>
+      
+    
+    
+    
+    
+      
+    
+    
+  </head>
+  
+  
+    <body dir="ltr">
+  
+    
+    <input class="md-toggle" data-md-toggle="drawer" type="checkbox" id="__drawer" autocomplete="off">
+    <input class="md-toggle" data-md-toggle="search" type="checkbox" id="__search" autocomplete="off">
+    <label class="md-overlay" for="__drawer"></label>
+    <div data-md-component="skip">
+      
+        
+        <a href="#programming-guide" class="md-skip">
+          Skip to content
+        </a>
+      
+    </div>
+    <div data-md-component="announce">
+      
+    </div>
+    
+      <header class="md-header" data-md-component="header">
+  <nav class="md-header-nav md-grid" aria-label="Header">
+    <a href=".." title="Genomics Extension for SQLite" class="md-header-nav__button md-logo" aria-label="Genomics Extension for SQLite">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 003-3 3 3 0 00-3-3 3 3 0 00-3 3 3 3 0 003 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54z"/></svg>
+
+    </a>
+    <label class="md-header-nav__button md-icon" for="__drawer">
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M3 6h18v2H3V6m0 5h18v2H3v-2m0 5h18v2H3v-2z"/></svg>
+    </label>
+    <div class="md-header-nav__title" data-md-component="header-title">
+      
+        <div class="md-header-nav__ellipsis">
+          <span class="md-header-nav__topic md-ellipsis">
+            Genomics Extension for SQLite
+          </span>
+          <span class="md-header-nav__topic md-ellipsis">
+            
+              Programming Guide
+            
+          </span>
+        </div>
+      
+    </div>
+    
+      <label class="md-header-nav__button md-icon" for="__search">
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0116 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.516 6.516 0 019.5 16 6.5 6.5 0 013 9.5 6.5 6.5 0 019.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5z"/></svg>
+      </label>
+      
+<div class="md-search" data-md-component="search" role="dialog">
+  <label class="md-search__overlay" for="__search"></label>
+  <div class="md-search__inner" role="search">
+    <form class="md-search__form" name="search">
+      <input type="text" class="md-search__input" name="query" aria-label="Search" placeholder="Search" autocapitalize="off" autocorrect="off" autocomplete="off" spellcheck="false" data-md-component="search-query" data-md-state="active">
+      <label class="md-search__icon md-icon" for="__search">
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0116 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.516 6.516 0 019.5 16 6.5 6.5 0 013 9.5 6.5 6.5 0 019.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5z"/></svg>
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11h12z"/></svg>
+      </label>
+      <button type="reset" class="md-search__icon md-icon" aria-label="Clear" data-md-component="search-reset" tabindex="-1">
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12 19 6.41z"/></svg>
+      </button>
+    </form>
+    <div class="md-search__output">
+      <div class="md-search__scrollwrap" data-md-scrollfix>
+        <div class="md-search-result" data-md-component="search-result">
+          <div class="md-search-result__meta">
+            Initializing search
+          </div>
+          <ol class="md-search-result__list"></ol>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+    
+    
+  </nav>
+</header>
+    
+    <div class="md-container" data-md-component="container">
+      
+        
+      
+      
+        
+      
+      <main class="md-main" data-md-component="main">
+        <div class="md-main__inner md-grid">
+          
+            
+              <div class="md-sidebar md-sidebar--primary" data-md-component="navigation">
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    <nav class="md-nav md-nav--primary" aria-label="Navigation" data-md-level="0">
+  <label class="md-nav__title" for="__drawer">
+    <a href=".." title="Genomics Extension for SQLite" class="md-nav__button md-logo" aria-label="Genomics Extension for SQLite">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 003-3 3 3 0 00-3-3 3 3 0 00-3 3 3 3 0 003 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54z"/></svg>
+
+    </a>
+    Genomics Extension for SQLite
+  </label>
+  
+  <ul class="md-nav__list" data-md-scrollfix>
+    
+      
+      
+      
+
+
+  <li class="md-nav__item">
+    <a href=".." title="Intro & Install" class="md-nav__link">
+      Intro & Install
+    </a>
+  </li>
+
+    
+      
+      
+      
+
+  
+
+
+  <li class="md-nav__item md-nav__item--active">
+    
+    <input class="md-nav__toggle md-toggle" data-md-toggle="toc" type="checkbox" id="__toc">
+    
+      
+    
+    
+      <label class="md-nav__link md-nav__link--active" for="__toc">
+        Programming Guide
+        <span class="md-nav__icon md-icon">
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M3 9h14V7H3v2m0 4h14v-2H3v2m0 4h14v-2H3v2m16 0h2v-2h-2v2m0-10v2h2V7h-2m0 6h2v-2h-2v2z"/></svg>
+        </span>
+      </label>
+    
+    <a href="./" title="Programming Guide" class="md-nav__link md-nav__link--active">
+      Programming Guide
+    </a>
+    
+      
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon">
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11h12z"/></svg>
+      </span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#loading-the-extension" class="md-nav__link">
+    Loading the extension
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#opening-a-compressed-database" class="md-nav__link">
+    Opening a compressed database
+  </a>
+  
+    <nav class="md-nav" aria-label="Opening a compressed database">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#tuning-options" class="md-nav__link">
+    Tuning options
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#advice-for-big-data" class="md-nav__link">
+    Advice for big data
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#genomic-range-indexing" class="md-nav__link">
+    Genomic range indexing
+  </a>
+  
+    <nav class="md-nav" aria-label="Genomic range indexing">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#overview" class="md-nav__link">
+    Overview
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#conventions" class="md-nav__link">
+    Conventions
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#create-gri" class="md-nav__link">
+    Create GRI
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#query-gri" class="md-nav__link">
+    Query GRI
+  </a>
+  
+    <nav class="md-nav" aria-label="Query GRI">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#query-range-arguments" class="md-nav__link">
+    Query range arguments
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#range-semantics" class="md-nav__link">
+    Range semantics
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#gri-query-reuse" class="md-nav__link">
+    GRI query reuse
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#reference-genome-metadata" class="md-nav__link">
+    Reference genome metadata
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#cookbook" class="md-nav__link">
+    Cookbook
+  </a>
+  
+    <nav class="md-nav" aria-label="Cookbook">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#rid-to-chromosome-name" class="md-nav__link">
+    rid to chromosome name
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#query-rid-using-chromosome-name" class="md-nav__link">
+    Query rid using chromosome name
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#join-two-tables-on-genomic-range-overlap" class="md-nav__link">
+    Join two tables on genomic range overlap
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#advice-for-big-data_1" class="md-nav__link">
+    Advice for big data
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#other-routines" class="md-nav__link">
+    Other routines
+  </a>
+  
+    <nav class="md-nav" aria-label="Other routines">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#compress-existing-sqlite3-database" class="md-nav__link">
+    Compress existing SQLite3 database
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#genomics-extension-version" class="md-nav__link">
+    Genomics Extension version
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#json-functions" class="md-nav__link">
+    JSON functions
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#genomicsqlite-interactive-shell" class="md-nav__link">
+    genomicsqlite interactive shell
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+    
+  </li>
+
+    
+      
+      
+      
+
+
+  <li class="md-nav__item">
+    <a href="../bindings/" title="Language Bindings Guide" class="md-nav__link">
+      Language Bindings Guide
+    </a>
+  </li>
+
+    
+      
+      
+      
+
+
+  <li class="md-nav__item">
+    <a href="../internals/" title="Internals" class="md-nav__link">
+      Internals
+    </a>
+  </li>
+
+    
+  </ul>
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+            
+              <div class="md-sidebar md-sidebar--secondary" data-md-component="toc">
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon">
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11h12z"/></svg>
+      </span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#loading-the-extension" class="md-nav__link">
+    Loading the extension
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#opening-a-compressed-database" class="md-nav__link">
+    Opening a compressed database
+  </a>
+  
+    <nav class="md-nav" aria-label="Opening a compressed database">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#tuning-options" class="md-nav__link">
+    Tuning options
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#advice-for-big-data" class="md-nav__link">
+    Advice for big data
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#genomic-range-indexing" class="md-nav__link">
+    Genomic range indexing
+  </a>
+  
+    <nav class="md-nav" aria-label="Genomic range indexing">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#overview" class="md-nav__link">
+    Overview
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#conventions" class="md-nav__link">
+    Conventions
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#create-gri" class="md-nav__link">
+    Create GRI
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#query-gri" class="md-nav__link">
+    Query GRI
+  </a>
+  
+    <nav class="md-nav" aria-label="Query GRI">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#query-range-arguments" class="md-nav__link">
+    Query range arguments
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#range-semantics" class="md-nav__link">
+    Range semantics
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#gri-query-reuse" class="md-nav__link">
+    GRI query reuse
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#reference-genome-metadata" class="md-nav__link">
+    Reference genome metadata
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#cookbook" class="md-nav__link">
+    Cookbook
+  </a>
+  
+    <nav class="md-nav" aria-label="Cookbook">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#rid-to-chromosome-name" class="md-nav__link">
+    rid to chromosome name
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#query-rid-using-chromosome-name" class="md-nav__link">
+    Query rid using chromosome name
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#join-two-tables-on-genomic-range-overlap" class="md-nav__link">
+    Join two tables on genomic range overlap
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#advice-for-big-data_1" class="md-nav__link">
+    Advice for big data
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#other-routines" class="md-nav__link">
+    Other routines
+  </a>
+  
+    <nav class="md-nav" aria-label="Other routines">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#compress-existing-sqlite3-database" class="md-nav__link">
+    Compress existing SQLite3 database
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#genomics-extension-version" class="md-nav__link">
+    Genomics Extension version
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#json-functions" class="md-nav__link">
+    JSON functions
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#genomicsqlite-interactive-shell" class="md-nav__link">
+    genomicsqlite interactive shell
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+          
+          <div class="md-content">
+            <article class="md-content__inner md-typeset">
+              
+                
+                
+                  
+                
+                
+                <h1 id="programming-guide">Programming Guide</h1>
+<p>The Genomics Extension integrates with your programming language's existing SQLite3 bindings to provide a familiar experience wherever possible.</p>
+<ul>
+<li>Python: <a href="https://docs.python.org/3/library/sqlite3.html">sqlite3</a></li>
+<li>C++: <a href="https://github.com/SRombauts/SQLiteCpp">SQLiteCpp</a> (optional, recommended) or directly using...</li>
+<li>C: <a href="https://www.sqlite.org/cintro.html">SQLite C/C++ API</a></li>
+</ul>
+<h2 id="loading-the-extension">Loading the extension</h2>
+<div class="tabbed-set" data-tabs="1:3"><input checked="checked" id="__tabbed_1_1" name="__tabbed_1" type="radio" /><label for="__tabbed_1_1">Python</label><div class="tabbed-content">
+<div class="highlight"><pre><span></span><code><span class="kn">import</span> <span class="nn">sqlite3</span>
+<span class="kn">import</span> <span class="nn">genomicsqlite</span>
+</code></pre></div>
+
+</div>
+<input id="__tabbed_1_2" name="__tabbed_1" type="radio" /><label for="__tabbed_1_2">C++</label><div class="tabbed-content">
+<div class="highlight"><pre><span></span><code><span class="c1">// link program to sqlite3 and genomicsqlite libraries; optionally, SQLiteCpp:</span>
+<span class="c1">//     https://github.com/SRombauts/SQLiteCpp</span>
+<span class="cp">#include</span> <span class="cpf">&lt;sqlite3.h&gt;</span><span class="cp"></span>
+<span class="cp">#include</span> <span class="cpf">&quot;SQLiteCpp/SQLiteCpp.h&quot; // optional </span><span class="cp"></span>
+<span class="cp">#include</span> <span class="cpf">&quot;genomicsqlite.h&quot;</span><span class="cp"></span>
+
+<span class="c1">// General note: most GenomicSQLite C++ routines are liable to throw.</span>
+</code></pre></div>
+
+</div>
+<input id="__tabbed_1_3" name="__tabbed_1" type="radio" /><label for="__tabbed_1_3">C</label><div class="tabbed-content">
+<div class="highlight"><pre><span></span><code><span class="cm">/* link program to sqlite3 and genomicsqlite libraries */</span>
+<span class="cp">#include</span> <span class="cpf">&lt;sqlite3.h&gt;</span><span class="cp"></span>
+<span class="cp">#include</span> <span class="cpf">&quot;genomicsqlite.h&quot;</span><span class="cp"></span>
+
+<span class="cm">/* General note: all GenomicSQLite C routines returning a char* string use</span>
+<span class="cm"> * the following convention:</span>
+<span class="cm"> * If the operation suceeds then it&#39;s a nonempty, null-terminated string.</span>
+<span class="cm"> * Otherwise it points to a null byte followed immediately by a nonempty,</span>
+<span class="cm"> * null-terminated error message.</span>
+<span class="cm"> * IN EITHER CASE, the caller should free the string with sqlite3_free().</span>
+<span class="cm"> * Null is returned only if malloc failed.</span>
+<span class="cm"> */</span>
+</code></pre></div>
+
+</div>
+</div>
+<h2 id="opening-a-compressed-database">Opening a compressed database</h2>
+<p><strong>↪ GenomicSQLite Open:</strong> create or open a compressed database, returning a connection object with various settings pre-tuned for large datasets.</p>
+<div class="tabbed-set" data-tabs="2:4"><input checked="checked" id="__tabbed_2_1" name="__tabbed_2" type="radio" /><label for="__tabbed_2_1">Python</label><div class="tabbed-content">
+<div class="highlight"><pre><span></span><code><span class="n">dbconn</span> <span class="o">=</span> <span class="n">genomicsqlite</span><span class="o">.</span><span class="n">connect</span><span class="p">(</span>
+  <span class="n">db_filename</span><span class="p">,</span>
+  <span class="n">read_only</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+  <span class="o">**</span><span class="n">kwargs</span>  <span class="c1">#  genomicsqlite + sqlite3.connect() arguments</span>
+<span class="p">)</span>
+<span class="k">assert</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">dbconn</span><span class="p">,</span> <span class="n">sqlite3</span><span class="o">.</span><span class="n">Connection</span><span class="p">)</span>
+</code></pre></div>
+
+</div>
+<input id="__tabbed_2_2" name="__tabbed_2" type="radio" /><label for="__tabbed_2_2">SQLiteCpp</label><div class="tabbed-content">
+<div class="highlight"><pre><span></span><code><span class="n">std</span><span class="o">::</span><span class="n">unique_ptr</span><span class="o">&lt;</span><span class="n">SQLite</span><span class="o">::</span><span class="n">Database</span><span class="o">&gt;</span> <span class="n">GenomicSQLiteOpen</span><span class="p">(</span>
+  <span class="k">const</span> <span class="n">std</span><span class="o">::</span><span class="n">string</span> <span class="o">&amp;</span><span class="n">db_filename</span><span class="p">,</span>
+  <span class="kt">int</span> <span class="n">flags</span> <span class="o">=</span> <span class="mi">0</span><span class="p">,</span>
+  <span class="k">const</span> <span class="n">std</span><span class="o">::</span><span class="n">string</span> <span class="o">&amp;</span><span class="n">config_json</span> <span class="o">=</span> <span class="s">&quot;{}&quot;</span>
+<span class="p">);</span>
+</code></pre></div>
+
+</div>
+<input id="__tabbed_2_3" name="__tabbed_2" type="radio" /><label for="__tabbed_2_3">C++</label><div class="tabbed-content">
+<div class="highlight"><pre><span></span><code><span class="kt">int</span> <span class="nf">GenomicSQLiteOpen</span><span class="p">(</span>
+  <span class="k">const</span> <span class="n">std</span><span class="o">::</span><span class="n">string</span> <span class="o">&amp;</span><span class="n">db_filename</span><span class="p">,</span>
+  <span class="n">sqlite3</span> <span class="o">**</span><span class="n">ppDb</span><span class="p">,</span>
+  <span class="n">std</span><span class="o">::</span><span class="n">string</span> <span class="o">&amp;</span><span class="n">errmsg_out</span><span class="p">,</span>
+  <span class="kt">int</span> <span class="n">flags</span> <span class="o">=</span> <span class="mi">0</span><span class="p">,</span>  <span class="o">//</span> <span class="n">as</span> <span class="n">sqlite3_open_v2</span><span class="p">()</span> <span class="n">e</span><span class="p">.</span><span class="n">g</span><span class="p">.</span> <span class="n">SQLITE_OPEN_READONLY</span>
+  <span class="k">const</span> <span class="n">std</span><span class="o">::</span><span class="n">string</span> <span class="o">&amp;</span><span class="n">config_json</span> <span class="o">=</span> <span class="s">&quot;</span><span class="p">{}</span><span class="s">&quot;</span>
+<span class="p">)</span> <span class="k">noexcept</span><span class="p">;</span> <span class="c1">// returns sqlite3_open_v2() code</span>
+</code></pre></div>
+
+</div>
+<input id="__tabbed_2_4" name="__tabbed_2" type="radio" /><label for="__tabbed_2_4">C</label><div class="tabbed-content">
+<div class="highlight"><pre><span></span><code><span class="kt">int</span> <span class="nf">genomicsqlite_open</span><span class="p">(</span>
+  <span class="k">const</span> <span class="kt">char</span> <span class="o">*</span><span class="n">db_filename</span><span class="p">,</span>
+  <span class="n">sqlite3</span> <span class="o">**</span><span class="n">ppDb</span><span class="p">,</span>
+  <span class="kt">char</span> <span class="o">**</span><span class="n">pzErrMsg</span><span class="p">,</span> <span class="cm">/* if nonnull and an error occurs, set to error message</span>
+<span class="cm">                    * which caller should sqlite3_free()</span> <span class="err">*/</span>
+  <span class="kt">int</span> <span class="n">flags</span><span class="p">,</span>              <span class="cm">/* as sqlite3_open_v2() e.g. SQLITE_OPEN_READONLY */</span>
+  <span class="k">const</span> <span class="kt">char</span> <span class="o">*</span><span class="n">config_json</span> <span class="cm">/* JSON text (may be null) */</span>
+<span class="p">);</span> <span class="cm">/* returns sqlite3_open_v2() code */</span>
+</code></pre></div>
+
+</div>
+</div>
+<p>Afterwards, all the usual SQLite3 API operations are available through the returned connection object, which should finally be closed in the usual way. The <a href="https://github.com/mlin/sqlite_zstd_vfs">storage compression layer</a> operates transparently underneath.</p>
+<p><strong>❗ GenomicSQLite databases should <em>only</em> be opened using this routine.</strong> If a program opens an existing GenomicSQLite database using a generic SQLite3 API, it will find a valid database whose schema is that of the compression layer instead of the intended application's. Writing into that schema might effectively corrupt the database!</p>
+<h3 id="tuning-options">Tuning options</h3>
+<p>The aforementioned tuned settings can be further adjusted. Some bindings (e.g. C/C++) receive these options as the text of a JSON object with keys and values, while others admit individual arguments to the Open routine.</p>
+<ul>
+<li><strong>unsafe_load = false</strong>: set true to disable write transaction safety (see advice on bulk-loading below). <br/>
+    <strong>❗ A database opened unsafely is liable to be corrupted if the application fails or crashes.</strong></li>
+<li><strong>page_cache_MiB = 1024</strong>: database cache size. Use a large cache to avoid repeated decompression in successive and complex queries. </li>
+<li><strong>threads = -1</strong>: worker thread budget for compression and sort operations; -1 to match up to 8 host processors.</li>
+<li><strong>zstd_level = 6</strong>: Zstandard compression level for newly written data (-5 to 22)</li>
+<li><strong>inner_page_KiB = 16</strong>: <a href="https://www.sqlite.org/pragma.html#pragma_page_size">SQLite page size</a> for new databases, any of {1, 4, 8, 16, 32, 64}. Larger pages are more compressible, but increase random I/O amplification.</li>
+<li><strong>outer_page_KiB = 32</strong>: compression layer page size for new databases, any of {1, 4, 8, 16, 32, 64}. Recommend doubling the inner page size.</li>
+</ul>
+<p>The connection's potential memory usage can usually be budgeted as roughly the page cache size, plus the size of any uncommitted write transaction (unless unsafe_load), plus some safety factor. ❗However, this can <em>multiply by (threads+1)</em> during queries whose results are at least that large and must be re-sorted. That includes index creation, when the indexed columns total such size.</p>
+<h3 id="advice-for-big-data">Advice for big data</h3>
+<p><strong>Tips for writing large databases quickly:</strong></p>
+<ol>
+<li><code>sqlite3_config(SQLITE_CONFIG_MEMSTATUS, 0)</code> if available, to reduce overhead in SQLite3's allocation routines.</li>
+<li>Open database with unsafe_load = true to reduce transaction processing overhead (at aforementioned risk) for the connection's lifetime.</li>
+<li>Also open with the flag <code>SQLITE_OPEN_NOMUTEX</code>, if your application naturally serializes operations on the connection.</li>
+<li>Perform all of the following steps within one big SQLite transaction, committed at the end.</li>
+<li>Insert data rows reusing prepared, parameterized SQL statements.<ol>
+<li>For tables with explicit primary keys: insert their rows in primary key order, if feasible.</li>
+<li>Consider preparing data in producer thread(s), with a consumer thread executing insertion statements in a tight loop.</li>
+<li>Bind text/blob parameters using <a href="https://www.sqlite.org/c3ref/bind_blob.html"><code>SQLITE_STATIC</code></a> if suitable.</li>
+</ol>
+</li>
+<li>Create secondary indices, including genomic range indices, only after loading all row data. Use <a href="https://www.sqlite.org/partialindex.html">partial indices</a> when they suffice.</li>
+</ol>
+<p><strong>Compression guidelines</strong></p>
+<p>The <a href="https://facebook.github.io/zstd/">Zstandard</a>-based <a href="https://github.com/mlin/sqlite_zstd_vfs">compression layer</a> is effective at capturing the typically high compressibility of bioinformatics data. But, one should expect a general-purpose database to need some extra space to keep everything organized, compared to a file format dedicated to one predetermined, read-only schema. To set a rough expectation, the maintainers feel fairly satisfied if the database file size isn't more than double that of a bespoke compression format — especially if it includes useful indices (which if well-designed, should be relatively incompressible).</p>
+<p>With SQLite's row-major table <a href="https://www.sqlite.org/fileformat.html">storage format</a>, the first read of a lone cell usually entails decompressing at least its whole row, and there aren't any special column encodings for deltas, run lengths, etc. The "last mile" of optimization may therefore involve certain schema compromises, such as storing infrequently-accessed columns in a separate table to join when needed, or using application-layer encodings with <a href="https://www.sqlite.org/c3ref/blob_open.html">BLOB I/O</a>.</p>
+<p>The aforementioned zstd_level, threads, and page_size options all affect the compression time-space tradeoff, while enlarging the page cache can reduce decompression overhead (workload-dependent).</p>
+<h2 id="genomic-range-indexing">Genomic range indexing</h2>
+<h3 id="overview">Overview</h3>
+<p>GenomicSQLite enables creation of a <strong>Genomic Range Index (GRI)</strong> for any database table in which each row represents a genomic feature with (chromosome, beginPosition, endPosition) coordinates. The coordinates may be sourced from table columns or by computing arithmetic expressions thereof. The index tracks any updates to the underlying table as usual, with one caveat explained below.</p>
+<p>Once indexed, the table can be queried for all features overlapping a query range. A GRI query yields a <a href="https://www.sqlite.org/rowidtable.html">rowid</a> set, which your SQL query can select from the indexed table for further filtering or analysis. Please review the brief SQLite documentation on <a href="https://www.sqlite.org/rowidtable.html">rowid</a> and <a href="https://www.sqlite.org/autoinc.html">Autoincrement</a> to proceed.</p>
+<h3 id="conventions">Conventions</h3>
+<p>Range positions are considered <a href="http://www.cs.utexas.edu/users/EWD/transcriptions/EWD08xx/EWD831.html"><strong>zero-based &amp; half-open</strong></a>, so the length of a feature is exactly endPosition-beginPosition nucleotides. The implementation doesn't strictly require this convention, but we strongly recommend observing it to minimize confusion. There is no practical limit on chromosome length, as position values may go up to 2<sup>60</sup>, but query runtime has a runtime factor logarithmic in the maximum feature length.</p>
+<p>The extension provides routines to populate a small <code>_gri_refseq</code> table describing the genomic reference sequences, which other tables can reference by integer ID ("rid") instead of storing a column with textual sequence names like 'chr10'. This convention is not required, as the GRI can index either chromosome name or rid columns, but reasons to observe it include:</p>
+<ul>
+<li>Integers are more compact and faster to look up.</li>
+<li>Results sort properly with <code>ORDER BY rid</code> instead of considering e.g. <code>'chr10'</code> &lt; <code>'chr2'</code> lexicographically.</li>
+<li>A table with chromosome names can be reconstructed easily by joining with <code>_gri_refseq</code>.</li>
+</ul>
+<h3 id="create-gri">Create GRI</h3>
+<p><strong>↪ Create Genomic Range Index SQL:</strong> <em>Generate a string</em> containing a series of SQL statements which <em>when executed</em> create a GRI on an existing table. Executing them is left to the caller, perhaps after logging the contents. The statements should be executed within a transaction to succeed or fail atomically.</p>
+<div class="tabbed-set" data-tabs="3:4"><input checked="checked" id="__tabbed_3_1" name="__tabbed_3" type="radio" /><label for="__tabbed_3_1">Python</label><div class="tabbed-content">
+<div class="highlight"><pre><span></span><code><span class="n">create_gri_sql</span> <span class="o">=</span> <span class="n">genomicsqlite</span><span class="o">.</span><span class="n">create_genomic_range_index_sql</span><span class="p">(</span>
+  <span class="n">dbconn</span><span class="p">,</span>
+  <span class="s1">&#39;tableName&#39;</span><span class="p">,</span>
+  <span class="s1">&#39;chromosome&#39;</span><span class="p">,</span>
+  <span class="s1">&#39;beginPosition&#39;</span><span class="p">,</span>
+  <span class="s1">&#39;endPosition&#39;</span>
+<span class="p">)</span>
+<span class="n">dbconn</span><span class="o">.</span><span class="n">executescript</span><span class="p">(</span><span class="n">create_gri_sql</span><span class="p">)</span>
+</code></pre></div>
+
+</div>
+<input id="__tabbed_3_2" name="__tabbed_3" type="radio" /><label for="__tabbed_3_2">SQLiteCpp</label><div class="tabbed-content">
+<div class="highlight"><pre><span></span><code><span class="n">std</span><span class="o">::</span><span class="n">string</span> <span class="n">CreateGenomicRangeIndexSQL</span><span class="p">(</span>
+  <span class="k">const</span> <span class="n">std</span><span class="o">::</span><span class="n">string</span> <span class="o">&amp;</span><span class="n">table</span><span class="p">,</span>
+  <span class="k">const</span> <span class="n">std</span><span class="o">::</span><span class="n">string</span> <span class="o">&amp;</span><span class="n">rid</span><span class="p">,</span>
+  <span class="k">const</span> <span class="n">std</span><span class="o">::</span><span class="n">string</span> <span class="o">&amp;</span><span class="n">beg</span><span class="p">,</span>
+  <span class="k">const</span> <span class="n">std</span><span class="o">::</span><span class="n">string</span> <span class="o">&amp;</span><span class="n">end</span><span class="p">,</span>
+  <span class="kt">int</span> <span class="n">floor</span> <span class="o">=</span> <span class="o">-</span><span class="mi">1</span>
+<span class="p">);</span>
+
+<span class="n">std</span><span class="o">::</span><span class="n">string</span> <span class="n">create_gri_sql</span> <span class="o">=</span> <span class="n">CreateGenomicRangeIndexSQL</span><span class="p">(</span>
+  <span class="s">&quot;tableName&quot;</span><span class="p">,</span> <span class="s">&quot;chromosome&quot;</span><span class="p">,</span> <span class="s">&quot;beginPosition&quot;</span><span class="p">,</span> <span class="s">&quot;endPosition&quot;</span>
+<span class="p">);</span>
+<span class="c1">// SQLite::Database* dbconn in a transaction</span>
+<span class="n">dbconn</span><span class="o">-&gt;</span><span class="n">exec</span><span class="p">(</span><span class="n">create_gri_sql</span><span class="p">);</span>
+</code></pre></div>
+
+</div>
+<input id="__tabbed_3_3" name="__tabbed_3" type="radio" /><label for="__tabbed_3_3">C++</label><div class="tabbed-content">
+<div class="highlight"><pre><span></span><code><span class="n">std</span><span class="o">::</span><span class="n">string</span> <span class="n">CreateGenomicRangeIndexSQL</span><span class="p">(</span>
+  <span class="k">const</span> <span class="n">std</span><span class="o">::</span><span class="n">string</span> <span class="o">&amp;</span><span class="n">table</span><span class="p">,</span>
+  <span class="k">const</span> <span class="n">std</span><span class="o">::</span><span class="n">string</span> <span class="o">&amp;</span><span class="n">rid</span><span class="p">,</span>
+  <span class="k">const</span> <span class="n">std</span><span class="o">::</span><span class="n">string</span> <span class="o">&amp;</span><span class="n">beg</span><span class="p">,</span>
+  <span class="k">const</span> <span class="n">std</span><span class="o">::</span><span class="n">string</span> <span class="o">&amp;</span><span class="n">end</span><span class="p">,</span>
+  <span class="kt">int</span> <span class="n">floor</span> <span class="o">=</span> <span class="o">-</span><span class="mi">1</span>
+<span class="p">);</span>
+
+<span class="n">std</span><span class="o">::</span><span class="n">string</span> <span class="n">create_gri_sql</span> <span class="o">=</span> <span class="n">CreateGenomicRangeIndexSQL</span><span class="p">(</span>
+  <span class="s">&quot;tableName&quot;</span><span class="p">,</span> <span class="s">&quot;chromosome&quot;</span><span class="p">,</span> <span class="s">&quot;beginPosition&quot;</span><span class="p">,</span> <span class="s">&quot;endPosition&quot;</span>
+<span class="p">);</span>
+<span class="c1">// sqlite3* dbconn in a transaction</span>
+<span class="kt">char</span><span class="o">*</span> <span class="n">errmsg</span> <span class="o">=</span> <span class="k">nullptr</span><span class="p">;</span>
+<span class="kt">int</span> <span class="n">rc</span> <span class="o">=</span> <span class="n">sqlite3_exec</span><span class="p">(</span><span class="n">dbconn</span><span class="p">,</span> <span class="n">create_gri_sql</span><span class="p">.</span><span class="n">c_str</span><span class="p">(),</span> <span class="k">nullptr</span><span class="p">,</span> <span class="k">nullptr</span><span class="p">,</span> <span class="o">&amp;</span><span class="n">errmsg</span><span class="p">);</span>
+<span class="c1">// check rc, free errmsg</span>
+</code></pre></div>
+
+</div>
+<input id="__tabbed_3_4" name="__tabbed_3" type="radio" /><label for="__tabbed_3_4">C</label><div class="tabbed-content">
+<div class="highlight"><pre><span></span><code><span class="kt">char</span><span class="o">*</span> <span class="nf">create_genomic_range_index_sql</span><span class="p">(</span>
+  <span class="k">const</span> <span class="kt">char</span><span class="o">*</span> <span class="n">table</span><span class="p">,</span>
+  <span class="k">const</span> <span class="kt">char</span><span class="o">*</span> <span class="n">rid</span><span class="p">,</span>
+  <span class="k">const</span> <span class="kt">char</span><span class="o">*</span> <span class="n">beg</span><span class="p">,</span>
+  <span class="k">const</span> <span class="kt">char</span><span class="o">*</span> <span class="n">end</span><span class="p">,</span>
+  <span class="kt">int</span> <span class="n">floor</span>
+<span class="p">);</span>
+<span class="kt">char</span><span class="o">*</span> <span class="n">create_gri_sql</span> <span class="o">=</span> <span class="n">create_genomic_range_index_sql</span><span class="p">(</span>
+  <span class="s">&quot;tableName&quot;</span><span class="p">,</span> <span class="s">&quot;chromosome&quot;</span><span class="p">,</span> <span class="s">&quot;beginPosition&quot;</span><span class="p">,</span> <span class="s">&quot;endPosition&quot;</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span>
+<span class="p">);</span>
+<span class="k">if</span> <span class="p">(</span><span class="o">*</span><span class="n">create_gri_sql</span><span class="p">)</span> <span class="p">{</span>
+  <span class="kt">char</span><span class="o">*</span> <span class="n">errmsg</span> <span class="o">=</span> <span class="mi">0</span><span class="p">;</span>
+  <span class="cm">/* sqlite3* dbconn in a transaction */</span>
+  <span class="kt">int</span> <span class="n">rc</span> <span class="o">=</span> <span class="n">sqlite3_exec</span><span class="p">(</span><span class="n">dbconn</span><span class="p">,</span> <span class="n">create_gri_sql</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="o">&amp;</span><span class="n">errmsg</span><span class="p">);</span>
+  <span class="cm">/* check rc, free errmsg */</span>
+<span class="p">}</span> <span class="k">else</span> <span class="p">{</span>
+ <span class="cm">/* General note: all GenomicSQLite C routines returning a char* string use</span>
+<span class="cm">  * the following convention:</span>
+<span class="cm">  * If the operation suceeds then it&#39;s a nonempty, null-terminated string.</span>
+<span class="cm">  * Otherwise it points to a null byte followed immediately by a nonempty,</span>
+<span class="cm">  * null-terminated error message.</span>
+<span class="cm">  * IN EITHER CASE, the caller should free the string with sqlite3_free().</span>
+<span class="cm">  * Null is returned only if malloc failed.</span>
+<span class="cm">  */</span>
+<span class="p">}</span>
+<span class="n">sqlite3_free</span><span class="p">(</span><span class="n">create_gri_sql</span><span class="p">);</span>
+</code></pre></div>
+
+</div>
+</div>
+<p>The three arguments following the table name tell the indexing procedure how to read the feature coordinates from each table row.</p>
+<ol>
+<li>The reference sequence may be sourced either by the name of a text column containing names like 'chr10', or of an integer reference ID (rid) column, as discussed above.</li>
+<li>The begin and end positions are read from named integer columns, or by computing simple arithmetic expressions thereof.</li>
+<li>For example, if the table happens to have <code>beginPosition</code> and <code>featureLength</code> columns, the end position may be formulated <code>'beginPosition+featureLength'</code>.</li>
+</ol>
+<p><strong>❗ The table name and expressions are textually pasted into a template SQL script. Take care to prevent SQL injection, if they're in any way determined by external input.</strong></p>
+<p>A last optional integer argument <code>floor</code> can be omitted or left at -1. <small>GRI performance may be improved slightly by setting <code>floor</code> to a positive integer <em>F</em> if the following is true: the lengths of the indexed features are almost all &gt;16<sup><em>F</em>-1</sup>, with only very few outlier lengths &le;16<sup><em>F</em>-1</sup>. For example, human exons are almost all &gt;16nt; one may therefore set <code>floor=2</code> as a modest optimization for such data. YMMV</small></p>
+<p>The indexing script will, among other steps, add a few <a href="https://sqlite.org/gencol.html">generated columns</a> to the original table. So if you later <code>SELECT * FROM tableName</code>, you'll get these extra values back (column names starting with <code>_gri_</code>). The extra columns are "virtual" so they don't take up space in the table itself, but they do end up populating the stored index.</p>
+<p>At present, GRI cannot be used on <a href="https://www.sqlite.org/withoutrowid.html">WITHOUT ROWID</a> tables.</p>
+<h3 id="query-gri">Query GRI</h3>
+<p><strong>↪ Genomic Range Rowids SQL</strong>: <em>Generate a string</em> containing a parenthesized SELECT query on a previously-indexed table, which <em>when executed</em> yields a rowid result set identifying the relevant features. This is typically pasted as a subquery within a larger query that retrieves the result rows for further filtering/analysis.</p>
+<div class="tabbed-set" data-tabs="4:4"><input checked="checked" id="__tabbed_4_1" name="__tabbed_4" type="radio" /><label for="__tabbed_4_1">Python</label><div class="tabbed-content">
+<div class="highlight"><pre><span></span><code><span class="n">query</span> <span class="o">=</span> <span class="p">(</span>
+  <span class="s1">&#39;SELECT * FROM tableName WHERE tableName._rowid_ IN &#39;</span> <span class="o">+</span>
+  <span class="n">genomicsqlite</span><span class="o">.</span><span class="n">genomic_range_rowids_sql</span><span class="p">(</span><span class="n">dbconn</span><span class="p">,</span> <span class="s1">&#39;tableName&#39;</span><span class="p">,</span>
+                                         <span class="c1"># defaults:</span>
+                                         <span class="n">qrid</span><span class="o">=</span><span class="s1">&#39;?1&#39;</span><span class="p">,</span> <span class="n">qbeg</span><span class="o">=</span><span class="s1">&#39;?2&#39;</span><span class="p">,</span> <span class="n">qend</span><span class="o">=</span><span class="s1">&#39;?3&#39;</span><span class="p">,</span>
+                                         <span class="n">ceiling</span><span class="o">=-</span><span class="mi">1</span><span class="p">,</span> <span class="n">floor</span><span class="o">=-</span><span class="mi">1</span><span class="p">)</span>
+<span class="p">)</span>
+<span class="n">cursor</span> <span class="o">=</span> <span class="n">dbconn</span><span class="o">.</span><span class="n">execute</span><span class="p">(</span><span class="n">query</span><span class="p">,</span> <span class="p">(</span><span class="s1">&#39;chr12&#39;</span><span class="p">,</span><span class="mi">111803912</span><span class="p">,</span><span class="mi">111804012</span><span class="p">))</span>
+</code></pre></div>
+
+</div>
+<input id="__tabbed_4_2" name="__tabbed_4" type="radio" /><label for="__tabbed_4_2">SQLiteCpp</label><div class="tabbed-content">
+<div class="highlight"><pre><span></span><code><span class="n">std</span><span class="o">::</span><span class="n">string</span> <span class="n">GenomicRangeRowidsSQL</span><span class="p">(</span>
+  <span class="k">const</span> <span class="n">std</span><span class="o">::</span><span class="n">string</span> <span class="o">&amp;</span><span class="n">indexed_table</span><span class="p">,</span>
+  <span class="n">sqlite3</span> <span class="o">*</span><span class="n">dbconn</span><span class="p">,</span>
+  <span class="k">const</span> <span class="n">std</span><span class="o">::</span><span class="n">string</span> <span class="o">&amp;</span><span class="n">qrid</span> <span class="o">=</span> <span class="s">&quot;?1&quot;</span><span class="p">,</span>
+  <span class="k">const</span> <span class="n">std</span><span class="o">::</span><span class="n">string</span> <span class="o">&amp;</span><span class="n">qbeg</span> <span class="o">=</span> <span class="s">&quot;?2&quot;</span><span class="p">,</span>
+  <span class="k">const</span> <span class="n">std</span><span class="o">::</span><span class="n">string</span> <span class="o">&amp;</span><span class="n">qend</span> <span class="o">=</span> <span class="s">&quot;?3&quot;</span><span class="p">,</span>
+  <span class="kt">int</span> <span class="n">ceiling</span> <span class="o">=</span> <span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="kt">int</span> <span class="n">floor</span> <span class="o">=</span> <span class="o">-</span><span class="mi">1</span>
+<span class="p">);</span>
+
+<span class="c1">// SQLite::Database* dbconn</span>
+<span class="n">std</span><span class="o">::</span><span class="n">string</span> <span class="n">query</span> <span class="o">=</span> <span class="s">&quot;SELECT * FROM tableName WHERE tableName._rowid_ IN &quot;</span>
+  <span class="o">+</span> <span class="n">GenomicRangeRowidsSQL</span><span class="p">(</span><span class="s">&quot;tableName&quot;</span><span class="p">,</span> <span class="n">dbconn</span><span class="o">-&gt;</span><span class="n">getHandle</span><span class="p">());</span>
+<span class="n">SQLite</span><span class="o">::</span><span class="n">Statement</span> <span class="n">stmt</span><span class="p">(</span><span class="o">*</span><span class="n">dbconn</span><span class="p">,</span> <span class="n">query</span><span class="p">);</span>
+<span class="n">stmt</span><span class="p">.</span><span class="n">bindNoCopy</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="s">&quot;chr12&quot;</span><span class="p">);</span>
+<span class="n">stmt</span><span class="p">.</span><span class="n">bind</span><span class="p">(</span><span class="mi">2</span><span class="p">,</span> <span class="p">(</span><span class="n">sqlite3_int64</span><span class="p">)</span> <span class="mi">111803912</span><span class="p">);</span>
+<span class="n">stmt</span><span class="p">.</span><span class="n">bind</span><span class="p">(</span><span class="mi">3</span><span class="p">,</span> <span class="p">(</span><span class="n">sqlite3_int64</span><span class="p">)</span> <span class="mi">111804012</span><span class="p">);</span>
+<span class="k">while</span> <span class="p">(</span><span class="n">stmt</span><span class="p">.</span><span class="n">executeStep</span><span class="p">())</span> <span class="p">{</span>
+  <span class="c1">// process row</span>
+<span class="p">}</span>
+</code></pre></div>
+
+</div>
+<input id="__tabbed_4_3" name="__tabbed_4" type="radio" /><label for="__tabbed_4_3">C++</label><div class="tabbed-content">
+<div class="highlight"><pre><span></span><code><span class="n">std</span><span class="o">::</span><span class="n">string</span> <span class="n">GenomicRangeRowidsSQL</span><span class="p">(</span>
+  <span class="k">const</span> <span class="n">std</span><span class="o">::</span><span class="n">string</span> <span class="o">&amp;</span><span class="n">indexed_table</span><span class="p">,</span>
+  <span class="n">sqlite3</span> <span class="o">*</span><span class="n">dbconn</span><span class="p">,</span>
+  <span class="k">const</span> <span class="n">std</span><span class="o">::</span><span class="n">string</span> <span class="o">&amp;</span><span class="n">qrid</span> <span class="o">=</span> <span class="s">&quot;?1&quot;</span><span class="p">,</span>
+  <span class="k">const</span> <span class="n">std</span><span class="o">::</span><span class="n">string</span> <span class="o">&amp;</span><span class="n">qbeg</span> <span class="o">=</span> <span class="s">&quot;?2&quot;</span><span class="p">,</span>
+  <span class="k">const</span> <span class="n">std</span><span class="o">::</span><span class="n">string</span> <span class="o">&amp;</span><span class="n">qend</span> <span class="o">=</span> <span class="s">&quot;?3&quot;</span><span class="p">,</span>
+  <span class="kt">int</span> <span class="n">ceiling</span> <span class="o">=</span> <span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="kt">int</span> <span class="n">floor</span> <span class="o">=</span> <span class="o">-</span><span class="mi">1</span>
+<span class="p">);</span>
+
+<span class="c1">// sqlite3* dbconn</span>
+<span class="n">std</span><span class="o">::</span><span class="n">string</span> <span class="n">query</span> <span class="o">=</span> <span class="s">&quot;SELECT * FROM tableName WHERE tableName._rowid_ IN &quot;</span>
+  <span class="o">+</span> <span class="n">GenomicRangeRowidsSQL</span><span class="p">(</span><span class="s">&quot;tableName&quot;</span><span class="p">,</span> <span class="n">dbconn</span><span class="p">);</span>
+
+<span class="c1">// Omitted for brevity:</span>
+<span class="c1">// Compile query using sqlite3_prepare_v3()</span>
+<span class="c1">// Bind query range parameters using sqlite3_bind_{text,int64}()</span>
+<span class="c1">// Step through results as usual with sqlite3_step()</span>
+</code></pre></div>
+
+</div>
+<input id="__tabbed_4_4" name="__tabbed_4" type="radio" /><label for="__tabbed_4_4">C</label><div class="tabbed-content">
+<div class="highlight"><pre><span></span><code><span class="kt">char</span> <span class="o">*</span><span class="nf">genomic_range_rowids_sql</span><span class="p">(</span>
+  <span class="k">const</span> <span class="kt">char</span> <span class="o">*</span><span class="n">indexed_table</span><span class="p">,</span>
+  <span class="n">sqlite3</span> <span class="o">*</span><span class="n">dbconn</span><span class="p">,</span>
+  <span class="k">const</span> <span class="kt">char</span> <span class="o">*</span><span class="n">qrid</span><span class="p">,</span>       <span class="cm">/* null defaults to &quot;?1&quot; */</span>
+  <span class="k">const</span> <span class="kt">char</span> <span class="o">*</span><span class="n">qbeg</span><span class="p">,</span>       <span class="cm">/* null defaults to &quot;?2&quot; */</span>
+  <span class="k">const</span> <span class="kt">char</span> <span class="o">*</span><span class="n">qend</span><span class="p">,</span>       <span class="cm">/* null defaults to &quot;?3&quot; */</span>
+  <span class="kt">int</span> <span class="n">ceiling</span><span class="p">,</span> <span class="kt">int</span> <span class="n">floor</span>  <span class="cm">/* set these to -1, not 0! */</span>
+<span class="p">);</span>
+
+<span class="cm">/* sqlite3* dbconn */</span>
+<span class="kt">char</span><span class="o">*</span> <span class="n">subquery</span> <span class="o">=</span> <span class="n">genomic_range_rowids_sql</span><span class="p">(</span><span class="s">&quot;tableName&quot;</span><span class="p">,</span> <span class="n">dbconn</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">);</span>
+<span class="k">if</span> <span class="p">(</span><span class="o">*</span><span class="n">subquery</span><span class="p">)</span> <span class="p">{</span>
+  <span class="cm">/* Omitted for brevity:</span>
+<span class="cm">   * Append subquery to &quot;SELECT * FROM tableName WHERE tableName._rowid_ IN &quot;</span>
+<span class="cm">   * Compile query using sqlite3_prepare_v3()</span>
+<span class="cm">   * Bind query range parameters using sqlite3_bind_{text,int64}()</span>
+<span class="cm">   * Step through results as usual with sqlite3_step()</span>
+<span class="cm">   */</span>
+<span class="p">}</span> <span class="k">else</span> <span class="p">{</span>
+  <span class="cm">/* see calling convention discussed in previous examples */</span>
+<span class="p">}</span>
+<span class="n">sqlite3_free</span><span class="p">(</span><span class="n">subquery</span><span class="p">);</span>
+</code></pre></div>
+
+</div>
+</div>
+<h4 id="query-range-arguments">Query range arguments</h4>
+<p>Following the name of the previously-indexed table <em>to be queried</em>, the routine takes three arguments supplying the desired range <em>to query it for</em> (queryChrom, queryBegin, queryEnd). These arguments default to <code>?1</code>, <code>?2</code>, and <code>?3</code>, sourcing the first three <a href="https://www.sqlite.org/c3ref/bind_blob.html">bound parameters</a> of the top-level SQL query. They can be overridden to:</p>
+<ol>
+<li>other numbered or named parameter placeholders</li>
+<li>literal SQL values</li>
+<li>names of columns in <em>other</em> tables being joined (see Cookbook, below)</li>
+<li>simple expressions involving any of the above</li>
+</ol>
+<p>The queryChrom parameter might have SQL type TEXT or INTEGER, according to whether the GRI indexes name or rid.</p>
+<p><strong>❗ The table name and expressions are textually pasted into a SQL template. Take care to prevent SQL injection, if they're in any way determined by external input.</strong></p>
+<h4 id="range-semantics">Range semantics</h4>
+<p>The generated subquery yields an ordered rowid set identifying the features satisfying</p>
+<div class="highlight"><pre><span></span><code>queryChrom = featureChrom AND
+  NOT (queryBegin &gt; featureEnd OR queryEnd &lt; featureBegin)
+</code></pre></div>
+
+<p>(<em>"query is not disjoint from feature"</em>)</p>
+<p>By the half-open position convention, this includes features that <em>abut</em> as well as those that <em>overlap</em> the query range. If you don't want those, or if you want only "contained" features, simply add such constraints to the WHERE clause of your top-level query.</p>
+<p>The generated subquery will not match any rows with NULL feature coordinates. If needed, the GRI can inform this query for NULL chromosome/rid: <code>SELECT ... FROM tableName WHERE _gri_rid IS NULL</code>.</p>
+<h4 id="gri-query-reuse">GRI query reuse</h4>
+<p>The subquery-generation routine includes an automatic optimization to eliminate steps that aren't necessary given the actual length distribution of the indexed features. </p>
+<p><strong>❗ Writes to the indexed table that change the min/max feature length may render previously-generated subqueries incorrect (liable to yield incomplete results). The query statement should be regenerated and recompiled in this case.</strong></p>
+<p>The optimization procedure accesses the GRI to collect this information, which isn't too costly, but nor is it free. It's worthwhile in the typical case that the generated subquery will execute many times as a prepared statement on a read-only table.</p>
+<p>If needed, you can direct the routine to skip the automatic optimization, and produce a slightly less-efficient subquery that will remain correct even if the feature length distribution changes. If the subquery will only be used a few times, then this might well be faster overall. To do this, set the optional <code>ceiling</code> argument to an integer 0 &lt; <em>C</em> &lt; 16 such that all (present &amp; future) indexed features are guaranteed to have lengths &le;16<sup><em>C</em></sup>. For example, if you're querying features on the human genome, then you can set <code>ceiling=7</code> because the lengthiest chromosome sequence is &lt;16<sup>7</sup>nt. <small>If you set <code>ceiling</code> and the GRI was initially created with a positive <code>floor</code> value, then you optionally may also set <code>floor</code> to that same value here.</small></p>
+<h3 id="reference-genome-metadata">Reference genome metadata</h3>
+<p>The following routines support the aforementioned, recommended convention for storing a <code>_gri_refseq</code> table with information about the genomic reference sequences, which other tables can cross-reference by integer ID (rid) instead of storing textual chromosome names. The columns of <code>_gri_refseq</code> include:</p>
+<ol>
+<li><code>_gri_rid INTEGER PRIMARY KEY</code></li>
+<li><code>gri_refseq_name TEXT NOT NULL</code></li>
+<li><code>gri_refseq_length INTEGER NOT NULL</code></li>
+<li><code>gri_assembly TEXT</code> genome assembly name (optional)</li>
+<li><code>gri_refget_id TEXT</code> <a href="http://samtools.github.io/hts-specs/refget.html">refget</a> sequence ID (optional)</li>
+<li><code>gri_refseq_meta_json TEXT DEFAULT '{}'</code> JSON object with arbitrary metadata</li>
+</ol>
+<p><strong>↪ Put Reference Assembly SQL:</strong> <em>Generate a string</em> containing a series of SQL statements which <em>when executed</em> creates <code>_gri_refseq</code> and populates it with information about a reference assembly whose details are bundled into the extension.</p>
+<div class="tabbed-set" data-tabs="5:4"><input checked="checked" id="__tabbed_5_1" name="__tabbed_5" type="radio" /><label for="__tabbed_5_1">Python</label><div class="tabbed-content">
+<div class="highlight"><pre><span></span><code><span class="n">refseq_sql</span> <span class="o">=</span> <span class="n">genomicsqlite</span><span class="o">.</span><span class="n">put_reference_assembly_sql</span><span class="p">(</span>
+  <span class="n">dbconn</span><span class="p">,</span> <span class="s1">&#39;GRCh38_no_alt_analysis_set&#39;</span>
+<span class="p">)</span>
+<span class="n">dbconn</span><span class="o">.</span><span class="n">executescript</span><span class="p">(</span><span class="n">refseq_sql</span><span class="p">)</span>
+</code></pre></div>
+
+</div>
+<input id="__tabbed_5_2" name="__tabbed_5" type="radio" /><label for="__tabbed_5_2">SQLiteCpp</label><div class="tabbed-content">
+<div class="highlight"><pre><span></span><code><span class="n">std</span><span class="o">::</span><span class="n">string</span> <span class="n">PutGenomicReferenceAssemblySQL</span><span class="p">(</span>
+  <span class="k">const</span> <span class="n">std</span><span class="o">::</span><span class="n">string</span> <span class="o">&amp;</span><span class="n">assembly</span><span class="p">,</span>
+  <span class="k">const</span> <span class="n">std</span><span class="o">::</span><span class="n">string</span> <span class="o">&amp;</span><span class="n">attached_schema</span> <span class="o">=</span> <span class="s">&quot;&quot;</span>
+<span class="p">);</span>
+
+<span class="c1">// SQLite::Database* dbconn in a transaction</span>
+<span class="n">dbconn</span><span class="o">-&gt;</span><span class="n">exec</span><span class="p">(</span><span class="n">PutGenomicReferenceAssemblySQL</span><span class="p">(</span><span class="s">&quot;GRCh38_no_alt_analysis_set&quot;</span><span class="p">));</span>
+</code></pre></div>
+
+</div>
+<input id="__tabbed_5_3" name="__tabbed_5" type="radio" /><label for="__tabbed_5_3">C++</label><div class="tabbed-content">
+<div class="highlight"><pre><span></span><code><span class="n">std</span><span class="o">::</span><span class="n">string</span> <span class="n">PutGenomicReferenceAssemblySQL</span><span class="p">(</span>
+  <span class="k">const</span> <span class="n">std</span><span class="o">::</span><span class="n">string</span> <span class="o">&amp;</span><span class="n">assembly</span><span class="p">,</span>
+  <span class="k">const</span> <span class="n">std</span><span class="o">::</span><span class="n">string</span> <span class="o">&amp;</span><span class="n">attached_schema</span> <span class="o">=</span> <span class="s">&quot;&quot;</span>
+<span class="p">);</span>
+
+<span class="n">std</span><span class="o">::</span><span class="n">string</span> <span class="n">refseq_sql</span> <span class="o">=</span> <span class="n">PutGenomicReferenceAssemblySQL</span><span class="p">(</span>
+  <span class="s">&quot;GRCh38_no_alt_analysis_set&quot;</span>
+<span class="p">);</span>
+<span class="c1">// sqlite3* dbconn in a transaction</span>
+<span class="kt">char</span><span class="o">*</span> <span class="n">errmsg</span> <span class="o">=</span> <span class="k">nullptr</span><span class="p">;</span>
+<span class="kt">int</span> <span class="n">rc</span> <span class="o">=</span> <span class="n">sqlite3_exec</span><span class="p">(</span><span class="n">dbconn</span><span class="p">,</span> <span class="n">refseq_sql</span><span class="p">.</span><span class="n">c_str</span><span class="p">(),</span> <span class="k">nullptr</span><span class="p">,</span> <span class="k">nullptr</span><span class="p">,</span> <span class="o">&amp;</span><span class="n">errmsg</span><span class="p">);</span>
+<span class="c1">// check rc, free errmsg</span>
+</code></pre></div>
+
+</div>
+<input id="__tabbed_5_4" name="__tabbed_5" type="radio" /><label for="__tabbed_5_4">C</label><div class="tabbed-content">
+<div class="highlight"><pre><span></span><code><span class="kt">char</span><span class="o">*</span> <span class="nf">put_genomic_reference_assembly_sql</span><span class="p">(</span>
+  <span class="k">const</span> <span class="kt">char</span> <span class="o">*</span><span class="n">assembly</span><span class="p">,</span>
+  <span class="k">const</span> <span class="kt">char</span> <span class="o">*</span><span class="n">attached_schema</span>
+<span class="p">);</span>
+
+<span class="kt">char</span><span class="o">*</span> <span class="n">refseq_sql</span> <span class="o">=</span> <span class="n">put_genomic_reference_assembly_sql</span><span class="p">(</span>
+  <span class="s">&quot;GRCh38_no_alt_analysis_set&quot;</span><span class="p">,</span> <span class="n">nullptr</span>
+<span class="p">);</span>
+<span class="k">if</span> <span class="p">(</span><span class="o">*</span><span class="n">refseq_sql</span><span class="p">)</span> <span class="p">{</span>
+  <span class="kt">char</span><span class="o">*</span> <span class="n">errmsg</span> <span class="o">=</span> <span class="mi">0</span><span class="p">;</span>
+  <span class="cm">/* sqlite3* dbconn in a transaction */</span>
+  <span class="kt">int</span> <span class="n">rc</span> <span class="o">=</span> <span class="n">sqlite3_exec</span><span class="p">(</span><span class="n">dbconn</span><span class="p">,</span> <span class="n">refseq_sql</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="o">&amp;</span><span class="n">errmsg</span><span class="p">);</span>
+  <span class="cm">/* check rc, free errmsg */</span>
+<span class="p">}</span> <span class="k">else</span> <span class="p">{</span>
+  <span class="cm">/* see calling convention discussed in previous examples */</span>
+<span class="p">}</span>
+<span class="n">sqlite3_free</span><span class="p">(</span><span class="n">refseq_sql</span><span class="p">);</span>
+</code></pre></div>
+
+</div>
+</div>
+<p>Available assemblies:</p>
+<ul>
+<li><code>GRCh38_no_alt_analysis_set</code></li>
+</ul>
+<p><strong>↪ Put Reference Sequence SQL:</strong> <em>Generate a string</em> containing a series of SQL statements which <em>when executed</em> creates <code>_gri_refseq</code> (if it doesn't exist) and adds <em>one</em> reference sequence with supplied attributes.</p>
+<div class="tabbed-set" data-tabs="6:4"><input checked="checked" id="__tabbed_6_1" name="__tabbed_6" type="radio" /><label for="__tabbed_6_1">Python</label><div class="tabbed-content">
+<div class="highlight"><pre><span></span><code><span class="n">refseq_sql</span> <span class="o">=</span> <span class="n">genomicsqlite</span><span class="o">.</span><span class="n">put_reference_sequence_sql</span><span class="p">(</span>
+  <span class="n">dbconn</span><span class="p">,</span> <span class="s1">&#39;chr17&#39;</span><span class="p">,</span> <span class="mi">83257441</span>
+  <span class="c1"># optional: assembly, refget_id, meta (dict), rid</span>
+<span class="p">)</span>
+<span class="n">dbconn</span><span class="o">.</span><span class="n">executescript</span><span class="p">(</span><span class="n">refseq_sql</span><span class="p">)</span>
+</code></pre></div>
+
+</div>
+<input id="__tabbed_6_2" name="__tabbed_6" type="radio" /><label for="__tabbed_6_2">SQLiteCpp</label><div class="tabbed-content">
+<div class="highlight"><pre><span></span><code><span class="n">std</span><span class="o">::</span><span class="n">string</span> <span class="n">PutGenomicReferenceSequenceSQL</span><span class="p">(</span>
+  <span class="k">const</span> <span class="n">std</span><span class="o">::</span><span class="n">string</span> <span class="o">&amp;</span><span class="n">name</span><span class="p">,</span>
+  <span class="n">sqlite3_int64</span> <span class="n">length</span><span class="p">,</span>
+  <span class="k">const</span> <span class="n">std</span><span class="o">::</span><span class="n">string</span> <span class="o">&amp;</span><span class="n">assembly</span> <span class="o">=</span> <span class="s">&quot;&quot;</span><span class="p">,</span>
+  <span class="k">const</span> <span class="n">std</span><span class="o">::</span><span class="n">string</span> <span class="o">&amp;</span><span class="n">refget_id</span> <span class="o">=</span> <span class="s">&quot;&quot;</span><span class="p">,</span>
+  <span class="k">const</span> <span class="n">std</span><span class="o">::</span><span class="n">string</span> <span class="o">&amp;</span><span class="n">meta_json</span> <span class="o">=</span> <span class="s">&quot;{}&quot;</span><span class="p">,</span>
+  <span class="n">sqlite3_int64</span> <span class="n">rid</span> <span class="o">=</span> <span class="o">-</span><span class="mi">1</span><span class="p">,</span>
+  <span class="k">const</span> <span class="n">std</span><span class="o">::</span><span class="n">string</span> <span class="o">&amp;</span><span class="n">attached_schema</span> <span class="o">=</span> <span class="s">&quot;&quot;</span>
+<span class="p">);</span>
+
+<span class="c1">// SQLite::Database* dbconn in a transaction</span>
+<span class="n">dbconn</span><span class="o">-&gt;</span><span class="n">exec</span><span class="p">(</span><span class="n">PutGenomicReferenceSequenceSQL</span><span class="p">(</span><span class="s">&quot;chr17&quot;</span><span class="p">,</span> <span class="mi">83257441</span><span class="p">));</span>
+</code></pre></div>
+
+</div>
+<input id="__tabbed_6_3" name="__tabbed_6" type="radio" /><label for="__tabbed_6_3">C++</label><div class="tabbed-content">
+<div class="highlight"><pre><span></span><code><span class="n">std</span><span class="o">::</span><span class="n">string</span> <span class="n">PutGenomicReferenceSequenceSQL</span><span class="p">(</span>
+  <span class="k">const</span> <span class="n">std</span><span class="o">::</span><span class="n">string</span> <span class="o">&amp;</span><span class="n">name</span><span class="p">,</span>
+  <span class="n">sqlite3_int64</span> <span class="n">length</span><span class="p">,</span>
+  <span class="k">const</span> <span class="n">std</span><span class="o">::</span><span class="n">string</span> <span class="o">&amp;</span><span class="n">assembly</span> <span class="o">=</span> <span class="s">&quot;&quot;</span><span class="p">,</span>
+  <span class="k">const</span> <span class="n">std</span><span class="o">::</span><span class="n">string</span> <span class="o">&amp;</span><span class="n">refget_id</span> <span class="o">=</span> <span class="s">&quot;&quot;</span><span class="p">,</span>
+  <span class="k">const</span> <span class="n">std</span><span class="o">::</span><span class="n">string</span> <span class="o">&amp;</span><span class="n">meta_json</span> <span class="o">=</span> <span class="s">&quot;{}&quot;</span><span class="p">,</span>
+  <span class="n">sqlite3_int64</span> <span class="n">rid</span> <span class="o">=</span> <span class="o">-</span><span class="mi">1</span><span class="p">,</span>
+  <span class="k">const</span> <span class="n">std</span><span class="o">::</span><span class="n">string</span> <span class="o">&amp;</span><span class="n">attached_schema</span> <span class="o">=</span> <span class="s">&quot;&quot;</span>
+<span class="p">);</span>
+
+<span class="n">std</span><span class="o">::</span><span class="n">string</span> <span class="n">refseq_sql</span> <span class="o">=</span> <span class="n">PutGenomicReferenceAssemblySQL</span><span class="p">(</span>
+  <span class="s">&quot;chr17&quot;</span><span class="p">,</span> <span class="mi">83257441</span>
+<span class="p">);</span>
+<span class="c1">// sqlite3* dbconn in a transaction</span>
+<span class="kt">char</span><span class="o">*</span> <span class="n">errmsg</span> <span class="o">=</span> <span class="k">nullptr</span><span class="p">;</span>
+<span class="kt">int</span> <span class="n">rc</span> <span class="o">=</span> <span class="n">sqlite3_exec</span><span class="p">(</span><span class="n">dbconn</span><span class="p">,</span> <span class="n">refseq_sql</span><span class="p">.</span><span class="n">c_str</span><span class="p">(),</span> <span class="k">nullptr</span><span class="p">,</span> <span class="k">nullptr</span><span class="p">,</span> <span class="o">&amp;</span><span class="n">errmsg</span><span class="p">);</span>
+<span class="c1">// check rc, free errmsg</span>
+</code></pre></div>
+
+</div>
+<input id="__tabbed_6_4" name="__tabbed_6" type="radio" /><label for="__tabbed_6_4">C</label><div class="tabbed-content">
+<div class="highlight"><pre><span></span><code><span class="kt">char</span><span class="o">*</span> <span class="nf">put_genomic_reference_sequence_sql</span><span class="p">(</span>
+  <span class="k">const</span> <span class="kt">char</span> <span class="o">*</span><span class="n">name</span><span class="p">,</span>
+  <span class="n">sqlite3_int64</span> <span class="n">length</span><span class="p">,</span>
+  <span class="k">const</span> <span class="kt">char</span> <span class="o">*</span><span class="n">assembly</span><span class="p">,</span>
+  <span class="k">const</span> <span class="kt">char</span> <span class="o">*</span><span class="n">refget_id</span><span class="p">,</span>
+  <span class="k">const</span> <span class="kt">char</span> <span class="o">*</span><span class="n">meta_json</span><span class="p">,</span>
+  <span class="n">sqlite3_int64</span> <span class="n">rid</span><span class="p">,</span>
+  <span class="k">const</span> <span class="kt">char</span> <span class="o">*</span><span class="n">attached_schema</span>
+<span class="p">);</span>
+
+<span class="kt">char</span><span class="o">*</span> <span class="n">refseq_sql</span> <span class="o">=</span> <span class="n">put_genomic_reference_sequence_sql</span><span class="p">(</span>
+  <span class="s">&quot;chr17&quot;</span><span class="p">,</span> <span class="mi">83257441</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="mi">0</span>
+<span class="p">);</span>
+<span class="k">if</span> <span class="p">(</span><span class="o">*</span><span class="n">refseq_sql</span><span class="p">)</span> <span class="p">{</span>
+  <span class="kt">char</span><span class="o">*</span> <span class="n">errmsg</span> <span class="o">=</span> <span class="mi">0</span><span class="p">;</span>
+  <span class="cm">/* sqlite3* dbconn in a transaction */</span>
+  <span class="kt">int</span> <span class="n">rc</span> <span class="o">=</span> <span class="n">sqlite3_exec</span><span class="p">(</span><span class="n">dbconn</span><span class="p">,</span> <span class="n">refseq_sql</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="o">&amp;</span><span class="n">errmsg</span><span class="p">);</span>
+  <span class="cm">/* check rc, free errmsg */</span>
+<span class="p">}</span> <span class="k">else</span> <span class="p">{</span>
+  <span class="cm">/* see calling convention discussed in previous examples */</span>
+<span class="p">}</span>
+<span class="n">sqlite3_free</span><span class="p">(</span><span class="n">refseq_sql</span><span class="p">);</span>
+</code></pre></div>
+
+</div>
+</div>
+<p>If the <code>rid</code> argument is omitted or -1 then it will be assigned automatically upon insertion.</p>
+<p><strong>↪ Get Reference Sequences by Rid:</strong> create an in-memory lookup table of the previously-stored reference information, keyed by rid integer. Assumes the stored information is read-only by this point. This table is for the application code's convenience to read tables that use the rid convention. Such uses can be also be served by SQL join on the <code>_gri_refseq</code> table (see Cookbook).</p>
+<div class="tabbed-set" data-tabs="7:4"><input checked="checked" id="__tabbed_7_1" name="__tabbed_7" type="radio" /><label for="__tabbed_7_1">Python</label><div class="tabbed-content">
+<div class="highlight"><pre><span></span><code><span class="k">class</span> <span class="nc">ReferenceSequence</span><span class="p">(</span><span class="n">NamedTuple</span><span class="p">):</span>
+  <span class="n">rid</span><span class="p">:</span> <span class="nb">int</span>
+  <span class="n">name</span><span class="p">:</span> <span class="nb">str</span>
+  <span class="n">length</span><span class="p">:</span> <span class="nb">int</span>
+  <span class="n">assembly</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span>
+  <span class="n">refget_id</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span>
+  <span class="n">meta</span><span class="p">:</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]</span>
+
+<span class="n">refseq_by_rid</span> <span class="o">=</span> <span class="n">genomicsqlite</span><span class="o">.</span><span class="n">get_reference_sequences_by_rid</span><span class="p">(</span><span class="n">dbconn</span><span class="p">)</span>
+<span class="c1"># refseq_by_rid: Dict[int, ReferenceSequence]</span>
+</code></pre></div>
+
+</div>
+<input id="__tabbed_7_2" name="__tabbed_7" type="radio" /><label for="__tabbed_7_2">SQLiteCpp</label><div class="tabbed-content">
+<div class="highlight"><pre><span></span><code><span class="k">struct</span> <span class="n">gri_refseq_t</span> <span class="p">{</span>
+  <span class="kt">long</span> <span class="kt">long</span> <span class="n">rid</span><span class="p">,</span> <span class="n">length</span><span class="p">;</span>
+  <span class="n">std</span><span class="o">::</span><span class="n">string</span> <span class="n">name</span><span class="p">,</span> <span class="n">assembly</span><span class="p">,</span> <span class="n">refget_id</span><span class="p">,</span> <span class="n">meta_json</span><span class="p">;</span>
+<span class="p">};</span>
+<span class="n">std</span><span class="o">::</span><span class="n">map</span><span class="o">&lt;</span><span class="kt">long</span> <span class="kt">long</span><span class="p">,</span> <span class="n">gri_refseq_t</span><span class="o">&gt;</span> <span class="n">GetGenomicReferenceSequencesByRid</span><span class="p">(</span>
+  <span class="n">sqlite3</span> <span class="o">*</span><span class="n">dbconn</span><span class="p">,</span>
+  <span class="k">const</span> <span class="n">std</span><span class="o">::</span><span class="n">string</span> <span class="o">&amp;</span><span class="n">assembly</span> <span class="o">=</span> <span class="s">&quot;&quot;</span><span class="p">,</span>
+  <span class="k">const</span> <span class="n">std</span><span class="o">::</span><span class="n">string</span> <span class="o">&amp;</span><span class="n">attached_schema</span> <span class="o">=</span> <span class="s">&quot;&quot;</span>
+<span class="p">);</span>
+
+<span class="c1">// SQLite::Database* dbconn</span>
+<span class="k">auto</span> <span class="n">refseq_by_rid</span> <span class="o">=</span> <span class="n">GetGenomicReferenceSequencesByRid</span><span class="p">(</span><span class="n">dbconn</span><span class="o">-&gt;</span><span class="n">getHandle</span><span class="p">());</span>
+</code></pre></div>
+
+</div>
+<input id="__tabbed_7_3" name="__tabbed_7" type="radio" /><label for="__tabbed_7_3">C++</label><div class="tabbed-content">
+<div class="highlight"><pre><span></span><code><span class="k">struct</span> <span class="n">gri_refseq_t</span> <span class="p">{</span>
+  <span class="kt">long</span> <span class="kt">long</span> <span class="n">rid</span><span class="p">,</span> <span class="n">length</span><span class="p">;</span>
+  <span class="n">std</span><span class="o">::</span><span class="n">string</span> <span class="n">name</span><span class="p">,</span> <span class="n">assembly</span><span class="p">,</span> <span class="n">refget_id</span><span class="p">,</span> <span class="n">meta_json</span><span class="p">;</span>
+<span class="p">};</span>
+<span class="n">std</span><span class="o">::</span><span class="n">map</span><span class="o">&lt;</span><span class="kt">long</span> <span class="kt">long</span><span class="p">,</span> <span class="n">gri_refseq_t</span><span class="o">&gt;</span> <span class="n">GetGenomicReferenceSequencesByRid</span><span class="p">(</span>
+  <span class="n">sqlite3</span> <span class="o">*</span><span class="n">dbconn</span><span class="p">,</span>
+  <span class="k">const</span> <span class="n">std</span><span class="o">::</span><span class="n">string</span> <span class="o">&amp;</span><span class="n">assembly</span> <span class="o">=</span> <span class="s">&quot;&quot;</span><span class="p">,</span>
+  <span class="k">const</span> <span class="n">std</span><span class="o">::</span><span class="n">string</span> <span class="o">&amp;</span><span class="n">attached_schema</span> <span class="o">=</span> <span class="s">&quot;&quot;</span>
+<span class="p">);</span>
+
+<span class="c1">// sqlite3* dbconn</span>
+<span class="k">auto</span> <span class="n">refseq_by_rid</span> <span class="o">=</span> <span class="n">GetGenomicReferenceSequencesByName</span><span class="p">(</span><span class="n">dbconn</span><span class="p">);</span>
+</code></pre></div>
+
+</div>
+<input id="__tabbed_7_4" name="__tabbed_7" type="radio" /><label for="__tabbed_7_4">C</label><div class="tabbed-content">
+<div class="highlight"><pre><span></span><code><span class="cm">/* Omitted for want of idiomatic map type; pull requests welcome! */</span>
+</code></pre></div>
+
+</div>
+</div>
+<p>The optional <code>assembly</code> argument restricts the retrieved sequences to those with matching <code>gri_assembly</code> value. However, mixing different assemblies in <code>_gri_refseq</code> is not recommended.</p>
+<p><strong>↪ Get Reference Sequences by Name:</strong> create an in-memory lookup table of the previously-stored reference information, keyed by sequence name. Assumes the stored information is read-only by this point. This table is for the application code's convenience to translate name to rid whilst formulating queries or inserting features from a text source.</p>
+<div class="tabbed-set" data-tabs="8:4"><input checked="checked" id="__tabbed_8_1" name="__tabbed_8" type="radio" /><label for="__tabbed_8_1">Python</label><div class="tabbed-content">
+<div class="highlight"><pre><span></span><code><span class="k">class</span> <span class="nc">ReferenceSequence</span><span class="p">(</span><span class="n">NamedTuple</span><span class="p">):</span>
+  <span class="n">rid</span><span class="p">:</span> <span class="nb">int</span>
+  <span class="n">name</span><span class="p">:</span> <span class="nb">str</span>
+  <span class="n">length</span><span class="p">:</span> <span class="nb">int</span>
+  <span class="n">assembly</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span>
+  <span class="n">refget_id</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span>
+  <span class="n">meta</span><span class="p">:</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]</span>
+
+<span class="n">refseq_by_name</span> <span class="o">=</span> <span class="n">genomicsqlite</span><span class="o">.</span><span class="n">get_reference_sequences_by_name</span><span class="p">(</span><span class="n">dbconn</span><span class="p">)</span>
+<span class="c1"># refseq_by_name: Dict[str, ReferenceSequence]</span>
+</code></pre></div>
+
+</div>
+<input id="__tabbed_8_2" name="__tabbed_8" type="radio" /><label for="__tabbed_8_2">SQLiteCpp</label><div class="tabbed-content">
+<div class="highlight"><pre><span></span><code><span class="k">struct</span> <span class="n">gri_refseq_t</span> <span class="p">{</span>
+  <span class="kt">long</span> <span class="kt">long</span> <span class="n">rid</span><span class="p">,</span> <span class="n">length</span><span class="p">;</span>
+  <span class="n">std</span><span class="o">::</span><span class="n">string</span> <span class="n">name</span><span class="p">,</span> <span class="n">assembly</span><span class="p">,</span> <span class="n">refget_id</span><span class="p">,</span> <span class="n">meta_json</span><span class="p">;</span>
+<span class="p">};</span>
+<span class="n">std</span><span class="o">::</span><span class="n">map</span><span class="o">&lt;</span><span class="n">std</span><span class="o">::</span><span class="n">string</span><span class="p">,</span> <span class="n">gri_refseq_t</span><span class="o">&gt;</span> <span class="n">GetGenomicReferenceSequencesByName</span><span class="p">(</span>
+  <span class="n">sqlite3</span> <span class="o">*</span><span class="n">dbconn</span><span class="p">,</span>
+  <span class="k">const</span> <span class="n">std</span><span class="o">::</span><span class="n">string</span> <span class="o">&amp;</span><span class="n">assembly</span> <span class="o">=</span> <span class="s">&quot;&quot;</span><span class="p">,</span>
+  <span class="k">const</span> <span class="n">std</span><span class="o">::</span><span class="n">string</span> <span class="o">&amp;</span><span class="n">attached_schema</span> <span class="o">=</span> <span class="s">&quot;&quot;</span>
+<span class="p">);</span>
+
+<span class="c1">// SQLite::Database* dbconn</span>
+<span class="k">auto</span> <span class="n">refseq_by_name</span> <span class="o">=</span> <span class="n">GetGenomicReferenceSequencesByName</span><span class="p">(</span><span class="n">dbconn</span><span class="o">-&gt;</span><span class="n">getHandle</span><span class="p">());</span>
+</code></pre></div>
+
+</div>
+<input id="__tabbed_8_3" name="__tabbed_8" type="radio" /><label for="__tabbed_8_3">C++</label><div class="tabbed-content">
+<div class="highlight"><pre><span></span><code><span class="k">struct</span> <span class="n">gri_refseq_t</span> <span class="p">{</span>
+  <span class="kt">long</span> <span class="kt">long</span> <span class="n">rid</span><span class="p">,</span> <span class="n">length</span><span class="p">;</span>
+  <span class="n">std</span><span class="o">::</span><span class="n">string</span> <span class="n">name</span><span class="p">,</span> <span class="n">assembly</span><span class="p">,</span> <span class="n">refget_id</span><span class="p">,</span> <span class="n">meta_json</span><span class="p">;</span>
+<span class="p">};</span>
+<span class="n">std</span><span class="o">::</span><span class="n">map</span><span class="o">&lt;</span><span class="n">std</span><span class="o">::</span><span class="n">string</span><span class="p">,</span> <span class="n">gri_refseq_t</span><span class="o">&gt;</span> <span class="n">GetGenomicReferenceSequencesByName</span><span class="p">(</span>
+  <span class="n">sqlite3</span> <span class="o">*</span><span class="n">dbconn</span><span class="p">,</span>
+  <span class="k">const</span> <span class="n">std</span><span class="o">::</span><span class="n">string</span> <span class="o">&amp;</span><span class="n">assembly</span> <span class="o">=</span> <span class="s">&quot;&quot;</span><span class="p">,</span>
+  <span class="k">const</span> <span class="n">std</span><span class="o">::</span><span class="n">string</span> <span class="o">&amp;</span><span class="n">attached_schema</span> <span class="o">=</span> <span class="s">&quot;&quot;</span>
+<span class="p">);</span>
+
+<span class="c1">// sqlite3* dbconn</span>
+<span class="k">auto</span> <span class="n">refseq_by_name</span> <span class="o">=</span> <span class="n">GetGenomicReferenceSequencesByName</span><span class="p">(</span><span class="n">dbconn</span><span class="p">);</span>
+</code></pre></div>
+
+</div>
+<input id="__tabbed_8_4" name="__tabbed_8" type="radio" /><label for="__tabbed_8_4">C</label><div class="tabbed-content">
+<div class="highlight"><pre><span></span><code><span class="cm">/* Omitted for want of idiomatic map type; pull requests welcome! */</span>
+</code></pre></div>
+
+</div>
+</div>
+<h3 id="cookbook">Cookbook</h3>
+<h4 id="rid-to-chromosome-name">rid to chromosome name</h4>
+<p>Table identifies each feature's chromosome by rid, and we want to see them with text chromosome names.</p>
+<div class="highlight"><pre><span></span><code>SELECT gri_refseq_name, feature_table.*
+  FROM feature_table NATURAL JOIN _gri_refseq
+</code></pre></div>
+
+<p>The join key here is <code>_gri_rid</code>, which is one of the generated columns added by GRI creation.</p>
+<p>Alternatively, the application code can read rid from the row and translate it using the lookup table generated by the <strong>Get Reference Sequences by Rid</strong> routine.</p>
+<h4 id="query-rid-using-chromosome-name">Query rid using chromosome name</h4>
+<p>We're making a GRI query on a table that stores rid integers, but our query range has a chromosome name. (e.g. in Python)</p>
+<div class="highlight"><pre><span></span><code><span class="n">query</span> <span class="o">=</span> <span class="s2">&quot;&quot;&quot;</span>
+<span class="s2">  SELECT feature_table.* FROM</span>
+<span class="s2">    (SELECT _gri_rid AS rid FROM _gri_refseq</span>
+<span class="s2">     WHERE gri_refseq_name=?1) AS query, feature_table</span>
+<span class="s2">    WHERE feature_table._rowid_ IN</span>
+<span class="s2">&quot;&quot;&quot;</span> <span class="o">+</span> <span class="n">genomicsqlite</span><span class="o">.</span><span class="n">genomic_range_rowids_sql</span><span class="p">(</span><span class="n">dbconn</span><span class="p">,</span> <span class="s1">&#39;feature_table&#39;</span><span class="p">,</span> <span class="s1">&#39;query.rid&#39;</span><span class="p">)</span>
+<span class="n">results</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="n">dbconn</span><span class="o">.</span><span class="n">execute</span><span class="p">(</span><span class="n">query</span><span class="p">,</span> <span class="p">(</span><span class="s1">&#39;chr12&#39;</span><span class="p">,</span><span class="mi">111803912</span><span class="p">,</span><span class="mi">111804012</span><span class="p">)))</span>
+</code></pre></div>
+
+<p>In the GRI subquery, we fill out the rid by referencing the transient <code>query</code> table where we looked up the rid corresponding to the chromosome name parameter.</p>
+<p>Alternatively, the application code can first convert the query name to rid using the lookup table generated by the <strong>Get Reference Sequences by Name</strong> routine.</p>
+<h4 id="join-two-tables-on-genomic-range-overlap">Join two tables on genomic range overlap</h4>
+<p>We've two tables with genomic features to join by range overlap. Only the "right-hand" table must have a GRI; preferably the smaller of the two. For example, annotating a table of variants with the surrounding exon(s), if any:</p>
+<div class="highlight"><pre><span></span><code><span class="n">query</span> <span class="o">=</span> <span class="p">(</span><span class="s2">&quot;&quot;&quot;</span>
+<span class="s2">  SELECT variants.*, exons._rowid_</span>
+<span class="s2">  FROM variants LEFT JOIN exons ON exons._rowid_ IN &quot;&quot;&quot;</span>
+  <span class="o">+</span> <span class="n">genomicsqlite</span><span class="o">.</span><span class="n">genomic_range_rowids_sql</span><span class="p">(</span>
+      <span class="n">dbconn</span><span class="p">,</span> <span class="s1">&#39;exons&#39;</span><span class="p">,</span>
+      <span class="s1">&#39;variants.chromosome&#39;</span><span class="p">,</span>
+      <span class="s1">&#39;variants.beginPosition&#39;</span><span class="p">,</span>
+      <span class="s1">&#39;variants.endPosition&#39;</span>
+  <span class="p">))</span>
+<span class="k">for</span> <span class="n">row</span> <span class="ow">in</span> <span class="n">dbconn</span><span class="o">.</span><span class="n">execute</span><span class="p">(</span><span class="n">query</span><span class="p">):</span>
+  <span class="o">...</span>
+</code></pre></div>
+
+<p>We fill out the GRI query range using the three coordinate columns of the variants table.</p>
+<h3 id="advice-for-big-data_1">Advice for big data</h3>
+<p>A SQLite table's rowid order indicates its physical storage layout. It's therefore preferable for a mainly-GRI-queried table to have had its rows originally inserted in genomic range order, so that the features' (chromosome, beginPosition) monotonically increase with rowid, and range queries enjoy storage/cache locality. While not required in theory, this may be needed in practice for GRI queries that will match a material fraction of a big table's rows.</p>
+<p>You can sort the rows of an existing table into a new table with the same schema, with something like <code>INSERT INTO sorted SELECT * FROM original NOT INDEXED ORDER BY chromosome, beginPosition</code>. The Genomics Extension enables SQLite's <a href="https://sqlite.org/src/file/src/vdbesort.c">parallel, external merge-sorter</a> to execute this efficiently; still, if it's feasible to load sorted data upfront, so much the better.</p>
+<p><small>
+Note 1. <code>NOT INDEXED</code> is there to force SQLite to use the external sorter instead of some index that'd mislead it into reading the entire table in a shuffled order. If applicable, make sure <a href="https://www.sqlite.org/tempfiles.html">it's configured</a> to use a suitable storage subsystem for big temporary files.</p>
+<p>Note 2. The "original" table should come from a separate <a href="https://www.sqlite.org/lang_attach.html">attached database</a> to avoid <code>DROP TABLE original</code> from the final database, which is costly due to the need to defragment afterwards.
+</small></p>
+<p>A series of many GRI queries (including in the course of a join) should also proceed in genomic range order. If this isn't possible, then ideally the database page cache should be enlarged to fit the entire indexed table in memory.</p>
+<p>If you expect a GRI query to yield a very large, contiguous rowid result set (e.g. all features on a chromosome, in a table <em>known</em> to be range-sorted), then the following specialized query plan may be advantageous:</p>
+<ol>
+<li>Ask GRI for <em>first</em> relevant rowid <code>ORDER BY _rowid_ LIMIT 1</code></li>
+<li>Open a cursor on <code>SELECT ... FROM tableName WHERE _rowid_ &gt;= firstRowid</code></li>
+<li>Loop through rows for as long as they're relevant.</li>
+</ol>
+<p>But this plan strongly depends on the contiguity assumption.</p>
+<h2 id="other-routines">Other routines</h2>
+<h4 id="compress-existing-sqlite3-database">Compress existing SQLite3 database</h4>
+<p><strong>↪ GenomicSQLite Vacuum Into:</strong> <em>Generate a string</em> containing a series of SQL statements to execute on an existing database in order to copy it into a new compressed &amp; <a href="https://www.sqlite.org/lang_vacuum.html">defragmented</a> file. The source database may be a plain, uncompressed SQLite3 database, as long (i) as the Genomics Extension is loaded in the executing program and (ii) the source database connection is opened with the <code>SQLITE_OPEN_URI</code> flag or language equivalent.</p>
+<div class="tabbed-set" data-tabs="9:4"><input checked="checked" id="__tabbed_9_1" name="__tabbed_9" type="radio" /><label for="__tabbed_9_1">Python</label><div class="tabbed-content">
+<div class="highlight"><pre><span></span><code><span class="n">dbconn</span> <span class="o">=</span> <span class="n">sqlite3</span><span class="o">.</span><span class="n">connect</span><span class="p">(</span><span class="s1">&#39;existing.db&#39;</span><span class="p">,</span> <span class="n">uri</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+<span class="n">vacuum_sql</span> <span class="o">=</span> <span class="n">genomicsqlite</span><span class="o">.</span><span class="n">vacuum_into_sql</span><span class="p">(</span><span class="n">dbconn</span><span class="p">,</span> <span class="s1">&#39;compressed.db&#39;</span><span class="p">)</span>
+<span class="c1"># vacuum_into_sql() also takes configuration keyword arguments like</span>
+<span class="c1"># genomicsqlite.connect() to control compression level &amp; page sizes</span>
+
+<span class="n">dbconn</span><span class="o">.</span><span class="n">executescript</span><span class="p">(</span><span class="n">vacuum_sql</span><span class="p">)</span>
+<span class="n">dbconn2</span> <span class="o">=</span> <span class="n">genomicsqlite</span><span class="o">.</span><span class="n">connect</span><span class="p">(</span><span class="s1">&#39;compressed.db&#39;</span><span class="p">)</span>
+</code></pre></div>
+
+</div>
+<input id="__tabbed_9_2" name="__tabbed_9" type="radio" /><label for="__tabbed_9_2">SQLiteCpp</label><div class="tabbed-content">
+<div class="highlight"><pre><span></span><code><span class="n">std</span><span class="o">::</span><span class="n">string</span> <span class="n">GenomicSQLiteVacuumIntoSQL</span><span class="p">(</span>
+  <span class="k">const</span> <span class="n">std</span><span class="o">::</span><span class="n">string</span> <span class="o">&amp;</span><span class="n">dest_filename</span><span class="p">,</span>
+  <span class="k">const</span> <span class="n">std</span><span class="o">::</span><span class="n">string</span> <span class="o">&amp;</span><span class="n">config_json</span> <span class="o">=</span> <span class="s">&quot;{}&quot;</span>
+<span class="p">);</span>
+
+<span class="n">std</span><span class="o">::</span><span class="n">string</span> <span class="n">vacuum_sql</span> <span class="o">=</span> <span class="n">GenomicSQLiteVacuumIntoSQL</span><span class="p">(</span><span class="s">&quot;compressed.db&quot;</span><span class="p">);</span>
+<span class="n">SQLite</span><span class="o">::</span><span class="n">Database</span> <span class="n">dbconn</span><span class="p">(</span><span class="s">&quot;existing.db&quot;</span><span class="p">,</span> <span class="n">SQLITE_OPEN_READONLY</span> <span class="o">|</span> <span class="n">SQLITE_OPEN_URI</span><span class="p">);</span>
+<span class="n">dbconn</span><span class="p">.</span><span class="n">exec</span><span class="p">(</span><span class="n">vacuum_sql</span><span class="p">);</span>
+<span class="k">auto</span> <span class="n">dbconn2</span> <span class="o">=</span> <span class="n">GenomicSQLiteOpen</span><span class="p">(</span><span class="s">&quot;compressed.db&quot;</span><span class="p">);</span>
+</code></pre></div>
+
+</div>
+<input id="__tabbed_9_3" name="__tabbed_9" type="radio" /><label for="__tabbed_9_3">C++</label><div class="tabbed-content">
+<div class="highlight"><pre><span></span><code><span class="n">std</span><span class="o">::</span><span class="n">string</span> <span class="n">GenomicSQLiteVacuumIntoSQL</span><span class="p">(</span>
+  <span class="k">const</span> <span class="n">std</span><span class="o">::</span><span class="n">string</span> <span class="o">&amp;</span><span class="n">dest_filename</span><span class="p">,</span>
+  <span class="k">const</span> <span class="n">std</span><span class="o">::</span><span class="n">string</span> <span class="o">&amp;</span><span class="n">config_json</span> <span class="o">=</span> <span class="s">&quot;{}&quot;</span>
+<span class="p">);</span>
+
+<span class="n">std</span><span class="o">::</span><span class="n">string</span> <span class="n">vacuum_sql</span> <span class="o">=</span> <span class="n">GenomicSQLiteVacuumIntoSQL</span><span class="p">(</span><span class="s">&quot;compressed.db&quot;</span><span class="p">);</span>
+<span class="c1">// sqlite3* dbconn opened using sqlite3_open_v2() on some existing.db</span>
+<span class="c1">//   with SQLITE_OPEN_URI</span>
+<span class="kt">char</span><span class="o">*</span> <span class="n">errmsg</span> <span class="o">=</span> <span class="k">nullptr</span><span class="p">;</span>
+<span class="kt">int</span> <span class="n">rc</span> <span class="o">=</span> <span class="n">sqlite3_exec</span><span class="p">(</span><span class="n">dbconn</span><span class="p">,</span> <span class="n">refseq_sql</span><span class="p">.</span><span class="n">c_str</span><span class="p">(),</span> <span class="k">nullptr</span><span class="p">,</span> <span class="k">nullptr</span><span class="p">,</span> <span class="o">&amp;</span><span class="n">errmsg</span><span class="p">);</span>
+<span class="c1">// check rc, free errmsg</span>
+
+<span class="c1">// rc = GenomicSQLiteOpen(&quot;compressed.db&quot;, ...);</span>
+</code></pre></div>
+
+</div>
+<input id="__tabbed_9_4" name="__tabbed_9" type="radio" /><label for="__tabbed_9_4">C</label><div class="tabbed-content">
+<div class="highlight"><pre><span></span><code><span class="kt">char</span><span class="o">*</span> <span class="nf">genomicsqlite_vacuum_into_sql</span><span class="p">(</span>
+  <span class="k">const</span> <span class="kt">char</span> <span class="o">*</span><span class="n">dest_filename</span><span class="p">,</span>
+  <span class="k">const</span> <span class="kt">char</span> <span class="o">*</span><span class="n">config_json</span>
+<span class="p">);</span>
+
+<span class="kt">char</span><span class="o">*</span> <span class="n">vacuum_sql</span> <span class="o">=</span> <span class="n">genomicsqlite_vacuum_into_sql</span><span class="p">(</span><span class="s">&quot;compressed.db&quot;</span><span class="p">,</span> <span class="s">&quot;{}&quot;</span><span class="p">);</span>
+<span class="k">if</span> <span class="p">(</span><span class="o">*</span><span class="n">vacuum_sql</span><span class="p">)</span> <span class="p">{</span>
+  <span class="kt">char</span><span class="o">*</span> <span class="n">errmsg</span> <span class="o">=</span> <span class="mi">0</span><span class="p">;</span>
+  <span class="cm">/* sqlite3* dbconn opened using sqlite3_open_v2() on some existing.db</span>
+<span class="cm">   * with SQLITE_OPEN_URI */</span>
+  <span class="kt">int</span> <span class="n">rc</span> <span class="o">=</span> <span class="n">sqlite3_exec</span><span class="p">(</span><span class="n">dbconn</span><span class="p">,</span> <span class="n">vacuum_sql</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="o">&amp;</span><span class="n">errmsg</span><span class="p">);</span>
+  <span class="cm">/* check rc, free errmsg */</span>
+<span class="p">}</span> <span class="k">else</span> <span class="p">{</span>
+ <span class="cm">/* see calling convention discussed in previous examples */</span>
+<span class="p">}</span>
+<span class="n">sqlite3_free</span><span class="p">(</span><span class="n">create_gri_sql</span><span class="p">);</span>
+
+<span class="cm">/* genomicsqlite_open(&quot;compressed.db&quot;, ...); */</span>
+</code></pre></div>
+
+</div>
+</div>
+<h4 id="genomics-extension-version">Genomics Extension version</h4>
+<p><strong>↪ GenomicSQLite Version</strong></p>
+<div class="tabbed-set" data-tabs="10:4"><input checked="checked" id="__tabbed_10_1" name="__tabbed_10" type="radio" /><label for="__tabbed_10_1">SQL</label><div class="tabbed-content">
+<div class="highlight"><pre><span></span><code><span class="k">SELECT</span> <span class="n">genomicsqlite_version</span><span class="p">()</span>
+</code></pre></div>
+
+</div>
+<input id="__tabbed_10_2" name="__tabbed_10" type="radio" /><label for="__tabbed_10_2">Python</label><div class="tabbed-content">
+<div class="highlight"><pre><span></span><code><span class="n">genomicsqlite</span><span class="o">.</span><span class="n">__version__</span>
+</code></pre></div>
+
+</div>
+<input id="__tabbed_10_3" name="__tabbed_10" type="radio" /><label for="__tabbed_10_3">C++</label><div class="tabbed-content">
+<div class="highlight"><pre><span></span><code><span class="n">std</span><span class="o">::</span><span class="n">string</span> <span class="n">GenomicSQLiteVersion</span><span class="p">();</span>
+</code></pre></div>
+
+</div>
+<input id="__tabbed_10_4" name="__tabbed_10" type="radio" /><label for="__tabbed_10_4">C</label><div class="tabbed-content">
+<div class="highlight"><pre><span></span><code><span class="kt">char</span><span class="o">*</span> <span class="nf">genomicsqlite_version</span><span class="p">();</span>
+<span class="cm">/* result to be sqlite3_free() */</span>
+</code></pre></div>
+
+</div>
+</div>
+<h4 id="json-functions">JSON functions</h4>
+<p>The Genomics Extension bundles the SQLite developers' <a href="https://www.sqlite.org/json1.html">JSON1 extension</a> and enables it automatically. The following conventions are recommended,</p>
+<ol>
+<li>JSON object columns should be named *_json with type <code>TEXT DEFAULT '{}'</code>.</li>
+<li>JSON array columns should be named *_jsarray with type <code>TEXT DEFAULT '[]'</code>.</li>
+</ol>
+<p>The JSON1 functions can be used with <a href="https://sqlite.org/gencol.html">generated columns</a> to effectively enable indices on JSON-embedded fields.</p>
+<h2 id="genomicsqlite-interactive-shell">genomicsqlite interactive shell</h2>
+<p>The Python package includes a <code>genomicsqlite</code> script that starts the <a href="https://sqlite.org/cli.html"><code>sqlite3</code> interactive shell</a> with the Genomics Extension enabled. Simply invoke,</p>
+<div class="highlight"><pre><span></span><code>$ genomicsqlite /path/to/compressed.db [-readonly]
+</code></pre></div>
+
+<p>to enter the SQL prompt with the database open. Or, add an SQL statement (in quotes) to perform and exit. If you've installed the Python package but the script isn't found, you probably need to augment your <code>PATH</code> with the directory for Python console scripts.</p>
+                
+              
+              
+                
+
+
+              
+            </article>
+          </div>
+        </div>
+      </main>
+      
+        
+<footer class="md-footer">
+  
+    <div class="md-footer-nav">
+      <nav class="md-footer-nav__inner md-grid" aria-label="Footer">
+        
+          <a href=".." title="Intro & Install" class="md-footer-nav__link md-footer-nav__link--prev" rel="prev">
+            <div class="md-footer-nav__button md-icon">
+              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11h12z"/></svg>
+            </div>
+            <div class="md-footer-nav__title">
+              <div class="md-ellipsis">
+                <span class="md-footer-nav__direction">
+                  Previous
+                </span>
+                Intro & Install
+              </div>
+            </div>
+          </a>
+        
+        
+          <a href="../bindings/" title="Language Bindings Guide" class="md-footer-nav__link md-footer-nav__link--next" rel="next">
+            <div class="md-footer-nav__title">
+              <div class="md-ellipsis">
+                <span class="md-footer-nav__direction">
+                  Next
+                </span>
+                Language Bindings Guide
+              </div>
+            </div>
+            <div class="md-footer-nav__button md-icon">
+              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M4 11v2h12l-5.5 5.5 1.42 1.42L19.84 12l-7.92-7.92L10.5 5.5 16 11H4z"/></svg>
+            </div>
+          </a>
+        
+      </nav>
+    </div>
+  
+  <div class="md-footer-meta md-typeset">
+    <div class="md-footer-meta__inner md-grid">
+      <div class="md-footer-copyright">
+        
+        Made with
+        <a href="https://squidfunk.github.io/mkdocs-material/" target="_blank" rel="noopener">
+          Material for MkDocs
+        </a>
+      </div>
+      
+    </div>
+  </div>
+</footer>
+      
+    </div>
+    
+      <script src="../assets/javascripts/vendor.d710d30a.min.js"></script>
+      <script src="../assets/javascripts/bundle.b39636ac.min.js"></script><script id="__lang" type="application/json">{"clipboard.copy": "Copy to clipboard", "clipboard.copied": "Copied to clipboard", "search.config.lang": "en", "search.config.pipeline": "trimmer, stopWordFilter", "search.config.separator": "[\\s\\-]+", "search.result.placeholder": "Type to start searching", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents"}</script>
+      
+      <script>
+        app = initialize({
+          base: "..",
+          features: [],
+          search: Object.assign({
+            worker: "../assets/javascripts/worker/search.a68abb33.min.js"
+          }, typeof search !== "undefined" && search)
+        })
+      </script>
+      
+    
+  </body>
+</html>

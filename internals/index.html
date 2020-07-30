@@ -1,0 +1,435 @@
+
+
+
+<!doctype html>
+<html lang="en" class="no-js">
+  <head>
+    
+      <meta charset="utf-8">
+      <meta name="viewport" content="width=device-width,initial-scale=1">
+      
+      
+      
+      <link rel="shortcut icon" href="../assets/images/favicon.png">
+      <meta name="generator" content="mkdocs-1.1.2, mkdocs-material-5.4.0">
+    
+    
+      
+        <title>Internals - Genomics Extension for SQLite</title>
+      
+    
+    
+      <link rel="stylesheet" href="../assets/stylesheets/main.fe0cca5b.min.css">
+      
+      
+    
+    
+    
+      
+        <link href="https://fonts.gstatic.com" rel="preconnect" crossorigin>
+        <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Roboto:300,400,400i,700%7CRoboto+Mono&display=fallback">
+        <style>body,input{font-family:"Roboto",-apple-system,BlinkMacSystemFont,Helvetica,Arial,sans-serif}code,kbd,pre{font-family:"Roboto Mono",SFMono-Regular,Consolas,Menlo,monospace}</style>
+      
+    
+    
+    
+    
+      
+    
+    
+  </head>
+  
+  
+    <body dir="ltr">
+  
+    
+    <input class="md-toggle" data-md-toggle="drawer" type="checkbox" id="__drawer" autocomplete="off">
+    <input class="md-toggle" data-md-toggle="search" type="checkbox" id="__search" autocomplete="off">
+    <label class="md-overlay" for="__drawer"></label>
+    <div data-md-component="skip">
+      
+        
+        <a href="#genomics-extension-internals" class="md-skip">
+          Skip to content
+        </a>
+      
+    </div>
+    <div data-md-component="announce">
+      
+    </div>
+    
+      <header class="md-header" data-md-component="header">
+  <nav class="md-header-nav md-grid" aria-label="Header">
+    <a href=".." title="Genomics Extension for SQLite" class="md-header-nav__button md-logo" aria-label="Genomics Extension for SQLite">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 003-3 3 3 0 00-3-3 3 3 0 00-3 3 3 3 0 003 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54z"/></svg>
+
+    </a>
+    <label class="md-header-nav__button md-icon" for="__drawer">
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M3 6h18v2H3V6m0 5h18v2H3v-2m0 5h18v2H3v-2z"/></svg>
+    </label>
+    <div class="md-header-nav__title" data-md-component="header-title">
+      
+        <div class="md-header-nav__ellipsis">
+          <span class="md-header-nav__topic md-ellipsis">
+            Genomics Extension for SQLite
+          </span>
+          <span class="md-header-nav__topic md-ellipsis">
+            
+              Internals
+            
+          </span>
+        </div>
+      
+    </div>
+    
+      <label class="md-header-nav__button md-icon" for="__search">
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0116 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.516 6.516 0 019.5 16 6.5 6.5 0 013 9.5 6.5 6.5 0 019.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5z"/></svg>
+      </label>
+      
+<div class="md-search" data-md-component="search" role="dialog">
+  <label class="md-search__overlay" for="__search"></label>
+  <div class="md-search__inner" role="search">
+    <form class="md-search__form" name="search">
+      <input type="text" class="md-search__input" name="query" aria-label="Search" placeholder="Search" autocapitalize="off" autocorrect="off" autocomplete="off" spellcheck="false" data-md-component="search-query" data-md-state="active">
+      <label class="md-search__icon md-icon" for="__search">
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0116 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.516 6.516 0 019.5 16 6.5 6.5 0 013 9.5 6.5 6.5 0 019.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5z"/></svg>
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11h12z"/></svg>
+      </label>
+      <button type="reset" class="md-search__icon md-icon" aria-label="Clear" data-md-component="search-reset" tabindex="-1">
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12 19 6.41z"/></svg>
+      </button>
+    </form>
+    <div class="md-search__output">
+      <div class="md-search__scrollwrap" data-md-scrollfix>
+        <div class="md-search-result" data-md-component="search-result">
+          <div class="md-search-result__meta">
+            Initializing search
+          </div>
+          <ol class="md-search-result__list"></ol>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+    
+    
+  </nav>
+</header>
+    
+    <div class="md-container" data-md-component="container">
+      
+        
+      
+      
+        
+      
+      <main class="md-main" data-md-component="main">
+        <div class="md-main__inner md-grid">
+          
+            
+              <div class="md-sidebar md-sidebar--primary" data-md-component="navigation">
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    <nav class="md-nav md-nav--primary" aria-label="Navigation" data-md-level="0">
+  <label class="md-nav__title" for="__drawer">
+    <a href=".." title="Genomics Extension for SQLite" class="md-nav__button md-logo" aria-label="Genomics Extension for SQLite">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 003-3 3 3 0 00-3-3 3 3 0 00-3 3 3 3 0 003 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54z"/></svg>
+
+    </a>
+    Genomics Extension for SQLite
+  </label>
+  
+  <ul class="md-nav__list" data-md-scrollfix>
+    
+      
+      
+      
+
+
+  <li class="md-nav__item">
+    <a href=".." title="Intro & Install" class="md-nav__link">
+      Intro & Install
+    </a>
+  </li>
+
+    
+      
+      
+      
+
+
+  <li class="md-nav__item">
+    <a href="../guide/" title="Programming Guide" class="md-nav__link">
+      Programming Guide
+    </a>
+  </li>
+
+    
+      
+      
+      
+
+
+  <li class="md-nav__item">
+    <a href="../bindings/" title="Language Bindings Guide" class="md-nav__link">
+      Language Bindings Guide
+    </a>
+  </li>
+
+    
+      
+      
+      
+
+  
+
+
+  <li class="md-nav__item md-nav__item--active">
+    
+    <input class="md-nav__toggle md-toggle" data-md-toggle="toc" type="checkbox" id="__toc">
+    
+      
+    
+    
+      <label class="md-nav__link md-nav__link--active" for="__toc">
+        Internals
+        <span class="md-nav__icon md-icon">
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M3 9h14V7H3v2m0 4h14v-2H3v2m0 4h14v-2H3v2m16 0h2v-2h-2v2m0-10v2h2V7h-2m0 6h2v-2h-2v2z"/></svg>
+        </span>
+      </label>
+    
+    <a href="./" title="Internals" class="md-nav__link md-nav__link--active">
+      Internals
+    </a>
+    
+      
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon">
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11h12z"/></svg>
+      </span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#compression-layer" class="md-nav__link">
+    Compression layer
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#genomic-range-index" class="md-nav__link">
+    Genomic Range Index
+  </a>
+  
+    <nav class="md-nav" aria-label="Genomic Range Index">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#example-query" class="md-nav__link">
+    Example query
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+    
+  </li>
+
+    
+  </ul>
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+            
+              <div class="md-sidebar md-sidebar--secondary" data-md-component="toc">
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon">
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11h12z"/></svg>
+      </span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#compression-layer" class="md-nav__link">
+    Compression layer
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#genomic-range-index" class="md-nav__link">
+    Genomic Range Index
+  </a>
+  
+    <nav class="md-nav" aria-label="Genomic Range Index">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#example-query" class="md-nav__link">
+    Example query
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+          
+          <div class="md-content">
+            <article class="md-content__inner md-typeset">
+              
+                
+                
+                  
+                
+                
+                <h1 id="genomics-extension-internals">Genomics Extension Internals</h1>
+<h2 id="compression-layer">Compression layer</h2>
+<p><em>To be written; for now see <a href="https://github.com/mlin/sqlite_zstd_vfs">sqlite_zstd_vfs</a></em></p>
+<h2 id="genomic-range-index">Genomic Range Index</h2>
+<p>The GenomicSQLite GRI is a conventional multi-column B-tree index, organized so that feature overlap with any length distribution is detectable using a series of SQL "between tuples" queries. </p>
+<ol>
+<li>Each feature is assigned a "level" <em>L</em>, 0 &le; <em>L</em> &lt; 16, based simply on its length: <em>L</em> = ⌈log<sub>16</sub>(length)⌉. Conversely, level <em>L</em> consists of all features with 16<sup>L-1</sup> &lt; length &le; 16<sup>L</sup>. (Level 0 has features of length 0 or 1.)</li>
+<li>The GRI is a multi-column SQL index on each feature's: (chrom, level, position, length)</li>
+<li>The features on level <em>L</em> overlapping a query range (qchrom, qpos, qend) are: ((chrom, level, position) BETWEEN (qchrom, <em>L</em>, qbeg - 16<sup><em>L</em></sup>) AND (qchrom, <em>L</em>, qend)) AND position+length &ge; qbeg.<ul>
+<li><small>SQLite understands this query more-or-less as shown, and plans efficiently to (i) search the index B-tree for the first entry whose tuple (chrom, level, position) &ge; (qchrom, <em>L</em>, qbeg-16<sup><em>L</em></sup>), (ii) scan while it's &le; (qchrom, <em>L</em>, qend), and (iii) apply the last filter.</small></li>
+<li><small>Higher levels search exponentially wider position ranges, but they only harbor features of comparable length, and the search cost is a function of the number of features present in the range &amp; level, not the width of the range <em>per se</em>.</small></li>
+<li><small>Including each feature's length in the index allows it to determine the precise result set before reading anything from the actual table. Length could be omitted to save space in the GRI, but then more of the indexed table has to be decompressed and filtered to answer each query.</small></li>
+</ul>
+</li>
+<li>Union the disjoint results for <em>L</em> between 0 and 15.</li>
+</ol>
+<p>We can optimize queries to "fan out" to fewer than 16 levels (which gratuitously admit lengths up to 2<sup>60</sup> nt) by first figuring out the lowest and highest level <em>actually occupied</em> by the indexed features. This can be learned during amortized query planning using two quick B-tree searches per chromosome in the existing index. Or, the caller can supply looser bounds based on lengthiest chromosome or other prior knowledge.</p>
+<p>The fan-out is only 3 or 4 in many practical datasets. Sometimes it's inflated by a few outlier short features, which e.g. make the bottommost occupied level 0 or 1 instead of 2 or 3. In that case, we can simply make 2 or 3 the lowest level allowed for the table -- that's the <code>floor</code> argument to <strong>Create Genomic Range Index</strong>.</p>
+<p>One last detail: we negate the level number <em>L</em> in the B-tree index, so that when it's built up in genomic range order, smaller (typically more-numerous) features tend to insert into the <em>rightmost</em> leaf -- that's usually faster than interior insertions.</p>
+<p>This scheme combines the main ideas from <a href="https://dx.doi.org/10.1093%2Fdatabase%2Fbax020">Ensembl's query based on maximum feature length</a> with the multi-level binning used in <a href="https://genome.cshlp.org/content/12/6/996.full">UCSC Genome Browser</a>, <a href="https://dx.doi.org/10.1093%2Fbioinformatics%2Fbtp352">BAI</a>, <a href="https://doi.org/10.1093/bioinformatics/btq671">tabix</a>, and <a href="https://dx.doi.org/10.1093%2Fbioinformatics%2Fbtq033">bedtools</a>. It addresses the former's sensitivity to outlier lengthy features. And it's simpler than the latter, without effective constraints on feature/chromosome length. A downside is that the index takes more space, storing four values per feature. <small>chrom and level could be consolidated with some loss of flexibility; SQLite stores integers with a variable-length encoding anyway.</small></p>
+<h3 id="example-query">Example query</h3>
+<p>Here's a GRI subquery on levels 0-2 generated by <strong>Genomic Range Rowids SQL</strong>, using statement parameters (?1, ?2, ?3) = (qchrom, qbeg, qend).</p>
+<div class="highlight"><pre><span></span><code><span class="p">(</span><span class="k">SELECT</span> <span class="n">_rowid_</span> <span class="k">FROM</span>
+ <span class="p">(</span><span class="k">SELECT</span> <span class="n">_rowid_</span> <span class="k">FROM</span> <span class="k">reads</span> <span class="n">INDEXED</span> <span class="k">BY</span> <span class="n">reads__gri</span> <span class="k">WHERE</span>
+   <span class="p">(</span><span class="k">reads</span><span class="p">.</span><span class="n">_gri_rid</span><span class="p">,</span><span class="k">reads</span><span class="p">.</span><span class="n">_gri_lvl</span><span class="p">,</span><span class="k">reads</span><span class="p">.</span><span class="n">_gri_beg</span><span class="p">)</span> <span class="k">BETWEEN</span>
+    <span class="p">((</span><span class="o">?</span><span class="mi">1</span><span class="p">),</span><span class="o">-</span><span class="mi">2</span><span class="p">,(</span><span class="o">?</span><span class="mi">2</span><span class="p">)</span><span class="o">-</span><span class="mi">0</span><span class="n">x100</span><span class="p">)</span> <span class="k">AND</span> <span class="p">((</span><span class="o">?</span><span class="mi">1</span><span class="p">),</span><span class="o">-</span><span class="mi">2</span><span class="p">,(</span><span class="o">?</span><span class="mi">3</span><span class="p">)</span><span class="o">-</span><span class="mi">0</span><span class="p">)</span>
+   <span class="k">AND</span> <span class="p">(</span><span class="k">reads</span><span class="p">.</span><span class="n">_gri_beg</span><span class="o">+</span><span class="k">reads</span><span class="p">.</span><span class="n">_gri_len</span><span class="p">)</span> <span class="o">&gt;=</span> <span class="p">(</span><span class="o">?</span><span class="mi">2</span><span class="p">)</span>
+  <span class="k">UNION</span> <span class="k">ALL</span>
+  <span class="k">SELECT</span> <span class="n">_rowid_</span> <span class="k">FROM</span> <span class="k">reads</span> <span class="n">INDEXED</span> <span class="k">BY</span> <span class="n">reads__gri</span> <span class="k">WHERE</span>
+   <span class="p">(</span><span class="k">reads</span><span class="p">.</span><span class="n">_gri_rid</span><span class="p">,</span><span class="k">reads</span><span class="p">.</span><span class="n">_gri_lvl</span><span class="p">,</span><span class="k">reads</span><span class="p">.</span><span class="n">_gri_beg</span><span class="p">)</span> <span class="k">BETWEEN</span>
+    <span class="p">((</span><span class="o">?</span><span class="mi">1</span><span class="p">),</span><span class="o">-</span><span class="mi">1</span><span class="p">,(</span><span class="o">?</span><span class="mi">2</span><span class="p">)</span><span class="o">-</span><span class="mi">0</span><span class="n">x10</span><span class="p">)</span> <span class="k">AND</span> <span class="p">((</span><span class="o">?</span><span class="mi">1</span><span class="p">),</span><span class="o">-</span><span class="mi">1</span><span class="p">,(</span><span class="o">?</span><span class="mi">3</span><span class="p">)</span><span class="o">-</span><span class="mi">0</span><span class="p">)</span>
+   <span class="k">AND</span> <span class="p">(</span><span class="k">reads</span><span class="p">.</span><span class="n">_gri_beg</span><span class="o">+</span><span class="k">reads</span><span class="p">.</span><span class="n">_gri_len</span><span class="p">)</span> <span class="o">&gt;=</span> <span class="p">(</span><span class="o">?</span><span class="mi">2</span><span class="p">)</span>
+  <span class="k">UNION</span> <span class="k">ALL</span>
+  <span class="k">SELECT</span> <span class="n">_rowid_</span> <span class="k">FROM</span> <span class="k">reads</span> <span class="n">INDEXED</span> <span class="k">BY</span> <span class="n">reads__gri</span> <span class="k">WHERE</span>
+   <span class="p">(</span><span class="k">reads</span><span class="p">.</span><span class="n">_gri_rid</span><span class="p">,</span><span class="k">reads</span><span class="p">.</span><span class="n">_gri_lvl</span><span class="p">,</span><span class="k">reads</span><span class="p">.</span><span class="n">_gri_beg</span><span class="p">)</span> <span class="k">BETWEEN</span>
+    <span class="p">((</span><span class="o">?</span><span class="mi">1</span><span class="p">),</span><span class="o">-</span><span class="mi">0</span><span class="p">,(</span><span class="o">?</span><span class="mi">2</span><span class="p">)</span><span class="o">-</span><span class="mi">0</span><span class="n">x1</span><span class="p">)</span> <span class="k">AND</span> <span class="p">((</span><span class="o">?</span><span class="mi">1</span><span class="p">),</span><span class="o">-</span><span class="mi">0</span><span class="p">,(</span><span class="o">?</span><span class="mi">3</span><span class="p">)</span><span class="o">-</span><span class="mi">0</span><span class="p">)</span>
+   <span class="k">AND</span> <span class="p">(</span><span class="k">reads</span><span class="p">.</span><span class="n">_gri_beg</span><span class="o">+</span><span class="k">reads</span><span class="p">.</span><span class="n">_gri_len</span><span class="p">)</span> <span class="o">&gt;=</span> <span class="p">(</span><span class="o">?</span><span class="mi">2</span><span class="p">))</span>
+ <span class="k">ORDER</span> <span class="k">BY</span> <span class="n">_rowid_</span><span class="p">)</span>
+</code></pre></div>
+
+<p>The <code>_gri_*</code> columns are <a href="https://sqlite.org/gencol.html">virtual generated columns</a> added to the table based on the feature coordinate expressions specified during GRI creation.</p>
+<p>The no-op subtraction of 0 from qend was found to be needed for SQLite to use the intended query plan in all cases. So too with the repetition of the length filter constraint, which looks like it should be factored out to the outer SELECT. 🤷</p>
+                
+              
+              
+                
+
+
+              
+            </article>
+          </div>
+        </div>
+      </main>
+      
+        
+<footer class="md-footer">
+  
+    <div class="md-footer-nav">
+      <nav class="md-footer-nav__inner md-grid" aria-label="Footer">
+        
+          <a href="../bindings/" title="Language Bindings Guide" class="md-footer-nav__link md-footer-nav__link--prev" rel="prev">
+            <div class="md-footer-nav__button md-icon">
+              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11h12z"/></svg>
+            </div>
+            <div class="md-footer-nav__title">
+              <div class="md-ellipsis">
+                <span class="md-footer-nav__direction">
+                  Previous
+                </span>
+                Language Bindings Guide
+              </div>
+            </div>
+          </a>
+        
+        
+      </nav>
+    </div>
+  
+  <div class="md-footer-meta md-typeset">
+    <div class="md-footer-meta__inner md-grid">
+      <div class="md-footer-copyright">
+        
+        Made with
+        <a href="https://squidfunk.github.io/mkdocs-material/" target="_blank" rel="noopener">
+          Material for MkDocs
+        </a>
+      </div>
+      
+    </div>
+  </div>
+</footer>
+      
+    </div>
+    
+      <script src="../assets/javascripts/vendor.d710d30a.min.js"></script>
+      <script src="../assets/javascripts/bundle.b39636ac.min.js"></script><script id="__lang" type="application/json">{"clipboard.copy": "Copy to clipboard", "clipboard.copied": "Copied to clipboard", "search.config.lang": "en", "search.config.pipeline": "trimmer, stopWordFilter", "search.config.separator": "[\\s\\-]+", "search.result.placeholder": "Type to start searching", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents"}</script>
+      
+      <script>
+        app = initialize({
+          base: "..",
+          features: [],
+          search: Object.assign({
+            worker: "../assets/javascripts/worker/search.a68abb33.min.js"
+          }, typeof search !== "undefined" && search)
+        })
+      </script>
+      
+    
+  </body>
+</html>
