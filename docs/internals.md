@@ -8,21 +8,23 @@
 
 The GenomicSQLite GRI is a conventional multi-column B-tree index, organized so that feature overlap with any length distribution is detectable using a series of SQL "between tuples" queries. 
 
-1. Each feature is assigned a "level" *L*, 0 &le; *L* &lt; 16, based simply on its length: *L* = ⌈log<sub>16</sub>(length)⌉. Conversely, level *L* consists of all features with 16<sup>L-1</sup> &lt; length &le; 16<sup>L</sup>. (Level 0 has features of length 0 or 1.)
+1. Partition the features into "levels" according to their length. Each level *L* for 0 &le; *L* &lt; 16 consists of all features with 16<sup>L-1</sup> &lt; length &le; 16<sup>L</sup>. (Level 0 has features of length 0 or 1.)
 2. The GRI is a multi-column SQL index on each feature's: (chrom, level, position, length)
 3. The features on level *L* overlapping a query range (qchrom, qpos, qend) are: ((chrom, level, position) BETWEEN (qchrom, *L*, qbeg - 16<sup>*L*</sup>) AND (qchrom, *L*, qend)) AND position+length &ge; qbeg.
-    * <small>SQLite understands this query more-or-less as shown, and plans efficiently to (i) search the index B-tree for the first entry whose tuple (chrom, level, position) &ge; (qchrom, *L*, qbeg-16<sup>*L*</sup>), (ii) scan while it's &le; (qchrom, *L*, qend), and (iii) apply the last filter.</small>
-    * <small>Higher levels search exponentially wider position ranges, but they only harbor features of comparable length, and the search cost is a function of the number of features present in the range & level, not the width of the range *per se*.</small>
-    * <small>Including each feature's length in the index allows it to determine the precise result set before reading anything from the actual table. Length could be omitted to save space in the GRI, but then more of the indexed table has to be decompressed and filtered to answer each query.</small>
+    * <small>SQLite understands this query more-or-less as shown, and plans efficiently to (i) search the index B-tree for the first entry whose tuple (chrom, level, position) &ge; (qchrom, *L*, qbeg - 16<sup>*L*</sup>), (ii) scan while it's &le; (qchrom, *L*, qend), and (iii) apply the last filter.</small>
+    * <small>We search higher levels over exponentially wider position ranges, but they only harbor features of comparable length.</small>
 4. Union the disjoint results for *L* between 0 and 15.
 
-We can optimize queries to "fan out" to fewer than 16 levels (which gratuitously admit lengths up to 2<sup>60</sup> nt) by first figuring out the lowest and highest level *actually occupied* by the indexed features. This can be learned during amortized query planning using two quick B-tree searches per chromosome in the existing index. Or, the caller can supply looser bounds based on lengthiest chromosome or other prior knowledge.
+We can optimize queries to "fan out" to fewer than 16 levels (which gratuitously admit lengths up to 2<sup>60</sup> nt) by first figuring out the lowest and highest level *actually occupied* by the indexed features. This can be learned during amortized query planning, using a few quick B-tree searches per chromosome in the existing index. Or, the caller can supply looser bounds based on lengthiest chromosome or other prior knowledge.
 
-The fan-out is only 3 or 4 in many practical datasets. Sometimes it's inflated by a few outlier short features, which e.g. make the bottommost occupied level 0 or 1 instead of 2 or 3. In that case, we can simply make 2 or 3 the lowest level allowed for the table -- that's the `floor` argument to **Create Genomic Range Index**.
+The fan-out is only 3 or 4 in many practical datasets. Sometimes it's inflated by a few outlier short features, which e.g. make the bottommost occupied level 0 or 1 instead of 2 or 3. In that case, we can simply push the short outliers up to a higher level &mdash; that's the `floor` argument to **Create Genomic Range Index SQL**.
 
-One last detail: we negate the level number *L* in the B-tree index, so that when it's built up in genomic range order, smaller (typically more-numerous) features tend to insert into the *rightmost* leaf -- that's usually faster than interior insertions.
+One last detail: we negate the level number *L* in the B-tree index, so that when it's built up in genomic range order, smaller (typically more-numerous) features tend to insert into the *rightmost* leaf &mdash; that's usually faster than interior insertions.
 
-This scheme combines the main ideas from [Ensembl's query based on maximum feature length](https://dx.doi.org/10.1093%2Fdatabase%2Fbax020) with the multi-level binning used in [UCSC Genome Browser](https://genome.cshlp.org/content/12/6/996.full), [BAI](https://dx.doi.org/10.1093%2Fbioinformatics%2Fbtp352), [tabix](https://doi.org/10.1093/bioinformatics/btq671), and [bedtools](https://dx.doi.org/10.1093%2Fbioinformatics%2Fbtq033). It addresses the former's sensitivity to outlier lengthy features. And it's simpler than the latter, without effective constraints on feature/chromosome length. A downside is that the index takes more space, storing four values per feature. <small>chrom and level could be consolidated with some loss of flexibility; SQLite stores integers with a variable-length encoding anyway.</small>
+This scheme combines the main ideas from [Ensembl's query based on maximum feature length](https://dx.doi.org/10.1093%2Fdatabase%2Fbax020) with the multi-level binning used in [UCSC Genome Browser](https://genome.cshlp.org/content/12/6/996.full), [BAI](https://dx.doi.org/10.1093%2Fbioinformatics%2Fbtp352), [tabix](https://doi.org/10.1093/bioinformatics/btq671), and [bedtools](https://dx.doi.org/10.1093%2Fbioinformatics%2Fbtq033). It addresses the former's sensitivity to outlier lengthy features. And it's simpler than the latter, without effective constraints on feature/chromosome length. A downside is that the index takes more space, storing four values per feature.
+
+* <small>Feature length could be omitted from the B-tree index to save space at the cost of query speed. Including it lets our index query determine the exact result set without accessing the main table at all.</small>
+* <small>chrom and level could be consolidated into one integer with some loss of flexibility. SQLite storage uses a variable-length integer encoding anyway.</small>
 
 ### Example query
 

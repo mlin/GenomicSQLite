@@ -59,7 +59,8 @@ At this point the connection is ready to go, and it should not be necessary to w
 
 The other routines are much simpler. The binding for each just takes its required and optional arguments, passes them through to a `SELECT routine(...)` statement on the caller-supplied connection object, and returns the single text answer.
 
-* `SELECT genomicsqlite_vacuum_into_sql(destfilename, config_json)`
+* `SELECT genomicsqlite_version()`
+* `SELECT genomicsqlite_vacuum_into_sql(destfilename, config_json)` takes the same `config_json` as would Open
 * `SELECT create_genomic_range_index_sql(tableName, chromosome, beginPosition, endPosition[, floor])`: floor is an integer, others text.
 * `SELECT genomic_range_rowids_sql(tableName[, qrid, qbeg, qend][, ceiling[, floor]])` ceiling and floor are integers.
 * `SELECT put_reference_assembly_sql(assembly)`
