@@ -3,7 +3,7 @@ on: [push, pull_request]
 
 env:
   APT_DEPS: libzstd-dev samtools tabix libhts-dev python3-pip
-  BREW_DEPS: python sqlite zstd samtools tabix
+  BREW_DEPS: python sqlite zstd samtools
   PIP_DEPS: pytest pytest-xdist
 
 jobs:
