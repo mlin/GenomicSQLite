@@ -46,6 +46,7 @@ cmake --build build -j 4 --target genomicsqlite
 ...generating `build/libgenomicsqlite.so`. To run the test suite, you'll furthermore need:
 
 * htslib &ge; 1.9, samtools, and tabix
+* pigz
 * Python &ge; 3.6 and packages: pytest pytest-xdist pre-commit black pylint flake8 
 * clang-format & cppcheck
 
