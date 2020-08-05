@@ -3,9 +3,21 @@ on: [push, pull_request]
 
 env:
   APT_DEPS: libzstd-dev samtools tabix libhts-dev python3-pip
+  BREW_DEPS: python sqlite zstd samtools tabix
   PIP_DEPS: pytest pytest-xdist
 
 jobs:
+
+  lint:
+    runs-on: ubuntu-20.04
+    steps:
+    - uses: actions/checkout@v2
+    - name: deps
+      run: |
+        sudo apt-get install -y clang-format cppcheck python3-pip
+        sudo pip3 install --system pre-commit $PIP_DEPS black flake8 pylint
+    - name: pre-commit
+      run: pre-commit run --all-files
 
   test:
     runs-on: ubuntu-20.04
@@ -46,19 +58,43 @@ jobs:
       run: cp build/libgenomicsqlite.so include/genomicsqlite.h .
     - uses: actions/upload-artifact@v2
       with:
-        name: GenomicSQLite-Linux-x86_64-so-${{ env.GIT_REVISION }}
+        name: GenomicSQLite-Linux-x86_64-${{ env.GIT_REVISION }}
         path: |
           libgenomicsqlite.so
           genomicsqlite.h
           LICENSE
 
-  lint:
-    runs-on: ubuntu-20.04
+  macOS-dylib:
+    runs-on: macOS-10.15
     steps:
     - uses: actions/checkout@v2
-    - name: deps
+    - name: detect GIT_REVISION
       run: |
-        sudo apt-get install -y clang-format cppcheck python3-pip
-        sudo pip3 install --system pre-commit $PIP_DEPS black flake8 pylint
-    - name: pre-commit
-      run: pre-commit run --all-files
+        git fetch origin --tags
+        echo "::set-env name=GIT_REVISION::$(git describe --tags --always)"
+    - name: dependencies
+      run: |
+        brew install $BREW_DEPS
+        /usr/local/bin/pip3 install $PIP_DEPS
+    - name: build
+      run: |
+        CXXFLAGS=-I$(brew --prefix)/include LDFLAGS=-L$(brew --prefix)/lib \
+          cmake -DCMAKE_BUILD_TYPE=Release \
+                -DCMAKE_PREFIX_PATH=$(brew --prefix)/opt/sqlite \
+                -B build .
+        cmake --build build -j 4
+    - name: ctest
+      run: |
+        export PREFIX=$(brew --prefix)
+        export PATH=$(ls -p1 ${PREFIX}/opt/python@*)/bin:${PREFIX}/opt/sqlite/bin:$PATH
+        cd build
+        ctest -V
+    - name: prepare artifacts
+      run: cp build/libgenomicsqlite.dylib include/genomicsqlite.h .
+    - uses: actions/upload-artifact@v2
+      with:
+        name: GenomicSQLite-macOS-${{ env.GIT_REVISION }}
+        path: |
+          libgenomicsqlite.dylib
+          genomicsqlite.h
+          LICENSE
