@@ -3,7 +3,7 @@ on: [push, pull_request]
 
 env:
   APT_DEPS: libzstd-dev samtools tabix libhts-dev pigz python3-pip
-  BREW_DEPS: python sqlite zstd samtools pigz
+  BREW_DEPS: python@3.8 sqlite zstd samtools pigz
   PIP_DEPS: pytest pytest-xdist
 
 jobs:
@@ -86,7 +86,7 @@ jobs:
     - name: ctest
       run: |
         export PREFIX=$(brew --prefix)
-        export PATH=$(ls -p1 ${PREFIX}/opt/python@*)/bin:${PREFIX}/opt/sqlite/bin:$PATH
+        export PATH=${PREFIX}/opt/python@3.8/bin:${PREFIX}/opt/sqlite/bin:$PATH
         cd build
         ctest -V
     - name: prepare artifacts
