@@ -17,8 +17,10 @@ _YES = ("1", "true", "t", "yes", "y")
 # package, otherwise look in the usual places.
 _DLL = None
 if os.environ.get("GENOMICSQLITE_SYSTEM_LIBRARY", "").strip().lower() not in _YES:
-    if platform.system() == "Linux" and os.path.isfile(os.path.join(_HERE, "libgenomicsqlite.so")):
-        _DLL = os.path.join(_HERE, "libgenomicsqlite.so")
+    _DLL = os.path.isfile(os.path.join(_HERE, "libgenomicsqlite"))
+    _DLL += {"Linux": ".so", "Darwin": ".dylib"}.get(platform.system(), "")
+    if not os.path.isfile(_DLL):
+        _DLL = None
 if not _DLL:
     _DLL = find_library("genomicsqlite")
 assert _DLL, "Unable to locate a suitable genomicsqlite shared-library file"
