@@ -18,7 +18,7 @@ endif()
 FetchContent_Declare(
     sqlite_zstd_vfs
     GIT_REPOSITORY  https://github.com/mlin/sqlite_zstd_vfs.git
-    GIT_TAG         7421633
+    GIT_TAG         d7cb925
 )
 FetchContent_MakeAvailable(sqlite_zstd_vfs)
 include_directories(${sqlite_zstd_vfs_SOURCE_DIR}/src)
@@ -37,9 +37,14 @@ execute_process(COMMAND git describe --tags --always --dirty
 
 include_directories(${CMAKE_CURRENT_SOURCE_DIR}/include)
 add_library(genomicsqlite SHARED src/genomicsqlite.cc include/genomicsqlite.h src/json1.c src/hardcoded_refseq.hpp)
-if(ZSTD_WHOLE_ARCHIVE)
+if(CMAKE_SYSTEM_NAME STREQUAL "Darwin")
+    target_link_libraries(genomicsqlite PRIVATE SQLiteCpp zstd)
+elseif(ZSTD_WHOLE_ARCHIVE)
+    # Linux: statically linking zstd
     target_link_libraries(genomicsqlite PRIVATE libsqlite3.so.0 SQLiteCpp -Wl,--whole-archive libzstd.a -Wl,--no-whole-archive)
 else()
+    # Linking "libsqlite3.so.0" explicitly, to not require "libsqlite3.so" symlink which may not be
+    # present on CentOS.
     target_link_libraries(genomicsqlite PRIVATE libsqlite3.so.0 SQLiteCpp zstd)
 endif()
 

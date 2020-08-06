@@ -26,7 +26,7 @@ def genomicsqlite_txdb(txdb):
     http://bioconductor.org/packages/release/BiocViews.html#___TxDb
     """
     outfile = txdb[:-7] + ".genomicsqlite"
-    conn = sqlite3.connect(txdb)
+    conn = sqlite3.connect(txdb, uri=True)
     conn.executescript(genomicsqlite.vacuum_into_sql(conn, outfile))
     conn.close()
     # create GRIs on the three feature tables
