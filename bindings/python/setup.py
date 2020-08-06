@@ -19,7 +19,9 @@ setup(
     author_email="dna@mlin.net",
     license="Apache",
     packages=find_packages(),
-    package_data={"": ["genomicsqlite/libgenomicsqlite.so"]},
+    package_data={
+        "": ["genomicsqlite/libgenomicsqlite.so", "genomicsqlite/libgenomicsqlite.dylib"]
+    },
     include_package_data=True,
     entry_points={"console_scripts": ["genomicsqlite = genomicsqlite:_cli"]},
 )
