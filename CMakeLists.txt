@@ -38,7 +38,8 @@ execute_process(COMMAND git describe --tags --always --dirty
 include_directories(${CMAKE_CURRENT_SOURCE_DIR}/include)
 add_library(genomicsqlite SHARED src/genomicsqlite.cc include/genomicsqlite.h src/json1.c src/hardcoded_refseq.hpp)
 if(CMAKE_SYSTEM_NAME STREQUAL "Darwin")
-    target_link_libraries(genomicsqlite PRIVATE SQLiteCpp zstd)
+    find_library(LIBZSTD_A NAMES libzstd.a REQUIRED)
+    target_link_libraries(genomicsqlite PRIVATE SQLiteCpp ${LIBZSTD_A})
 elseif(ZSTD_WHOLE_ARCHIVE)
     # Linux: statically linking zstd
     target_link_libraries(genomicsqlite PRIVATE libsqlite3.so.0 SQLiteCpp -Wl,--whole-archive libzstd.a -Wl,--no-whole-archive)
