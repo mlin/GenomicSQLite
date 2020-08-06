@@ -9,13 +9,13 @@ if grep dirty <(git describe --always --dirty); then
     >&2 echo "Cannot release dirty working tree"
     exit 1
 fi
-if [[ ! -f genomicsqlite/libgenomicsqlite.so ]]; then
-    >&2 echo "Download the portable libgenomicsqlite.so to ${HERE}/genomicsqlite/"
+if [[ ! -f genomicsqlite/libgenomicsqlite.so ]] || [[ ! -f genomicsqlite/libgenomicsqlite.dylib ]]; then
+    >&2 echo "Download the portable libgenomicsqlite.{so,dylib} to ${HERE}/genomicsqlite/"
     exit 1
 fi
 function cleanup {
-    # force us to put it there each time; ensures a stale version can't be left behind
-    rm -f genomicsqlite/libgenomicsqlite.so
+    # force us to put libs on each attempt; ensures a stale version can't be left behind
+    rm -f genomicsqlite/libgenomicsqlite.*
 }
 trap cleanup EXIT
 

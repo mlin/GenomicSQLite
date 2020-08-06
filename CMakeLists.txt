@@ -48,13 +48,13 @@ else()
     target_link_libraries(genomicsqlite PRIVATE libsqlite3.so.0 SQLiteCpp zstd)
 endif()
 
-
-add_subdirectory(loaders)
-
 if(CMAKE_PROJECT_NAME STREQUAL PROJECT_NAME)
+    add_subdirectory(loaders)
+    add_subdirectory(test)
     include(CTest)
     enable_testing()
     set(GENOMICSQLITE_TEST_ENV env PYTHONPATH=${CMAKE_CURRENT_SOURCE_DIR}/bindings/python:${PYTHONPATH} LD_LIBRARY_PATH=${CMAKE_BINARY_DIR}:${LD_LIBRARY_PATH} GENOMICSQLITE_SYSTEM_LIBRARY=1)
-    add_test(NAME smoketest COMMAND ${GENOMICSQLITE_TEST_ENV} python3 ${CMAKE_CURRENT_SOURCE_DIR}/test/genomicsqlite_smoke_test.py)
+    add_test(NAME smoke_test COMMAND ${GENOMICSQLITE_TEST_ENV} python3 ${CMAKE_CURRENT_SOURCE_DIR}/test/genomicsqlite_smoke_test.py)
+    add_test(NAME capi_smoke_test COMMAND ${GENOMICSQLITE_TEST_ENV} ${CMAKE_BINARY_DIR}/test/capi_smoke_test)
     add_test(NAME pytest COMMAND ${GENOMICSQLITE_TEST_ENV} python3 -m pytest -xv -n 4 --tb=short ${CMAKE_CURRENT_SOURCE_DIR}/test)
 endif()

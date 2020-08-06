@@ -1,4 +1,6 @@
+#ifndef SQLITE3EXT_H
 #include <sqlite3.h>
+#endif
 
 /*
  * C bindings

@@ -23,18 +23,7 @@ using namespace std;
  * connection & tuning helpers
  **************************************************************************************************/
 
-std::string GenomicSQLiteVersion() {
-    // The newest SQLite feature currently required is "Generated Columns"
-    const int MIN_SQLITE_VERSION_NUMBER = 3031000;
-    const string MIN_SQLITE_VERSION = "3.31.0";
-    if (sqlite3_libversion_number() < MIN_SQLITE_VERSION_NUMBER) {
-        string version_msg = "SQLite library version (" + string(sqlite3_libversion()) +
-                             ") is older than required by the GenomicSQLite extension (" +
-                             MIN_SQLITE_VERSION + ")";
-        throw std::runtime_error(version_msg);
-    }
-    return string(GIT_REVISION);
-}
+std::string GenomicSQLiteVersion() { return string(GIT_REVISION); }
 
 // boilerplate for C bindings to C++ functions
 #define C_WRAPPER(call)                                                                            \
@@ -268,50 +257,37 @@ static void sqlfn_genomicsqlite_tuning_sql(sqlite3_context *ctx, int argc, sqlit
     SQL_WRAPPER(GenomicSQLiteTuningSQL(config_json, schema))
 }
 
-bool _ext_loaded = false;
+static void ensure_ext_loaded() {
+    // for C/C++ GenomicSQLiteOpen
+    static bool ext_loaded = false;
+    if (!ext_loaded) {
+        SQLite::Database db(":memory:", SQLite::OPEN_READWRITE | SQLite::OPEN_CREATE);
+        db.loadExtension("libgenomicsqlite", nullptr);
+        ext_loaded = true;
+    }
+}
+
 int GenomicSQLiteOpen(const string &dbfile, sqlite3 **ppDb, string &errmsg_out, int flags,
                       const string &config_json) noexcept {
-    // ensure extension is registered
-    int ret;
-    char *zErrmsg = nullptr;
-    *ppDb = nullptr;
-    if (!_ext_loaded) {
-        ret =
-            sqlite3_open_v2(":memory:", ppDb, SQLITE_OPEN_READWRITE | SQLITE_OPEN_CREATE, nullptr);
-        if (ret != SQLITE_OK) {
-            errmsg_out = sqlite3_errstr(ret);
-            return ret;
-        }
-        ret = sqlite3_load_extension(*ppDb, "libgenomicsqlite", nullptr, &zErrmsg);
-        if (ret != SQLITE_OK) {
-            errmsg_out = "failed loading libgenomicsqlite shared library: ";
-            if (zErrmsg) {
-                errmsg_out += zErrmsg;
-                sqlite3_free(zErrmsg);
-            } else {
-                errmsg_out += sqlite3_errmsg(*ppDb);
-            }
-            sqlite3_close_v2(*ppDb);
-            *ppDb = nullptr;
-            return ret;
-        }
-        ret = sqlite3_close_v2(*ppDb);
-        *ppDb = nullptr;
-        if (ret != SQLITE_OK) {
-            errmsg_out = sqlite3_errstr(ret);
-            return ret;
-        }
-        _ext_loaded = true;
+    try {
+        ensure_ext_loaded();
+    } catch (SQLite::Exception &exn) {
+        errmsg_out = "failed loading libgenomicsqlite shared library: " + string(exn.what());
+        return exn.getErrorCode();
+    } catch (std::exception &exn) {
+        errmsg_out = "failed loading libgenomicsqlite shared library: " + string(exn.what());
+        return SQLITE_ERROR;
     }
 
     // open as requested
     try {
-        ret = sqlite3_open_v2(GenomicSQLiteURI(dbfile, config_json).c_str(), ppDb,
-                              SQLITE_OPEN_URI | flags, nullptr);
+        int ret = sqlite3_open_v2(GenomicSQLiteURI(dbfile, config_json).c_str(), ppDb,
+                                  SQLITE_OPEN_URI | flags, nullptr);
         if (ret != SQLITE_OK) {
             errmsg_out = sqlite3_errstr(ret);
             return ret;
         }
+        char *zErrmsg = nullptr;
         ret = sqlite3_exec(*ppDb, GenomicSQLiteTuningSQL(config_json).c_str(), nullptr, nullptr,
                            &zErrmsg);
         if (ret != SQLITE_OK) {
@@ -327,8 +303,10 @@ int GenomicSQLiteOpen(const string &dbfile, sqlite3 **ppDb, string &errmsg_out, 
         }
         return SQLITE_OK;
     } catch (SQLite::Exception &exn) {
+        errmsg_out = exn.what();
         return exn.getErrorCode();
     } catch (std::exception &exn) {
+        errmsg_out = exn.what();
         return SQLITE_ERROR;
     }
 }
@@ -347,18 +325,9 @@ extern "C" int genomicsqlite_open(const char *filename, sqlite3 **ppDb, char **p
 
 unique_ptr<SQLite::Database> GenomicSQLiteOpen(const string &dbfile, int flags,
                                                const string &config_json) {
-    unique_ptr<SQLite::Database> db;
-    if (!_ext_loaded) {
-        db.reset(new SQLite::Database(":memory:", SQLite::OPEN_READWRITE | SQLite::OPEN_CREATE));
-        try {
-            db->loadExtension("libgenomicsqlite", nullptr);
-        } catch (std::exception &exn) {
-            throw std::runtime_error("failed loading libgenomicsqlite shared library: " +
-                                     string(exn.what()));
-        }
-        _ext_loaded = true;
-    }
-    db.reset(new SQLite::Database(GenomicSQLiteURI(dbfile, config_json), SQLITE_OPEN_URI | flags));
+    ensure_ext_loaded();
+    unique_ptr<SQLite::Database> db(
+        new SQLite::Database(GenomicSQLiteURI(dbfile, config_json), SQLITE_OPEN_URI | flags));
     db->exec(GenomicSQLiteTuningSQL(config_json));
     return db;
 }

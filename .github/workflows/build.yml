@@ -83,7 +83,9 @@ jobs:
         /usr/local/bin/pip3 install $PIP_DEPS
     - name: build
       run: |
-        CFLAGS="-I$(brew --prefix)/include -I$(brew --prefix)/opt/sqlite/include" CXXFLAGS=-I$(brew --prefix)/include LDFLAGS=-L$(brew --prefix)/lib \
+        CFLAGS="-I$(brew --prefix)/include -I$(brew --prefix)/opt/sqlite/include -march=sandybridge" \
+        CXXFLAGS="-I$(brew --prefix)/include -march=sandybridge" \
+        LDFLAGS="-L$(brew --prefix)/lib -L$(brew --prefix)/opt/sqlite/lib" \
           cmake -DCMAKE_BUILD_TYPE=Release \
                 -DCMAKE_PREFIX_PATH=$(brew --prefix)/opt/sqlite \
                 -B build .
@@ -95,6 +97,7 @@ jobs:
         export PREFIX=$(brew --prefix)
         export PATH=${PREFIX}/opt/python@3.8/bin:${PREFIX}/opt/sqlite/bin:$PATH
         cd build
+        otool -L test/capi_smoke_test
         ctest -V
     - name: prepare artifacts
       run: cp build/libgenomicsqlite.dylib include/genomicsqlite.h .
