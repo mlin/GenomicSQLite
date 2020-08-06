@@ -52,6 +52,11 @@ jobs:
         sudo apt-get remove -y libzstd-dev  # should be linked into libgenomicsqlite.so
     - name: build portable .so in docker
       run: docker build -t genomicsqlite . && docker run -v $(pwd):/mnt --rm genomicsqlite cp build/libgenomicsqlite.so /mnt/build/
+    - name: ldd
+      run: |
+        docker run genomicsqlite ldd -v -r build/libgenomicsqlite.so
+        echo "----"
+        ldd -v -r build/libgenomicsqlite.so
     - name: test portable .so
       run: env -C build ctest -V
     - name: prepare artifacts
@@ -83,6 +88,8 @@ jobs:
                 -DCMAKE_PREFIX_PATH=$(brew --prefix)/opt/sqlite \
                 -B build .
         cmake --build build -j 4
+    - name: otool
+      run: otool -L build/libgenomicsqlite.dylib
     - name: ctest
       run: |
         export PREFIX=$(brew --prefix)
