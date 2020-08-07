@@ -31,7 +31,7 @@ You can always `SELECT sqlite_version()` to verify the upgrade in your program.
 
 ## Installation
 
-It's usually easiest to obtain the extension as a pre-compiled shared library (Linux .so or *coming soon* <s>macOS .dylib</s>), either installed with a package manager, or downloaded from [GitHub Releases](https://github.com/mlin/GenomicSQLite/releases).
+It's usually easiest to obtain the extension as a pre-compiled shared library (Linux .so or macOS .dylib), either installed with a package manager, or downloaded from [GitHub Releases](https://github.com/mlin/GenomicSQLite/releases).
 
 === "Python"
     ``` bash
@@ -60,7 +60,7 @@ It's usually easiest to obtain the extension as a pre-compiled shared library (L
 
 See our [GitHub README](https://github.com/mlin/GenomicSQLite) for the source build procedure, if needed.
 
-We're eager for community contributions of new language bindings; see the Language Bindings Guide if interested.
+We welcome community contributions to the available language bindings; see the Language Bindings Guide if interested.
 
 ## Smoke test
 
