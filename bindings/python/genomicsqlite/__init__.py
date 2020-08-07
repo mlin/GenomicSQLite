@@ -19,10 +19,8 @@ _DLL = None
 if os.environ.get("GENOMICSQLITE_SYSTEM_LIBRARY", "").strip().lower() not in _YES:
     _DLL = {"Linux": ".so", "Darwin": ".dylib"}.get(platform.system(), None)
     if _DLL:
-        _DLL = os.path.isfile(os.path.join(_HERE, "libgenomicsqlite")) + _DLL
-        if not os.path.isfile(_DLL):
-            _DLL = None
-if not _DLL:
+        _DLL = os.path.join(_HERE, "libgenomicsqlite") + _DLL
+if not (_DLL and os.path.isfile(_DLL)):
     _DLL = find_library("genomicsqlite")
 assert _DLL, "Unable to locate a suitable genomicsqlite shared-library file"
 # open a dummy connection to :memory: just for loading the extension.
