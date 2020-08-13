@@ -109,7 +109,7 @@ task test_sam {
         >&2 ls -l "$reads_file"
 
         # load database
-        time sam_into_sqlite "$reads_file" "~{dbname}"
+        time sam_into_sqlite --inner-page-KiB 64 --outer-page-KiB 2 "$reads_file" "~{dbname}"
         >&2 ls -l "~{dbname}"
 
         # GRI query
@@ -170,7 +170,7 @@ task test_vcf {
         chmod +x /usr/local/bin/vcf_into_sqlite
 
         # load database
-        time vcf_into_sqlite --genotypes-without-rowid "~{variants}" "~{dbname}"
+        time vcf_into_sqlite --inner-page-KiB 64 --outer-page-KiB 2 --genotypes-without-rowid "~{variants}" "~{dbname}"
 
         # GRI query
         time python3 - <<"EOF"

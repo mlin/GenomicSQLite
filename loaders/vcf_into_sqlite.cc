@@ -552,6 +552,8 @@ void help() {
         << "  --genotypes-without-rowid  make the genotypes table WITHOUT ROWID (advantageous if the FORMAT fields aren't too large)"
         << '\n'
         << "  --no-gri                   skip genomic range indexing" << '\n'
+        << "  --inner-page-KiB N         inner page size; one of {1,2,4,8,16,32,64}" << '\n'
+        << "  --outer-page-KiB N         outer page size; one of {1,2,4,8,16,32,64}" << '\n'
         << "  -l,--level LEVEL           database compression level (-7 to 22, default 6)" << '\n'
         << "  -q,--quiet                 suppress progress information on standard error" << '\n'
         << "  -h,--help                  show this help message" << '\n'
@@ -561,10 +563,12 @@ void help() {
 int main(int argc, char *argv[]) {
     string table_prefix, infilename, outfilename;
     bool gri = true, progress = true, genotypes_without_rowid = false;
-    int level = 6, ploidy = 2;
+    int level = 6, ploidy = 2, inner_page_KiB = 16, outer_page_KiB = 32;
 
     static struct option long_options[] = {{"help", no_argument, 0, 'h'},
                                            {"quiet", no_argument, 0, 'q'},
+                                           {"inner-page-KiB", required_argument, 0, 'I'},
+                                           {"outer-page-KiB", required_argument, 0, 'O'},
                                            {"level", required_argument, 0, 'l'},
                                            {"ploidy", required_argument, 0, 'p'},
                                            {"genotypes-without-rowid", no_argument, 0, 'R'},
@@ -595,6 +599,22 @@ int main(int argc, char *argv[]) {
             ploidy = strtol(optarg, nullptr, 10);
             if (errno || ploidy < 1) {
                 cerr << "vcf_into_sqlite: couldn't parse --ploidy > 0";
+                return -1;
+            }
+            break;
+        case 'I':
+            errno = 0;
+            inner_page_KiB = strtol(optarg, nullptr, 10);
+            if (errno || inner_page_KiB < 1 || inner_page_KiB > 64) {
+                cerr << "vcf_into_sqlite: invalid --inner-page-KiB" << endl;
+                return -1;
+            }
+            break;
+        case 'O':
+            errno = 0;
+            outer_page_KiB = strtol(optarg, nullptr, 10);
+            if (errno || outer_page_KiB < 1 || outer_page_KiB > 64) {
+                cerr << "vcf_into_sqlite: invalid --outer-page-KiB" << endl;
                 return -1;
             }
             break;
@@ -649,9 +669,12 @@ int main(int argc, char *argv[]) {
         // open output database
         sqlite3_config(SQLITE_CONFIG_MEMSTATUS, 0);
         sqlite3_config(SQLITE_CONFIG_LOOKASIDE, 2048, 128);
+        string config_json = R"({"unsafe_load": true, "zstd_level":)" + to_string(level) +
+                             R"(,"inner_page_KiB":)" + to_string(inner_page_KiB) +
+                             R"(,"outer_page_KiB":)" + to_string(outer_page_KiB) + "}";
         auto db = GenomicSQLiteOpen(
             outfilename, SQLITE_OPEN_CREATE | SQLITE_OPEN_READWRITE | SQLITE_OPEN_NOMUTEX,
-            R"( {"unsafe_load": true, "zstd_level": )" + to_string(level) + "}");
+            config_json);
 #ifndef NDEBUG
         db->exec("PRAGMA foreign_keys=ON");
 #endif
