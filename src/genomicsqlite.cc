@@ -58,8 +58,10 @@ static void sqlfn_genomicsqlite_version(sqlite3_context *ctx, int argc,
 std::string GenomicSQLiteDefaultConfigJSON() {
     return R"({
     "unsafe_load": false,
+    "immutable": false,
     "page_cache_MiB": 1024,
     "threads": -1,
+    "force_prefetch": false,
     "zstd_level": 6,
     "inner_page_KiB": 16,
     "outer_page_KiB": 32
@@ -93,6 +95,13 @@ string GenomicSQLiteURI(const string &dbfile, const string &config_json = "") {
     SQLite::Database tmpdb(":memory:", SQLITE_OPEN_CREATE | SQLITE_OPEN_READWRITE);
     auto extract = ConfigExtractor(tmpdb, config_json);
 
+    extract->bind(2, "$.immutable");
+    if (!extract->executeStep() || extract->getColumnCount() != 1 ||
+        !extract->getColumn(0).isInteger())
+        throw std::runtime_error("error processing config JSON $.immutable");
+    bool immutable = extract->getColumn(0).getInt() != 0;
+    extract->reset();
+
     extract->bind(2, "$.unsafe_load");
     if (!extract->executeStep() || extract->getColumnCount() != 1 ||
         !extract->getColumn(0).isInteger())
@@ -105,6 +114,20 @@ string GenomicSQLiteURI(const string &dbfile, const string &config_json = "") {
         !extract->getColumn(0).isInteger())
         throw std::runtime_error("error processing config JSON $.threads");
     int threads = extract->getColumn(0).getInt();
+    extract->reset();
+
+    extract->bind(2, "$.force_prefetch");
+    if (!extract->executeStep() || extract->getColumnCount() != 1 ||
+        !extract->getColumn(0).isInteger())
+        throw std::runtime_error("error processing config JSON $.force_prefetch");
+    bool force_prefetch = extract->getColumn(0).getInt() != 0;
+    extract->reset();
+
+    extract->bind(2, "$.inner_page_KiB");
+    if (!extract->executeStep() || extract->getColumnCount() != 1 ||
+        !extract->getColumn(0).isInteger())
+        throw std::runtime_error("error processing config JSON $.inner_page_KiB");
+    int inner_page_KiB = extract->getColumn(0).getInt();
     extract->reset();
 
     extract->bind(2, "$.outer_page_KiB");
@@ -122,13 +145,20 @@ string GenomicSQLiteURI(const string &dbfile, const string &config_json = "") {
     extract->reset();
 
     ostringstream uri;
-    uri << "file:" << dbfile << "?vfs=zstd";
+    uri << "file:" << dbfile << "?vfs=zstd"; // TODO: URI-encode dbfile
     uri << "&threads=" << to_string(threads);
     uri << "&outer_page_size=" << to_string(outer_page_KiB * 1024);
     uri << "&outer_cache_size=-65536"; // enlarge to hold index b-tree pages for large db's
     uri << "&level=" << to_string(zstd_level);
+    if (threads > 1 && inner_page_KiB < 16 && !force_prefetch) {
+        // prefetch is usually counterproductive if inner_page_KiB < 16
+        uri << "&noprefetch=1";
+    }
+    if (immutable) {
+        uri << "&immutable=1";
+    }
     if (unsafe_load) {
-        uri << "&outer_unsafe";
+        uri << "&nolock=1&outer_unsafe";
     }
     return uri.str();
 }
@@ -227,12 +257,14 @@ string GenomicSQLiteTuningSQL(const string &config_json, const string &schema = 
     }
     map<string, string> pragmas;
     pragmas[schema_prefix + "cache_size"] = to_string(-1024 * page_cache_MiB);
+    pragmas[schema_prefix + "max_page_count"] = "2147483646";
     pragmas["threads"] =
         to_string(threads >= 0 ? threads : std::min(8, (int)thread::hardware_concurrency()));
     if (unsafe_load) {
         pragmas[schema_prefix + "journal_mode"] = "OFF";
         pragmas[schema_prefix + "synchronous"] = "OFF";
         pragmas[schema_prefix + "auto_vacuum"] = "FULL";
+        pragmas[schema_prefix + "locking_mode"] = "EXCLUSIVE";
     } else {
         pragmas[schema_prefix + "journal_mode"] = "MEMORY";
     }
