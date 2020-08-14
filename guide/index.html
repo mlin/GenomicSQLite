@@ -743,13 +743,16 @@
 <h3 id="tuning-options">Tuning options</h3>
 <p>The aforementioned tuned settings can be further adjusted. Some bindings (e.g. C/C++) receive these options as the text of a JSON object with keys and values, while others admit individual arguments to the Open routine.</p>
 <ul>
+<li><strong>threads = -1</strong>: worker thread budget for compression, sort, and prefetching/decompression operations; -1 to match up to 8 host processors.</li>
+<li><strong>inner_page_KiB = 16</strong>: <a href="https://www.sqlite.org/pragma.html#pragma_page_size">SQLite page size</a> for new databases, any of {1, 2, 4, 8, 16, 32, 64}. Larger pages are more compressible, but increase random I/O cost.</li>
+<li><strong>outer_page_KiB = 32</strong>: compression layer page size for new databases, any of {1, 2, 4, 8, 16, 32, 64}. <br/>
+The default configuration (inner_page_KiB, outer_page_KiB) = (16,32) balances random access speed and compression. Try setting them to (8,16) to prioritize random access, or (64,2) to prioritize compression <small>(if compressed database will be &lt;4TB)</small>.</li>
+<li><strong>zstd_level = 6</strong>: Zstandard compression level for newly written data (-7 to 22)</li>
 <li><strong>unsafe_load = false</strong>: set true to disable write transaction safety (see advice on bulk-loading below). <br/>
-    <strong>❗ A database opened unsafely is liable to be corrupted if the application fails or crashes.</strong></li>
+    <strong>❗ A database written to unsafely is liable to be corrupted if the application crashes, or if there's a concurrent attempt to modify it.</strong></li>
 <li><strong>page_cache_MiB = 1024</strong>: database cache size. Use a large cache to avoid repeated decompression in successive and complex queries. </li>
-<li><strong>threads = -1</strong>: worker thread budget for compression and sort operations; -1 to match up to 8 host processors.</li>
-<li><strong>zstd_level = 6</strong>: Zstandard compression level for newly written data (-5 to 22)</li>
-<li><strong>inner_page_KiB = 16</strong>: <a href="https://www.sqlite.org/pragma.html#pragma_page_size">SQLite page size</a> for new databases, any of {1, 2, 4, 8, 16, 32, 64}. Larger pages are more compressible, but increase random I/O amplification.</li>
-<li><strong>outer_page_KiB = 32</strong>: compression layer page size for new databases, any of {1, 2, 4, 8, 16, 32, 64}. The default configuration (inner_page_KiB, outer_page_KiB) = (16,32) balances access speed and compression. Try setting them to (8,16) to prioritize access speed, or (64,1) to prioritize compression.</li>
+<li><strong>immutable = false</strong>: set true to slightly reduce overhead reading from a database file that won't be modified by this or any concurrent program, guaranteed.</li>
+<li><strong>force_prefetch = false</strong>: set true to enable background prefetching/decompression even if inner_page_KiB &lt; 16 (enabled by default only &ge; that, as it can be counterproductive below; YMMV)</li>
 </ul>
 <p>The connection's potential memory usage can usually be budgeted as roughly the page cache size, plus the size of any uncommitted write transaction (unless unsafe_load), plus some safety factor. ❗However, this can <em>multiply by (threads+1)</em> during queries whose results are at least that large and must be re-sorted. That includes index creation, when the indexed columns total such size.</p>
 <h3 id="advice-for-big-data">Advice for big data</h3>
