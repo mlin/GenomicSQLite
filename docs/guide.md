@@ -95,13 +95,16 @@ Afterwards, all the usual SQLite3 API operations are available through the retur
 
 The aforementioned tuned settings can be further adjusted. Some bindings (e.g. C/C++) receive these options as the text of a JSON object with keys and values, while others admit individual arguments to the Open routine.
 
+* **threads = -1**: worker thread budget for compression, sort, and prefetching/decompression operations; -1 to match up to 8 host processors.
+* **inner_page_KiB = 16**: [SQLite page size](https://www.sqlite.org/pragma.html#pragma_page_size) for new databases, any of {1, 2, 4, 8, 16, 32, 64}. Larger pages are more compressible, but increase random I/O cost.
+* **outer_page_KiB = 32**: compression layer page size for new databases, any of {1, 2, 4, 8, 16, 32, 64}. <br/>
+The default configuration (inner_page_KiB, outer_page_KiB) = (16,32) balances random access speed and compression. Try setting them to (8,16) to prioritize random access, or (64,2) to prioritize compression <small>(if compressed database will be <4TB)</small>.
+* **zstd_level = 6**: Zstandard compression level for newly written data (-7 to 22)
 * **unsafe_load = false**: set true to disable write transaction safety (see advice on bulk-loading below). <br/>
-    **❗ A database opened unsafely is liable to be corrupted if the application fails or crashes.**
+    **❗ A database written to unsafely is liable to be corrupted if the application crashes, or if there's a concurrent attempt to modify it.**
 * **page_cache_MiB = 1024**: database cache size. Use a large cache to avoid repeated decompression in successive and complex queries. 
-* **threads = -1**: worker thread budget for compression and sort operations; -1 to match up to 8 host processors.
-* **zstd_level = 6**: Zstandard compression level for newly written data (-5 to 22)
-* **inner_page_KiB = 16**: [SQLite page size](https://www.sqlite.org/pragma.html#pragma_page_size) for new databases, any of {1, 2, 4, 8, 16, 32, 64}. Larger pages are more compressible, but increase random I/O amplification.
-* **outer_page_KiB = 32**: compression layer page size for new databases, any of {1, 2, 4, 8, 16, 32, 64}. The default configuration (inner_page_KiB, outer_page_KiB) = (16,32) balances access speed and compression. Try setting them to (8,16) to prioritize access speed, or (64,1) to prioritize compression.
+* **immutable = false**: set true to slightly reduce overhead reading from a database file that won't be modified by this or any concurrent program, guaranteed.
+* **force_prefetch = false**: set true to enable background prefetching/decompression even if inner_page_KiB &lt; 16 (enabled by default only &ge; that, as it can be counterproductive below; YMMV)
 
 The connection's potential memory usage can usually be budgeted as roughly the page cache size, plus the size of any uncommitted write transaction (unless unsafe_load), plus some safety factor. ❗However, this can *multiply by (threads+1)* during queries whose results are at least that large and must be re-sorted. That includes index creation, when the indexed columns total such size.
 
