@@ -33,8 +33,17 @@ int genomicsqlite_open(const char *dbfile, sqlite3 **ppDb, char **pzErrMsg, int 
                        const char *config_json);
 
 /*
+ * Generate SQL script to run on existing SQLite connection (not necessarily GenomicSQLite) to
+ * attach a GenomicSQLite database file under the given schema name, with given configuration. The
+ * connection must have been opened with the SQLITE_OPEN_URI flag or equivalent.
+ */
+char *genomicsqlite_attach_sql(const char *dbfile, const char *schema_name,
+                               const char *config_json);
+
+/*
  * Generate SQL script to run on existing SQLite database (not necessarily GenomicSQLite) to cause
- * creation of a defragmented & GenomicSQLite-compressed copy.
+ * creation of a defragmented & GenomicSQLite-compressed copy. The connection must have been opened
+ * with the SQLITE_OPEN_URI flag or equivalent.
  */
 char *genomicsqlite_vacuum_into_sql(const char *destfile, const char *config_json);
 
@@ -100,6 +109,9 @@ int GenomicSQLiteOpen(const std::string &dbfile, sqlite3 **ppDb, std::string &er
 std::unique_ptr<SQLite::Database> GenomicSQLiteOpen(const std::string &dbfile, int flags = 0,
                                                     const std::string &config_json = "{}");
 #endif
+
+std::string GenomicSQLiteAttachSQL(const std::string &dbfile, const std::string &schema_name,
+                                   const std::string &config_json = "{}");
 
 std::string GenomicSQLiteVacuumIntoSQL(const std::string &dbfile,
                                        const std::string &config_json = "{}");
