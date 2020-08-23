@@ -285,7 +285,41 @@ def test_connect(tmp_path):
     assert len(results) == 5191
 
 
-def _fill_exons(con, floor=None, table="exons", len_gri=False):
+def test_attach(tmp_path):
+    dbfile = str(tmp_path / "test.gsql")
+    con = genomicsqlite.connect(dbfile, unsafe_load=True)
+    _fill_exons(con, gri=False)
+    con.commit()
+
+    attach_script = genomicsqlite.attach_sql(
+        con, str(tmp_path / "test_attached.gsql"), "db2", unsafe_load=True
+    )
+    con.executescript(attach_script)
+    con.executescript("CREATE TABLE db2.exons2 AS SELECT * FROM exons")
+    con.executescript(
+        genomicsqlite.create_genomic_range_index_sql(con, "db2.exons2", "rid", "beg", "end")
+    )
+    ref_script = genomicsqlite.put_reference_assembly_sql(
+        con, "GRCh38_no_alt_analysis_set", schema="db2"
+    )
+    print(ref_script)
+    con.executescript(ref_script)
+
+    query = (
+        "SELECT exons.id, db2.exons2.id FROM exons LEFT JOIN db2.exons2 ON db2.exons2._rowid_ IN\n"
+        + genomicsqlite.genomic_range_rowids_sql(
+            con, "db2.exons2", "exons.rid", "exons.beg", "exons.end"
+        )
+        + " AND exons.id != db2.exons2.id ORDER BY exons.id, db2.exons2.id"
+    )
+    results = list(con.execute(query))
+    assert len(results) == 5191
+
+    refseq_by_name = genomicsqlite.get_reference_sequences_by_name(con, schema="db2")
+    assert len(refseq_by_name)
+
+
+def _fill_exons(con, floor=None, table="exons", gri=True, len_gri=False):
     con.execute(
         f"CREATE TABLE {table}(rid TEXT NOT NULL, beg INTEGER NOT NULL, end INTEGER NOT NULL, len INTEGER NOT NULL, id TEXT NOT NULL)"
     )
@@ -295,11 +329,12 @@ def _fill_exons(con, floor=None, table="exons", len_gri=False):
             f"INSERT INTO {table}(rid,beg,end,len,id) VALUES(?,?,?,?,?)",
             (line[0], int(line[1]) - 1, int(line[2]), int(line[2]) - int(line[1]) + 1, line[3]),
         )
-    con.executescript(
-        genomicsqlite.create_genomic_range_index_sql(
-            con, table, "rid", "beg", ("beg+len" if len_gri else "end"), floor=floor
+    if gri:
+        con.executescript(
+            genomicsqlite.create_genomic_range_index_sql(
+                con, table, "rid", "beg", ("beg+len" if len_gri else "end"), floor=floor
+            )
         )
-    )
 
 
 _EXONS = """

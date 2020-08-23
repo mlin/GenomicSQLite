@@ -95,6 +95,15 @@ string GenomicSQLiteURI(const string &dbfile, const string &config_json = "") {
     SQLite::Database tmpdb(":memory:", SQLITE_OPEN_CREATE | SQLITE_OPEN_READWRITE);
     auto extract = ConfigExtractor(tmpdb, config_json);
 
+    extract->bind(2, "$.mode");
+    if (!extract->executeStep() || extract->getColumnCount() != 1)
+        throw std::runtime_error("error processing config JSON $.mode");
+    string mode;
+    if (extract->getColumn(0).isText()) {
+        mode = extract->getColumn(0).getText();
+    }
+    extract->reset();
+
     extract->bind(2, "$.immutable");
     if (!extract->executeStep() || extract->getColumnCount() != 1 ||
         !extract->getColumn(0).isInteger())
@@ -146,6 +155,9 @@ string GenomicSQLiteURI(const string &dbfile, const string &config_json = "") {
 
     ostringstream uri;
     uri << "file:" << dbfile << "?vfs=zstd"; // TODO: URI-encode dbfile
+    if (!mode.empty()) {
+        uri << "&mode=" << mode;
+    }
     uri << "&threads=" << to_string(threads);
     uri << "&outer_page_size=" << to_string(outer_page_KiB * 1024);
     uri << "&outer_cache_size=-65536"; // enlarge to hold index b-tree pages for large db's
@@ -258,8 +270,10 @@ string GenomicSQLiteTuningSQL(const string &config_json, const string &schema = 
     map<string, string> pragmas;
     pragmas[schema_prefix + "cache_size"] = to_string(-1024 * page_cache_MiB);
     pragmas[schema_prefix + "max_page_count"] = "2147483646";
-    pragmas["threads"] =
-        to_string(threads >= 0 ? threads : std::min(8, (int)thread::hardware_concurrency()));
+    if (schema_prefix.empty()) {
+        pragmas["threads"] =
+            to_string(threads >= 0 ? threads : std::min(8, (int)thread::hardware_concurrency()));
+    }
     if (unsafe_load) {
         pragmas[schema_prefix + "journal_mode"] = "OFF";
         pragmas[schema_prefix + "synchronous"] = "OFF";
@@ -379,6 +393,28 @@ static string sqlquote(const std::string &v) {
     return ans.str();
 }
 
+string GenomicSQLiteAttachSQL(const string &dbfile, const string &schema_name,
+                              const string &config_json) {
+    ostringstream ans;
+    ans << "ATTACH " << sqlquote(GenomicSQLiteURI(dbfile, config_json)) << " AS " << schema_name
+        << ";" << GenomicSQLiteTuningSQL(config_json, schema_name);
+    return ans.str();
+}
+
+extern "C" char *genomicsqlite_attach_sql(const char *dbfile, const char *schema_name,
+                                          const char *config_json) {
+    C_WRAPPER(GenomicSQLiteAttachSQL(string(dbfile), string(schema_name),
+                                     config_json ? config_json : ""));
+}
+
+static void sqlfn_genomicsqlite_attach_sql(sqlite3_context *ctx, int argc, sqlite3_value **argv) {
+    string dbfile, schema_name, config_json;
+    ARG_TEXT(dbfile, 0);
+    ARG_TEXT(schema_name, 1);
+    ARG_TEXT_OPTIONAL(config_json, 2);
+    SQL_WRAPPER(GenomicSQLiteAttachSQL(dbfile, schema_name, config_json));
+}
+
 string GenomicSQLiteVacuumIntoSQL(const string &destfile, const string &config_json) {
     SQLite::Database tmpdb(":memory:", SQLITE_OPEN_CREATE | SQLITE_OPEN_READWRITE);
     auto extract = ConfigExtractor(tmpdb, config_json);
@@ -396,7 +432,7 @@ string GenomicSQLiteVacuumIntoSQL(const string &destfile, const string &config_j
     return ans.str();
 }
 
-char *genomicsqlite_vacuum_into_sql(const char *destfile, const char *config_json) {
+extern "C" char *genomicsqlite_vacuum_into_sql(const char *destfile, const char *config_json) {
     C_WRAPPER(GenomicSQLiteVacuumIntoSQL(string(destfile), config_json ? config_json : ""));
 }
 
@@ -621,7 +657,7 @@ static string gri_refseq_ddl(const string &schema) {
         << " gri_refget_id TEXT UNIQUE, gri_refseq_length INTEGER NOT NULL, gri_refseq_meta_json TEXT NOT NULL DEFAULT '{}', "
         << "UNIQUE(gri_assembly,gri_refseq_name))"
         << ";\nCREATE INDEX IF NOT EXISTS " << schema_prefix << "_gri_refseq_name ON "
-        << schema_prefix << "_gri_refseq(gri_refseq_name)";
+        << "_gri_refseq(gri_refseq_name)";
     return out.str();
 }
 
@@ -794,6 +830,8 @@ static int register_genomicsqlite_functions(sqlite3 *db, const char **pzErrMsg,
                  {FPNM(genomicsqlite_uri), 2, 0},
                  {FPNM(genomicsqlite_tuning_sql), 0, 0},
                  {FPNM(genomicsqlite_tuning_sql), 1, 0},
+                 {FPNM(genomicsqlite_attach_sql), 2, 0},
+                 {FPNM(genomicsqlite_attach_sql), 3, 0},
                  {FPNM(genomicsqlite_vacuum_into_sql), 1, 0},
                  {FPNM(genomicsqlite_vacuum_into_sql), 2, 0},
                  {FPNM(create_genomic_range_index_sql), 4, 0},

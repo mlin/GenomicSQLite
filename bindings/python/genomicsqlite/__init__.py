@@ -74,7 +74,14 @@ def connect(dbfile: str, read_only: bool = False, **kwargs) -> sqlite3.Connectio
     return conn
 
 
-def vacuum_into_sql(conn: sqlite3.Connection, destfile: str, **config) -> None:
+def attach_sql(conn: sqlite3.Connection, dbfile: str, schema_name: str, **config) -> str:
+    config_json = json.dumps(config)
+    return _execute1(
+        conn, "SELECT genomicsqlite_attach_sql(?,?,?)", (dbfile, schema_name, config_json)
+    )
+
+
+def vacuum_into_sql(conn: sqlite3.Connection, destfile: str, **config) -> str:
     config_json = json.dumps(config)
     return _execute1(conn, "SELECT genomicsqlite_vacuum_into_sql(?,?)", (destfile, config_json))
 

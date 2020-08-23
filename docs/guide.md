@@ -95,7 +95,7 @@ Afterwards, all the usual SQLite3 API operations are available through the retur
 
 The aforementioned tuned settings can be further adjusted. Some bindings (e.g. C/C++) receive these options as the text of a JSON object with keys and values, while others admit individual arguments to the Open routine.
 
-* **threads = -1**: worker thread budget for compression, sort, and prefetching/decompression operations; -1 to match up to 8 host processors.
+* **threads = -1**: thread budget for compression, sort, and prefetching/decompression operations; -1 to match up to 8 host processors. Set 1 to disable all background processing.
 * **inner_page_KiB = 16**: [SQLite page size](https://www.sqlite.org/pragma.html#pragma_page_size) for new databases, any of {1, 2, 4, 8, 16, 32, 64}. Larger pages are more compressible, but increase random I/O cost.
 * **outer_page_KiB = 32**: compression layer page size for new databases, any of {1, 2, 4, 8, 16, 32, 64}. <br/>
 The default configuration (inner_page_KiB, outer_page_KiB) = (16,32) balances random access speed and compression. Try setting them to (8,16) to prioritize random access, or (64,2) to prioritize compression <small>(if compressed database will be <4TB)</small>.
@@ -563,7 +563,7 @@ If the `rid` argument is omitted or -1 then it will be assigned automatically up
     );
 
     // sqlite3* dbconn
-    auto refseq_by_rid = GetGenomicReferenceSequencesByName(dbconn);
+    auto refseq_by_rid = GetGenomicReferenceSequencesByRid(dbconn);
     ```
 
 === "C"
@@ -703,9 +703,80 @@ But this plan strongly depends on the contiguity assumption.
 
 ## Other routines
 
+#### Attach additional GenomicSQLite database
+
+**↪ GenomicSQLite Vacuum Into:** *Generate a string* containing a series of SQL statements to execute on an existing database connection in order to [ATTACH](https://www.sqlite.org/lang_attach.html) a GenomicSQLite database under a given schema name. The main connection may be a plain, uncompressed SQLite3 database, as long as (i) the Genomics Extension is loaded in the executing program and (ii) it was opened with the `SQLITE_OPEN_URI` flag or language equivalent.
+
+**❗ The file and schema names are textually pasted into a template SQL script. Take care to prevent SQL injection, if they're in any way determined by external input.**
+
+=== "Python"
+    ``` python3
+    dbconn = sqlite3.connect('any.db', uri=True)
+    attach_sql = genomicsqlite.attach_sql(dbconn, 'compressed.db', 'db2')
+    # attach_sql() also takes configuration keyword arguments like
+    # genomicsqlite.connect()
+    dbconn.executescript(attach_sql)
+    # compressed.db now attached as db2
+    ```
+
+=== "SQLiteCpp"
+    ``` c++
+    std::string GenomicSQLiteAttachSQL(
+      const std::string &dbfile,
+      const std::string &schema_name,
+      const std::string &config_json = "{}"
+    );
+
+    std::string attach_sql = GenomicSQLiteAttachSQL("compressed.db", "db2");
+    SQLite::Database dbconn("any.db", SQLITE_OPEN_URI);
+    dbconn.exec(attach_sql);
+    // compressed.db now attached as db2
+    ```
+
+=== "C++"
+    ``` c++
+    std::string GenomicSQLiteAttachSQL(
+      const std::string &dbfile,
+      const std::string &schema_name,
+      const std::string &config_json = "{}"
+    );
+
+    std::string attach_sql = GenomicSQLiteAttachSQL("compressed.db", "db2");
+    // sqlite3* dbconn opened using sqlite3_open_v2() on some db
+    //   with SQLITE_OPEN_URI
+    char* errmsg = nullptr;
+    int rc = sqlite3_exec(dbconn, attach_sql.c_str(), nullptr, nullptr, &errmsg);
+    // check rc, free errmsg
+
+    // compressed.db now attached as db2
+    ```
+
+=== "C"
+    ``` c
+    char* genomicsqlite_attach_sql(
+      const char *dbfile,
+      const char *schema_name,
+      const char *config_json
+    );
+
+    char* attach_sql = genomicsqlite_attach_sql("compressed.db", "db2", "{}");
+    if (*attach_sql) {
+      char* errmsg = 0;
+      /* sqlite3* dbconn opened using sqlite3_open_v2() on some db
+       * with SQLITE_OPEN_URI */
+      int rc = sqlite3_exec(dbconn, attach_sql, 0, 0, &errmsg);
+      /* check rc, free errmsg */
+    } else {
+     /* see calling convention discussed in previous examples */
+    }
+    sqlite3_free(attach_sql);
+
+    /* compressed.db now attached as db2 */
+    ```
+
 #### Compress existing SQLite3 database
 
-**↪ GenomicSQLite Vacuum Into:** *Generate a string* containing a series of SQL statements to execute on an existing database in order to copy it into a new compressed & [defragmented](https://www.sqlite.org/lang_vacuum.html) file. The source database may be a plain, uncompressed SQLite3 database, as long (i) as the Genomics Extension is loaded in the executing program and (ii) the source database connection is opened with the `SQLITE_OPEN_URI` flag or language equivalent.
+**↪ GenomicSQLite Vacuum Into:** *Generate a string* containing a series of SQL statements to execute on an existing database in order to copy it into a new compressed & [defragmented](https://www.sqlite.org/lang_vacuum.html) file. The source database may be a plain, uncompressed SQLite3 database, as long as (i) the Genomics Extension is loaded in the executing program and (ii) the source database connection is opened with the `SQLITE_OPEN_URI` flag or language equivalent.
 
 === "Python"
     ``` python3
@@ -742,7 +813,7 @@ But this plan strongly depends on the contiguity assumption.
     // sqlite3* dbconn opened using sqlite3_open_v2() on some existing.db
     //   with SQLITE_OPEN_URI
     char* errmsg = nullptr;
-    int rc = sqlite3_exec(dbconn, refseq_sql.c_str(), nullptr, nullptr, &errmsg);
+    int rc = sqlite3_exec(dbconn, vacuum_sql.c_str(), nullptr, nullptr, &errmsg);
     // check rc, free errmsg
 
     // rc = GenomicSQLiteOpen("compressed.db", ...);
@@ -765,7 +836,7 @@ But this plan strongly depends on the contiguity assumption.
     } else {
      /* see calling convention discussed in previous examples */
     }
-    sqlite3_free(create_gri_sql);
+    sqlite3_free(vacuum_sql);
 
     /* genomicsqlite_open("compressed.db", ...); */
     ```
