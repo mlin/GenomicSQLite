@@ -316,7 +316,7 @@ def test_attach(tmp_path):
     assert len(results) == 5191
 
     refseq_by_name = genomicsqlite.get_reference_sequences_by_name(con, schema="db2")
-    assert len(refseq_by_name)
+    assert len(refseq_by_name) > 24
 
 
 def _fill_exons(con, floor=None, table="exons", gri=True, len_gri=False):
