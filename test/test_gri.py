@@ -302,7 +302,6 @@ def test_attach(tmp_path):
     ref_script = genomicsqlite.put_reference_assembly_sql(
         con, "GRCh38_no_alt_analysis_set", schema="db2"
     )
-    print(ref_script)
     con.executescript(ref_script)
 
     query = (

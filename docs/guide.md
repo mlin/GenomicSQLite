@@ -703,11 +703,9 @@ But this plan strongly depends on the contiguity assumption.
 
 ## Other routines
 
-#### Attach additional GenomicSQLite database
+#### Attach GenomicSQLite database
 
-**↪ GenomicSQLite Vacuum Into:** *Generate a string* containing a series of SQL statements to execute on an existing database connection in order to [ATTACH](https://www.sqlite.org/lang_attach.html) a GenomicSQLite database under a given schema name. The main connection may be a plain, uncompressed SQLite3 database, as long as (i) the Genomics Extension is loaded in the executing program and (ii) it was opened with the `SQLITE_OPEN_URI` flag or language equivalent.
-
-**❗ The file and schema names are textually pasted into a template SQL script. Take care to prevent SQL injection, if they're in any way determined by external input.**
+**↪ GenomicSQLite Attach:** *Generate a string* containing a series of SQL statements to execute on an existing database connection in order to [ATTACH](https://www.sqlite.org/lang_attach.html) a GenomicSQLite database under a given schema name. The main connection may be a plain, uncompressed SQLite3 database, as long as (i) it was opened with the `SQLITE_OPEN_URI` flag or language equivalent and (ii) the Genomics Extension is loaded in the executing program.
 
 === "Python"
     ``` python3
@@ -774,9 +772,11 @@ But this plan strongly depends on the contiguity assumption.
     /* compressed.db now attached as db2 */
     ```
 
+❗ The file and schema names are textually pasted into a template SQL script. Take care to prevent SQL injection, if they're in any way determined by external input.
+
 #### Compress existing SQLite3 database
 
-**↪ GenomicSQLite Vacuum Into:** *Generate a string* containing a series of SQL statements to execute on an existing database in order to copy it into a new compressed & [defragmented](https://www.sqlite.org/lang_vacuum.html) file. The source database may be a plain, uncompressed SQLite3 database, as long as (i) the Genomics Extension is loaded in the executing program and (ii) the source database connection is opened with the `SQLITE_OPEN_URI` flag or language equivalent.
+**↪ GenomicSQLite Vacuum Into:** *Generate a string* containing a series of SQL statements to execute on an existing database in order to copy it into a new compressed & [defragmented](https://www.sqlite.org/lang_vacuum.html) file. The source database may be a plain, uncompressed SQLite3 database, as long as (i) it was opened with the `SQLITE_OPEN_URI` flag or language equivalent and (ii) the Genomics Extension is loaded in the executing program.
 
 === "Python"
     ``` python3
