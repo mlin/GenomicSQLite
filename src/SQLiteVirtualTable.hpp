@@ -121,31 +121,32 @@ class SQLiteVirtualTable {
         return SQLITE_OK;
     }
 
-    // Helper to implement xBestIndex for table-valued functions which have a certain number of
-    // visible (non-hidden) columns, and some other number of hidden columns which act as function
-    // arguments. A suffix of the hidden columns can be omitted, leading to a minimum and maximum
-    // allowable number of hidden columns.
+    // Helper to implement xBestIndex for table-valued functions, which have a certain number of
+    // visible columns, and some other number of hidden columns which serve as function arguments.
+    //
+    // visible_cols = # non-hidden columns returned by the function
+    //     min_args = minimum # of arguments (hidden columns) acceptable to the function
+    //     max_args = total # of hidden columns
+    //
+    // If the function receives < max_args arguments, they form a prefix of the hidden columns.
     int BestIndexTVF(sqlite3_index_info *info, int visible_cols, int min_args, int max_args) {
         assert(visible_cols >= 0 && min_args >= 0 && min_args <= max_args &&
                visible_cols + max_args <= 62);
-        // nConstraint should be in the allowable function arity range
         if (info->nConstraint < min_args || info->nConstraint > max_args) {
             return SQLITE_CONSTRAINT;
         }
         long long arg_bitmap = 0;
         for (int i = 0; i < info->nConstraint; ++i) {
             auto &constraint = info->aConstraint[i];
-            auto col = constraint.iColumn + 1;
-            auto col_bit = 1 << (constraint.iColumn - visible_cols);
-            // each entry should be a usable equality costraint, at most one per hidden column.
-            if (col < visible_cols + min_args || col > visible_cols + max_args ||
-                constraint.op != SQLITE_INDEX_CONSTRAINT_EQ || !constraint.usable ||
-                arg_bitmap & col_bit) {
+            int arg = constraint.iColumn - visible_cols;
+            // each entry should be a usable equality constraint, at most one per hidden column.
+            if (arg < 0 || arg >= max_args || arg_bitmap & (1 << arg) ||
+                constraint.op != SQLITE_INDEX_CONSTRAINT_EQ || !constraint.usable) {
                 return SQLITE_CONSTRAINT;
             }
-            arg_bitmap |= col_bit;
-            // have argument passed to SQLiteVirtualTableCursor::Filter()
-            info->aConstraintUsage[i].argvIndex = col - visible_cols;
+            arg_bitmap |= (1 << arg);
+            // have argument passed in the proper order to SQLiteVirtualTableCursor::Filter()
+            info->aConstraintUsage[i].argvIndex = arg + 1;
             info->aConstraintUsage[i].omit = true;
         }
         // constrained columns should form a prefix of the hidden columns
