@@ -742,37 +742,20 @@ class GenomicRangeRowidsPrepareTVF : public SQLiteVirtualTable {
   public:
     GenomicRangeRowidsPrepareTVF(sqlite3 *db) : SQLiteVirtualTable(db) {}
 
+    int BestIndex(sqlite3_index_info *info) override {
+        int rc = BestIndexTVF(info, 2, 1, 3);
+        if (rc != SQLITE_OK)
+            return rc;
+        info->orderByConsumed = 1;
+        return SQLITE_OK;
+    }
+
     static int Connect(sqlite3 *db, void *pAux, int argc, const char *const *argv,
                        sqlite3_vtab **ppVTab, char **pzErr) {
         return SQLiteVirtualTable::SimpleConnect(
             db, pAux, argc, argv, ppVTab, pzErr,
             unique_ptr<SQLiteVirtualTable>(new GenomicRangeRowidsPrepareTVF(db)),
             "CREATE TABLE genomic_range_rowids_prepare(prepared_ceiling INTEGER, prepared_floor INTEGER, tableName HIDDEN, ceiling HIDDEN, floor HIDDEN)");
-    }
-
-    int BestIndex(sqlite3_index_info *info) override {
-        // expect usable equality constraints on cols. 3, 3+4, or 3+4+5
-        int col_bitmap = 0;
-        for (int i = 0; i < info->nConstraint; ++i) {
-            auto &constraint = info->aConstraint[i];
-            auto col = constraint.iColumn + 1;
-            if (col < 3 || col > 5 || constraint.op != SQLITE_INDEX_CONSTRAINT_EQ ||
-                !constraint.usable) {
-                return SQLITE_CONSTRAINT;
-            }
-            if (col_bitmap & (1 << col)) {
-                return SQLITE_CONSTRAINT;
-            }
-            col_bitmap |= (1 << col);
-            info->aConstraintUsage[i].argvIndex = col - 2;
-            info->aConstraintUsage[i].omit = true;
-        }
-        if (col_bitmap != (1 << 3) && col_bitmap != (1 << 3 + 1 << 4) &&
-            col_bitmap != (1 << 3 + 1 << 4 + 1 << 5)) {
-            return SQLITE_CONSTRAINT;
-        }
-        // TODO: deal with ORDER BY
-        return SQLITE_OK;
     }
 };
 

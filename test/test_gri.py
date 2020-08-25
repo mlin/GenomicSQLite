@@ -327,6 +327,15 @@ def test_prepare_in_sql(tmp_path):
     results = list(con.execute("SELECT * FROM genomic_range_rowids_prepare('exons')"))
     assert results == [(3, 1)]
 
+    results = list(con.execute("SELECT * FROM genomic_range_rowids_prepare('exons', 5)"))
+    assert results == [(5, 0)]
+
+    results = list(con.execute("SELECT * FROM genomic_range_rowids_prepare('exons', 5, 2)"))
+    assert results == [(5, 2)]
+
+    with pytest.raises(sqlite3.OperationalError):
+        con.execute("SELECT * FROM genomic_range_rowids_prepare('nonexistent')")
+
 
 def _fill_exons(con, floor=None, table="exons", gri=True, len_gri=False):
     con.execute(

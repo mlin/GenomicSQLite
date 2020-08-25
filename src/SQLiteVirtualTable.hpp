@@ -50,13 +50,6 @@ class SQLiteVirtualTableCursor {
 
 class SQLiteVirtualTable {
   public:
-    static int Connect(sqlite3 *db, void *pAux, int argc, const char *const *argv,
-                       sqlite3_vtab **ppVTab, char **pzErr) {
-        return SimpleConnect(db, pAux, argc, argv, ppVTab, pzErr,
-                             std::unique_ptr<SQLiteVirtualTable>(new SQLiteVirtualTable(db)),
-                             "CREATE TABLE xxx(x BLOB)");
-    }
-
     virtual int Disconnect() {
         delete this;
         return SQLITE_OK;
@@ -74,6 +67,13 @@ class SQLiteVirtualTable {
         cursor->handle_.vtab_cursor.pVtab = &(handle_.vtab);
         *ppCursor = &(cursor.release()->handle_.vtab_cursor);
         return SQLITE_OK;
+    }
+
+    static int Connect(sqlite3 *db, void *pAux, int argc, const char *const *argv,
+                       sqlite3_vtab **ppVTab, char **pzErr) {
+        return SimpleConnect(db, pAux, argc, argv, ppVTab, pzErr,
+                             std::unique_ptr<SQLiteVirtualTable>(new SQLiteVirtualTable(db)),
+                             "CREATE TABLE xxx(x BLOB)");
     }
 
     static int SetErr(int rc, const std::string &msg, char **pzErr) {
@@ -118,6 +118,40 @@ class SQLiteVirtualTable {
         }
         that->handle_.vtab.pModule = reinterpret_cast<sqlite3_module *>(pAux);
         *ppVTab = &(that.release()->handle_.vtab);
+        return SQLITE_OK;
+    }
+
+    // Helper to implement xBestIndex for table-valued functions which have a certain number of
+    // visible (non-hidden) columns, and some other number of hidden columns which act as function
+    // arguments. A suffix of the hidden columns can be omitted, leading to a minimum and maximum
+    // allowable number of hidden columns.
+    int BestIndexTVF(sqlite3_index_info *info, int visible_cols, int min_args, int max_args) {
+        assert(visible_cols >= 0 && min_args >= 0 && min_args <= max_args &&
+               visible_cols + max_args <= 62);
+        // nConstraint should be in the allowable function arity range
+        if (info->nConstraint < min_args || info->nConstraint > max_args) {
+            return SQLITE_CONSTRAINT;
+        }
+        long long arg_bitmap = 0;
+        for (int i = 0; i < info->nConstraint; ++i) {
+            auto &constraint = info->aConstraint[i];
+            auto col = constraint.iColumn + 1;
+            auto col_bit = 1 << (constraint.iColumn - visible_cols);
+            // each entry should be a usable equality costraint, at most one per hidden column.
+            if (col < visible_cols + min_args || col > visible_cols + max_args ||
+                constraint.op != SQLITE_INDEX_CONSTRAINT_EQ || !constraint.usable ||
+                arg_bitmap & col_bit) {
+                return SQLITE_CONSTRAINT;
+            }
+            arg_bitmap |= col_bit;
+            // have argument passed to SQLiteVirtualTableCursor::Filter()
+            info->aConstraintUsage[i].argvIndex = col - visible_cols;
+            info->aConstraintUsage[i].omit = true;
+        }
+        // constrained columns should form a prefix of the hidden columns
+        if (arg_bitmap != (1 << info->nConstraint) - 1) {
+            return SQLITE_CONSTRAINT;
+        }
         return SQLITE_OK;
     }
 };
