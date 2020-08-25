@@ -7,6 +7,7 @@ extern "C" {
 SQLITE_EXTENSION_INIT1
 }
 #include "SQLiteCpp/SQLiteCpp.h"
+#include "SQLiteVirtualTable.hpp"
 #include "genomicsqlite.h"
 #include "hardcoded_refseq.hpp"
 #include "zstd_vfs.h"
@@ -643,6 +644,139 @@ static void sqlfn_genomic_range_rowids_sql(sqlite3_context *ctx, int argc, sqlit
 }
 
 /**************************************************************************************************
+ * SQLiteVirtualTable wrappers to wrap generated GRI queries as SQL functions
+ **************************************************************************************************/
+
+class GenomicRangeRowidsPrepareCursor : public SQLiteVirtualTableCursor {
+    sqlite3 *db_;
+    bool eof_ = false;
+    string errmsg_, table_name_;
+    sqlite_int64 ceiling_ = -1, floor_ = -1, prepared_ceiling_ = -1, prepared_floor_ = -1;
+
+  public:
+    GenomicRangeRowidsPrepareCursor(sqlite3 *db) : db_(db) {}
+
+    int Filter(int idxNum, const char *idxStr, int argc, sqlite3_value **argv) override {
+        errmsg_.clear();
+        table_name_.clear();
+        ceiling_ = prepared_ceiling_ = floor_ = prepared_floor_ = -1;
+        eof_ = false;
+        if (argc < 1 || argc > 3) {
+            errmsg_ = "genomic_range_rowids_prepare() expects 1, 2, or 3 arguments";
+        } else if (sqlite3_value_type(argv[0]) != SQLITE_TEXT) {
+            errmsg_ = "genomic_range_rowids_prepare() expects text argument 1";
+        } else if (argc > 1 && sqlite3_value_type(argv[1]) != SQLITE_INTEGER) {
+            errmsg_ = "genomic_range_rowids_prepare() expects integer argument 2 if any";
+        } else if (argc > 2 && sqlite3_value_type(argv[2]) != SQLITE_INTEGER) {
+            errmsg_ = "genomic_range_rowids_prepare() expects integer argument 3 if any";
+        } else {
+            table_name_ = (const char *)sqlite3_value_text(argv[0]);
+            if (argc > 1) {
+                ceiling_ = sqlite3_value_int64(argv[1]);
+            }
+            if (argc > 2) {
+                floor_ = sqlite3_value_int64(argv[2]);
+            }
+            if (ceiling_ >= 0) {
+                prepared_ceiling_ = min(15LL, ceiling_);
+                prepared_floor_ = max(0LL, min(ceiling_, floor_));
+            } else {
+                try {
+                    auto p = DetectLevelRange(db_, table_name_);
+                    prepared_floor_ = p.first;
+                    prepared_ceiling_ = p.second;
+                } catch (std::exception &exn) {
+                    errmsg_ = exn.what();
+                }
+            }
+        }
+        return SQLITE_OK;
+    }
+
+    int Next() override {
+        eof_ = true;
+        return SQLITE_OK;
+    }
+
+    int Eof() override { return eof_; }
+
+    int Column(sqlite3_context *ctx, int colno) override {
+        assert(!eof_);
+        if (!errmsg_.empty()) {
+            sqlite3_result_text(ctx, errmsg_.c_str(), -1, SQLITE_TRANSIENT);
+            return SQLITE_ERROR;
+        }
+        switch (colno) {
+        case 0:
+            sqlite3_result_int64(ctx, prepared_ceiling_);
+            return SQLITE_OK;
+        case 1:
+            sqlite3_result_int64(ctx, prepared_floor_);
+            return SQLITE_OK;
+        case 2:
+            sqlite3_result_text(ctx, table_name_.c_str(), -1, SQLITE_TRANSIENT);
+            return SQLITE_OK;
+        case 3:
+            sqlite3_result_int64(ctx, ceiling_);
+            return SQLITE_OK;
+        case 4:
+            sqlite3_result_int64(ctx, floor_);
+            return SQLITE_OK;
+        }
+        assert(false);
+        return SQLITE_ERROR;
+    }
+
+    int Rowid(sqlite_int64 *pRowid) override {
+        assert(!eof_);
+        *pRowid = 1;
+        return SQLITE_OK;
+    }
+};
+
+class GenomicRangeRowidsPrepareTVF : public SQLiteVirtualTable {
+    unique_ptr<SQLiteVirtualTableCursor> NewCursor() override {
+        return unique_ptr<SQLiteVirtualTableCursor>(new GenomicRangeRowidsPrepareCursor(db_));
+    }
+
+  public:
+    GenomicRangeRowidsPrepareTVF(sqlite3 *db) : SQLiteVirtualTable(db) {}
+
+    static int Connect(sqlite3 *db, void *pAux, int argc, const char *const *argv,
+                       sqlite3_vtab **ppVTab, char **pzErr) {
+        return SQLiteVirtualTable::SimpleConnect(
+            db, pAux, argc, argv, ppVTab, pzErr,
+            unique_ptr<SQLiteVirtualTable>(new GenomicRangeRowidsPrepareTVF(db)),
+            "CREATE TABLE genomic_range_rowids_prepare(prepared_ceiling INTEGER, prepared_floor INTEGER, tableName HIDDEN, ceiling HIDDEN, floor HIDDEN)");
+    }
+
+    int BestIndex(sqlite3_index_info *info) override {
+        // expect usable equality constraints on cols. 3, 3+4, or 3+4+5
+        int col_bitmap = 0;
+        for (int i = 0; i < info->nConstraint; ++i) {
+            auto &constraint = info->aConstraint[i];
+            auto col = constraint.iColumn + 1;
+            if (col < 3 || col > 5 || constraint.op != SQLITE_INDEX_CONSTRAINT_EQ ||
+                !constraint.usable) {
+                return SQLITE_CONSTRAINT;
+            }
+            if (col_bitmap & (1 << col)) {
+                return SQLITE_CONSTRAINT;
+            }
+            col_bitmap |= (1 << col);
+            info->aConstraintUsage[i].argvIndex = col - 2;
+            info->aConstraintUsage[i].omit = true;
+        }
+        if (col_bitmap != (1 << 3) && col_bitmap != (1 << 3 + 1 << 4) &&
+            col_bitmap != (1 << 3 + 1 << 4 + 1 << 5)) {
+            return SQLITE_CONSTRAINT;
+        }
+        // TODO: deal with ORDER BY
+        return SQLITE_OK;
+    }
+};
+
+/**************************************************************************************************
  * reference sequence metadata (_gri_refseq) helpers
  **************************************************************************************************/
 
@@ -851,13 +985,18 @@ static int register_genomicsqlite_functions(sqlite3 *db, const char **pzErrMsg,
                  {FPNM(put_genomic_reference_assembly_sql), 1, 0},
                  {FPNM(put_genomic_reference_assembly_sql), 2, 0}};
 
+    int rc;
     for (int i = 0; i < sizeof(fntab) / sizeof(fntab[0]); ++i) {
-        int rc =
+        rc =
             sqlite3_create_function_v2(db, fntab[i].fn, fntab[i].nArg, SQLITE_UTF8 | fntab[i].flags,
                                        nullptr, fntab[i].fp, nullptr, nullptr, nullptr);
         if (rc != SQLITE_OK)
             return rc;
     }
+    rc = RegisterSQLiteVirtualTable<GenomicRangeRowidsPrepareTVF>(db,
+                                                                  "genomic_range_rowids_prepare");
+    if (rc != SQLITE_OK)
+        return rc;
     return genomicsqliteJson1Register(db);
 }
 

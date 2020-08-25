@@ -318,6 +318,16 @@ def test_attach(tmp_path):
     assert len(refseq_by_name) > 24
 
 
+def test_prepare_in_sql(tmp_path):
+    dbfile = str(tmp_path / "test.gsql")
+    con = genomicsqlite.connect(dbfile, unsafe_load=True)
+    _fill_exons(con)
+    con.commit()
+
+    results = list(con.execute("SELECT * FROM genomic_range_rowids_prepare('exons')"))
+    assert results == [(3, 1)]
+
+
 def _fill_exons(con, floor=None, table="exons", gri=True, len_gri=False):
     con.execute(
         f"CREATE TABLE {table}(rid TEXT NOT NULL, beg INTEGER NOT NULL, end INTEGER NOT NULL, len INTEGER NOT NULL, id TEXT NOT NULL)"
