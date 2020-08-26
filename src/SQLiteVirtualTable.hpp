@@ -46,6 +46,8 @@ class SQLiteVirtualTableCursor {
     Handle handle_;
 
     SQLiteVirtualTableCursor(SQLiteVirtualTableCursor &rhs) = delete;
+
+    void Error(const std::string &msg);
 };
 
 class SQLiteVirtualTable {
@@ -76,17 +78,6 @@ class SQLiteVirtualTable {
                              "CREATE TABLE xxx(x BLOB)");
     }
 
-    static int SetErr(int rc, const std::string &msg, char **pzErr) {
-        if (pzErr) {
-            assert(!*pzErr);
-            *pzErr = reinterpret_cast<char *>(sqlite3_malloc(msg.size() + 1));
-            if (*pzErr) {
-                strcpy(*pzErr, msg.c_str());
-            }
-        }
-        return rc;
-    }
-
     virtual ~SQLiteVirtualTable() {}
 
     struct Handle {
@@ -95,11 +86,20 @@ class SQLiteVirtualTable {
     };
 
   protected:
+    friend class SQLiteVirtualTableCursor;
     Handle handle_;
     sqlite3 *db_;
 
     virtual std::unique_ptr<SQLiteVirtualTableCursor> NewCursor() {
         return std::unique_ptr<SQLiteVirtualTableCursor>(new SQLiteVirtualTableCursor());
+    }
+
+    void Error(const std::string &msg) {
+        sqlite3_free(handle_.vtab.zErrMsg);
+        handle_.vtab.zErrMsg = reinterpret_cast<char *>(sqlite3_malloc(msg.size() + 1));
+        if (handle_.vtab.zErrMsg) {
+            strcpy(handle_.vtab.zErrMsg, msg.c_str());
+        }
     }
 
     SQLiteVirtualTable(sqlite3 *db) : db_(db) {
@@ -121,14 +121,17 @@ class SQLiteVirtualTable {
         return SQLITE_OK;
     }
 
-    // Helper to implement xBestIndex for table-valued functions, which have a certain number of
-    // visible columns, and some other number of hidden columns which serve as function arguments.
+    // Helper to implement xBestIndex for table-valued functions, whose return value(s) are
+    // the non-hidden columns declared by xConnect(), while arguments are to be passed as equality
+    // constraints on the hidden columns.
     //
-    // visible_cols = # non-hidden columns returned by the function
+    // visible_cols = # non-hidden columns to be returned by the function
     //     min_args = minimum # of arguments (hidden columns) acceptable to the function
     //     max_args = total # of hidden columns
     //
-    // If the function receives < max_args arguments, they form a prefix of the hidden columns.
+    // If the function is passed fewer than max_args arguments, they're treated as a prefix of the
+    // hidden columns.
+    //
     int BestIndexTVF(sqlite3_index_info *info, int visible_cols, int min_args, int max_args) {
         assert(visible_cols >= 0 && min_args >= 0 && min_args <= max_args &&
                visible_cols + max_args <= 62);
@@ -157,6 +160,10 @@ class SQLiteVirtualTable {
     }
 };
 
+void SQLiteVirtualTableCursor::Error(const std::string &msg) {
+    reinterpret_cast<SQLiteVirtualTable::Handle *>(handle_.vtab_cursor.pVtab)->that->Error(msg);
+}
+
 template <class TableImpl> int RegisterSQLiteVirtualTable(sqlite3 *db, const char *zName) {
     sqlite3_module *p = new sqlite3_module;
     memset(p, 0, sizeof(sqlite3_module));
@@ -172,7 +179,11 @@ template <class TableImpl> int RegisterSQLiteVirtualTable(sqlite3 *db, const cha
             return SQLITE_NOMEM;
         } catch (std::exception &exn) {
             if (pzErr && !*pzErr) {
-                return SQLiteVirtualTable::SetErr(SQLITE_ERROR, exn.what(), pzErr);
+                *pzErr = reinterpret_cast<char *>(sqlite3_malloc(strlen(exn.what()) + 1));
+                if (*pzErr) {
+                    strcpy(*pzErr, exn.what());
+                }
+                return SQLITE_ERROR;
             }
         } catch (...) {
         }

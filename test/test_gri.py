@@ -333,8 +333,24 @@ def test_prepare_in_sql(tmp_path):
     results = list(con.execute("SELECT * FROM genomic_range_rowids_prepare('exons', 5, 2)"))
     assert results == [(5, 2)]
 
-    with pytest.raises(sqlite3.OperationalError):
+    with pytest.raises(sqlite3.OperationalError, match="no such table"):
         con.execute("SELECT * FROM genomic_range_rowids_prepare('nonexistent')")
+
+
+def test_query_in_sql(tmp_path):
+    dbfile = str(tmp_path / "test.gsql")
+    con = genomicsqlite.connect(dbfile, unsafe_load=True)
+    _fill_exons(con)
+    con.commit()
+
+    query = "SELECT id FROM exons WHERE exons._rowid_ IN genomic_range_rowids('exons',?,?,?)"
+    results = list(con.execute(query, ("chr17", 43044294, 43048294)))
+
+    control_query = genomicsqlite.genomic_range_rowids_sql(con, "exons")
+    control_query = "SELECT id FROM exons WHERE exons._rowid_ IN\n" + control_query
+    control_results = list(con.execute(control_query, ("chr17", 43044294, 43048294)))
+
+    assert results == control_results
 
 
 def _fill_exons(con, floor=None, table="exons", gri=True, len_gri=False):
