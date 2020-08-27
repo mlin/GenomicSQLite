@@ -843,8 +843,9 @@ class GenomicRangeRowidsTVF : public SQLiteVirtualTable {
         int rc = BestIndexTVF(info, 1, 4, 4);
         if (rc != SQLITE_OK)
             return rc;
-        // TODO: consume ORDER BY _rowid_
-        // info->orderByConsumed = 1;
+        info->orderByConsumed =
+            info->nOrderBy == 0 ||
+            (info->nOrderBy == 1 && info->aOrderBy[0].iColumn == 0 && !info->aOrderBy[0].desc);
         return SQLITE_OK;
     }
 

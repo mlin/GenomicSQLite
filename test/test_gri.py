@@ -352,6 +352,44 @@ def test_query_in_sql(tmp_path):
 
     assert results == control_results
 
+    for expl in con.execute(
+        "EXPLAIN QUERY PLAN SELECT _rowid_ FROM genomic_range_rowids('exons',?,?,?) ORDER BY _rowid_",
+        ("chr17", 43044294, 43048294),
+    ):
+        assert "USE TEMP B-TREE FOR ORDER BY" not in expl[3]
+
+    assert next(
+        (
+            expl[3]
+            for expl in con.execute(
+                "EXPLAIN QUERY PLAN SELECT _rowid_ FROM genomic_range_rowids('exons',?,?,?) ORDER BY _rowid_ DESC",
+                ("chr17", 43044294, 43048294),
+            )
+            if "USE TEMP B-TREE FOR ORDER BY" in expl[3]
+        )
+    )
+
+    dbfile2 = str(tmp_path / "test2.gsql")
+    con2 = genomicsqlite.connect(dbfile2, unsafe_load=True)
+    _fill_exons(con2)
+    con2.commit()
+    con2.close()
+
+    con.executescript(genomicsqlite.attach_sql(con, dbfile2, "db2", immutable=True))
+    query = """
+        SELECT main.exons.id, db2.exons.id
+            FROM main.exons LEFT JOIN db2.exons ON
+            db2.exons._rowid_ IN genomic_range_rowids('db2.exons', main.exons.rid, main.exons.beg, main.exons.end)
+            AND main.exons.id != db2.exons.id ORDER BY main.exons.id, db2.exons.id
+        """
+    results = list(con.execute(query))
+    assert len(results) == 5191
+
+    with pytest.raises(sqlite3.OperationalError, match="no such table"):
+        con.execute(
+            "SELECT * FROM genomic_range_rowids('nonexistent', 'chr17', 43044294, 43048294)"
+        )
+
 
 def _fill_exons(con, floor=None, table="exons", gri=True, len_gri=False):
     con.execute(
