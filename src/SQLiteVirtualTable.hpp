@@ -1,6 +1,10 @@
-// https://sqlite.org/vtab.html
-// https://sqlite.org/src/file/ext/misc/templatevtab.c
-// https://sqlite.org/src/file/ext/misc/series.c
+/*
+ * C++ helpers for creating SQLite Virtual Table extensions, especially table-valued functions.
+ * Refs:
+ *  https://sqlite.org/vtab.html
+ *  https://sqlite.org/src/file/ext/misc/templatevtab.c
+ *  https://sqlite.org/src/file/ext/misc/series.c
+ */
 #pragma once
 
 #include <assert.h>
@@ -10,6 +14,7 @@
 #include <string>
 #include <type_traits>
 
+// Cursor supporting one query on a virtual table, to be subclassed
 class SQLiteVirtualTableCursor {
   public:
     virtual int Close() {
@@ -17,14 +22,17 @@ class SQLiteVirtualTableCursor {
         return SQLITE_OK;
     }
 
+    // receive query constraints (= arguments to table-valued functions)
     virtual int Filter(int idxNum, const char *idxStr, int argc, sqlite3_value **argv) {
         return SQLITE_OK;
     }
 
+    // advance cursor to next row
     virtual int Next() { return SQLITE_ERROR; }
 
     virtual int Eof() { return 1; }
 
+    // access current row
     virtual int Column(sqlite3_context *ctx, int colno) { return SQLITE_ERROR; }
 
     virtual int Rowid(sqlite_int64 *pRowid) { return SQLITE_ERROR; }
@@ -36,6 +44,7 @@ class SQLiteVirtualTableCursor {
 
     virtual ~SQLiteVirtualTableCursor() {}
 
+    // POD extension of sqlite3_vtab_cursor
     struct Handle {
         sqlite3_vtab_cursor vtab_cursor;
         SQLiteVirtualTableCursor *that;
@@ -47,16 +56,21 @@ class SQLiteVirtualTableCursor {
 
     SQLiteVirtualTableCursor(SQLiteVirtualTableCursor &rhs) = delete;
 
+    // record error message to be passed to caller
     void Error(const std::string &msg);
 };
 
+// Virtual table object, scoped to a database connection
 class SQLiteVirtualTable {
   public:
+    virtual ~SQLiteVirtualTable() {}
+
     virtual int Disconnect() {
         delete this;
         return SQLITE_OK;
     }
 
+    // query planner
     virtual int BestIndex(sqlite3_index_info *info) {
         info->idxNum = -1;
         info->idxStr = nullptr;
@@ -64,6 +78,7 @@ class SQLiteVirtualTable {
         return SQLITE_OK;
     }
 
+    // open query cursor
     virtual int Open(sqlite3_vtab_cursor **ppCursor) {
         auto cursor = NewCursor();
         cursor->handle_.vtab_cursor.pVtab = &(handle_.vtab);
@@ -71,6 +86,7 @@ class SQLiteVirtualTable {
         return SQLITE_OK;
     }
 
+    // initialize on connection
     static int Connect(sqlite3 *db, void *pAux, int argc, const char *const *argv,
                        sqlite3_vtab **ppVTab, char **pzErr) {
         return SimpleConnect(db, pAux, argc, argv, ppVTab, pzErr,
@@ -78,8 +94,7 @@ class SQLiteVirtualTable {
                              "CREATE TABLE xxx(x BLOB)");
     }
 
-    virtual ~SQLiteVirtualTable() {}
-
+    // POD extension of sqlite3_vtab
     struct Handle {
         sqlite3_vtab vtab;
         SQLiteVirtualTable *that;
@@ -90,10 +105,12 @@ class SQLiteVirtualTable {
     Handle handle_;
     sqlite3 *db_;
 
+    // subclass override to instantiate appropriate cursor subclass
     virtual std::unique_ptr<SQLiteVirtualTableCursor> NewCursor() {
         return std::unique_ptr<SQLiteVirtualTableCursor>(new SQLiteVirtualTableCursor());
     }
 
+    // record error message to be passed to caller
     void Error(const std::string &msg) {
         sqlite3_free(handle_.vtab.zErrMsg);
         handle_.vtab.zErrMsg = reinterpret_cast<char *>(sqlite3_malloc(msg.size() + 1));
@@ -108,6 +125,8 @@ class SQLiteVirtualTable {
     }
     SQLiteVirtualTable(SQLiteVirtualTable &rhs) = delete;
 
+    // xConnect() boilerplate helper -- declare the table given fresh SQLiteVirtualTable subclass
+    // instance and a DDL string
     static int SimpleConnect(sqlite3 *db, void *pAux, int argc, const char *const *argv,
                              sqlite3_vtab **ppVTab, char **pzErr,
                              std::unique_ptr<SQLiteVirtualTable> that, const std::string &ddl) {
@@ -164,6 +183,7 @@ void SQLiteVirtualTableCursor::Error(const std::string &msg) {
     reinterpret_cast<SQLiteVirtualTable::Handle *>(handle_.vtab_cursor.pVtab)->that->Error(msg);
 }
 
+// register a virtual table module with SQLite
 template <class TableImpl> int RegisterSQLiteVirtualTable(sqlite3 *db, const char *zName) {
     sqlite3_module *p = new sqlite3_module;
     memset(p, 0, sizeof(sqlite3_module));

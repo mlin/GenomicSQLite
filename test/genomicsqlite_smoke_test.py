@@ -139,6 +139,14 @@ def main():
 
             sys.exit(2)
 
+        query2 = """
+            SELECT exons1.id, exons2.id
+            FROM genomic_range_index_levels("exons2"), exons1 LEFT JOIN exons2 ON exons2._rowid_ IN
+                genomic_range_rowids("exons2", exons1.chrom, exons1.pos, exons1.end)
+            ORDER BY exons1.id, exons2.id
+            """
+        assert list(dbconn.execute(query2)) == control_results
+
         dbconn.close()
         print("\nGenomicSQLite smoke test OK =)\n")
     finally:

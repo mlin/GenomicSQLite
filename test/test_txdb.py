@@ -127,15 +127,13 @@ def test_txdbquery(genomicsqlite_txdb):
     assert cds_exon_count_hist[:2] == [(0, 270532), (1, 310059)]
 
     # repeat with TVFs
-    exon_cds_counts = (
-        """
+    exon_cds_counts = """
         SELECT exon._rowid_ AS exon_id, COUNT(cds._rowid_) AS contained_cds
         FROM genomic_range_index_levels("cds"), exon LEFT JOIN cds
             ON cds._rowid_ IN genomic_range_rowids("cds", exon_chrom, exon_start, exon_end, gri_ceiling, gri_floor)
             AND (exon_start = cds_start AND exon_end >= cds_start OR exon_start <= cds_start AND exon_end = cds_end)
         GROUP BY exon._rowid_
         """
-    )
     for expl in conn.execute("EXPLAIN QUERY PLAN " + exon_cds_counts):
         print(expl[3])
     cds_exon_count_hist = list(
