@@ -318,23 +318,29 @@ def test_attach(tmp_path):
     assert len(refseq_by_name) > 24
 
 
-def test_prepare_in_sql(tmp_path):
+def test_gri_levels_in_sql(tmp_path):
     dbfile = str(tmp_path / "test.gsql")
     con = genomicsqlite.connect(dbfile, unsafe_load=True)
     _fill_exons(con)
     con.commit()
 
-    results = list(con.execute("SELECT * FROM genomic_range_rowids_prepare('exons')"))
+    results = list(con.execute("SELECT * FROM genomic_range_index_levels('exons')"))
     assert results == [(3, 1)]
 
-    results = list(con.execute("SELECT * FROM genomic_range_rowids_prepare('exons', 5)"))
-    assert results == [(5, 0)]
-
-    results = list(con.execute("SELECT * FROM genomic_range_rowids_prepare('exons', 5, 2)"))
-    assert results == [(5, 2)]
-
     with pytest.raises(sqlite3.OperationalError, match="no such table"):
-        con.execute("SELECT * FROM genomic_range_rowids_prepare('nonexistent')")
+        con.execute("SELECT * FROM genomic_range_index_levels('nonexistent')")
+
+    con.executescript("CREATE TABLE empty(rid TEXT, beg INTEGER, end INTEGER)")
+    with pytest.raises(sqlite3.OperationalError, match="missing genomic range index"):
+        con.execute("SELECT gri_ceiling, gri_floor FROM genomic_range_index_levels('empty')")
+
+    con.executescript(
+        genomicsqlite.create_genomic_range_index_sql(con, "empty", "rid", "beg", "end")
+    )
+    results = list(
+        con.execute("SELECT gri_ceiling, gri_floor FROM genomic_range_index_levels('empty')")
+    )
+    assert results == [(15, 0)]
 
 
 def test_query_in_sql(tmp_path):
@@ -389,6 +395,18 @@ def test_query_in_sql(tmp_path):
         con.execute(
             "SELECT * FROM genomic_range_rowids('nonexistent', 'chr17', 43044294, 43048294)"
         )
+
+    con.executescript("CREATE TABLE empty(rid TEXT, beg INTEGER, end INTEGER)")
+    with pytest.raises(sqlite3.OperationalError, match="no such index"):
+        con.execute("SELECT * FROM genomic_range_rowids('empty', 'chr17', 43044294, 43048294)")
+
+    con.executescript(
+        genomicsqlite.create_genomic_range_index_sql(con, "empty", "rid", "beg", "end")
+    )
+    results = list(
+        con.execute("SELECT * FROM genomic_range_rowids('empty', 'chr17', 43044294, 43048294)")
+    )
+    assert results == []
 
 
 def _fill_exons(con, floor=None, table="exons", gri=True, len_gri=False):
