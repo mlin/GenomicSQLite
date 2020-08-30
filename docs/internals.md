@@ -55,9 +55,9 @@ The no-op subtraction of 0 from qend was found to be needed for SQLite to use th
 
 ### Generating subquery SQL
 
-The `genomic_range_rowids()` SQL function just executes a query like the above and streams results back to the caller, taking care to minimize overhead by reusing prepared SQL statements.
+The `genomic_range_rowids()` SQL function implementation just executes a query like the above and streams results back to the caller, taking care to minimize overhead by reusing prepared SQLite statements.
 
-The extension also exposes the routine to generate the SQL query text, which you can paste as a subquery into your larger SQL query, instead of invoking `genomic_range_rowids()` to do the same thing. This direct method is more efficient because everything compiles into one SQLite bytecode program, instead of context-switching into the extension for each result.
+The extension also exposes the routine to generate the SQL subquery, which you can textually paste into your SQL in place of the `genomic_range_rowids()` invocation. This direct method is more efficient because everything compiles into one pure [SQLite bytecode program](https://www.sqlite.org/opcode.html), instead of context-switching into the extension for each result.
 
 **↪ Genomic Range Rowids SQL**: *Generate a string* containing a parenthesized SELECT query on a GRI-indexed table, which *when executed* yields a rowid result set identifying the overlapping features. This is typically pasted as a subquery within a larger query that retrieves the result rows for further filtering/analysis.
 

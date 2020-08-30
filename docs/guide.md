@@ -282,7 +282,7 @@ The extension supplies a SQL helper function `genomic_range_index_levels(tableNa
 SELECT col1, col2, ... FROM exons, genomic_range_index_levels('exons')
   WHERE exons._rowid_ IN
     genomic_range_rowids('exons', 'chr12', 111803912, 111804012,
-                        _gri_ceiling, _gri_floor)
+                         _gri_ceiling, _gri_floor)
 ```
 
 Here `_gri_ceiling` and `_gri_floor` are columns of the single row computed by `genomic_range_index_levels('exons')`.
