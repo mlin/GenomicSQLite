@@ -788,6 +788,7 @@ class GenomicRangeRowidsCursor : public SQLiteVirtualTableCursor {
 
     void ReturnStmtToCache() {
         if (stmt_) {
+            assert(floor_ >= 0 && ceiling_ >= floor_ && ceiling_ <= 15);
             auto &cache = stmt_cache_[table_name_];
             if (cache.ceiling == ceiling_ && cache.floor == floor_) {
                 sqlite3_reset(stmt_.get());
@@ -902,6 +903,8 @@ class GenomicRangeIndexLevelsTVF : public SQLiteVirtualTable {
         if (rc != SQLITE_OK)
             return rc;
         info->orderByConsumed = 1;
+        info->estimatedCost = 1;
+        info->estimatedRows = 1;
         return SQLITE_OK;
     }
 
@@ -910,7 +913,7 @@ class GenomicRangeIndexLevelsTVF : public SQLiteVirtualTable {
         return SQLiteVirtualTable::SimpleConnect(
             db, pAux, argc, argv, ppVTab, pzErr,
             unique_ptr<SQLiteVirtualTable>(new GenomicRangeIndexLevelsTVF(db)),
-            "CREATE TABLE genomic_range_index_levels(gri_ceiling INTEGER, gri_floor INTEGER, tableName HIDDEN)");
+            "CREATE TABLE genomic_range_index_levels(_gri_ceiling INTEGER, _gri_floor INTEGER, tableName HIDDEN)");
     }
 };
 

@@ -246,128 +246,69 @@ At present, GRI cannot be used on [WITHOUT ROWID](https://www.sqlite.org/without
 
 ### Query GRI
 
-**↪ Genomic Range Rowids SQL**: *Generate a string* containing a parenthesized SELECT query on a previously-indexed table, which *when executed* yields a rowid result set identifying the relevant features. This is typically pasted as a subquery within a larger query that retrieves the result rows for further filtering/analysis.
+The extension supplies a special SQL function to query a GRI-indexed table, generating the set of rowids identifying features that overlap a query range (queryChrom, queryBegin, queryEnd):
 
-=== "Python"
-    ``` python3
-    query = (
-      'SELECT * FROM tableName WHERE tableName._rowid_ IN ' +
-      genomicsqlite.genomic_range_rowids_sql(dbconn, 'tableName',
-                                             # defaults:
-                                             qrid='?1', qbeg='?2', qend='?3',
-                                             ceiling=-1, floor=-1)
-    )
-    cursor = dbconn.execute(query, ('chr12',111803912,111804012))
-    ```
+`genomic_range_rowids(tableName, queryChrom, queryBegin, queryEnd[, ceiling, floor])`
 
-=== "SQLiteCpp"
-    ``` c++
-    std::string GenomicRangeRowidsSQL(
-      const std::string &indexed_table,
-      sqlite3 *dbconn,
-      const std::string &qrid = "?1",
-      const std::string &qbeg = "?2",
-      const std::string &qend = "?3",
-      int ceiling = -1, int floor = -1
-    );
+This is typically used to retrieve the result rows by selecting for `tableName._rowid_ IN genomic_range_rowids(...)`. For example,
 
-    // SQLite::Database* dbconn
-    std::string query = "SELECT * FROM tableName WHERE tableName._rowid_ IN "
-      + GenomicRangeRowidsSQL("tableName", dbconn->getHandle());
-    SQLite::Statement stmt(*dbconn, query);
-    stmt.bindNoCopy(1, "chr12");
-    stmt.bind(2, (sqlite3_int64) 111803912);
-    stmt.bind(3, (sqlite3_int64) 111804012);
-    while (stmt.executeStep()) {
-      // process row
-    }
-    ```
-
-=== "C++"
-    ``` c++
-    std::string GenomicRangeRowidsSQL(
-      const std::string &indexed_table,
-      sqlite3 *dbconn,
-      const std::string &qrid = "?1",
-      const std::string &qbeg = "?2",
-      const std::string &qend = "?3",
-      int ceiling = -1, int floor = -1
-    );
-
-    // sqlite3* dbconn
-    std::string query = "SELECT * FROM tableName WHERE tableName._rowid_ IN "
-      + GenomicRangeRowidsSQL("tableName", dbconn);
-
-    // Omitted for brevity:
-    // Compile query using sqlite3_prepare_v3()
-    // Bind query range parameters using sqlite3_bind_{text,int64}()
-    // Step through results as usual with sqlite3_step()
-    ```
-
-=== "C"
-    ``` c
-    char *genomic_range_rowids_sql(
-      const char *indexed_table,
-      sqlite3 *dbconn,
-      const char *qrid,       /* null defaults to "?1" */
-      const char *qbeg,       /* null defaults to "?2" */
-      const char *qend,       /* null defaults to "?3" */
-      int ceiling, int floor  /* set these to -1, not 0! */
-    );
-
-    /* sqlite3* dbconn */
-    char* subquery = genomic_range_rowids_sql("tableName", dbconn, 0, 0, 0, -1, -1);
-    if (*subquery) {
-      /* Omitted for brevity:
-       * Append subquery to "SELECT * FROM tableName WHERE tableName._rowid_ IN "
-       * Compile query using sqlite3_prepare_v3()
-       * Bind query range parameters using sqlite3_bind_{text,int64}()
-       * Step through results as usual with sqlite3_step()
-       */
-    } else {
-      /* see calling convention discussed in previous examples */
-    }
-    sqlite3_free(subquery);
-    ```
-
-#### Query range arguments
-
-Following the name of the previously-indexed table *to be queried*, the routine takes three arguments supplying the desired range *to query it for* (queryChrom, queryBegin, queryEnd). These arguments default to `?1`, `?2`, and `?3`, sourcing the first three [bound parameters](https://www.sqlite.org/c3ref/bind_blob.html) of the top-level SQL query. They can be overridden to:
-
-1. other numbered or named parameter placeholders
-2. literal SQL values
-3. names of columns in *other* tables being joined (see Cookbook, below)
-4. simple expressions involving any of the above
+```sql
+SELECT col1, col2, ... FROM exons WHERE exons._rowid_ IN
+  genomic_range_rowids('exons', 'chr12', 111803912, 111804012)
+```
 
 The queryChrom parameter might have SQL type TEXT or INTEGER, according to whether the GRI indexes name or rid.
 
-**❗ The table name and expressions are textually pasted into a SQL template. Take care to prevent SQL injection, if they're in any way determined by external input.**
+The ordered rowid set identifies the features satisfying,
 
-#### Range semantics
-
-The generated subquery yields an ordered rowid set identifying the features satisfying
-
-```
+``` sql
 queryChrom = featureChrom AND
   NOT (queryBegin > featureEnd OR queryEnd < featureBegin)
 ```
 
 (*"query is not disjoint from feature"*)
 
+By the half-open position convention, this includes features that *abut* as well as those that *overlap* the query range. If you don't want those, or if you want only "contained" features, simply add such constraints to your query's WHERE clause.
 
-By the half-open position convention, this includes features that *abut* as well as those that *overlap* the query range. If you don't want those, or if you want only "contained" features, simply add such constraints to the WHERE clause of your top-level query.
+<small>The query will not match any rows with NULL feature coordinates. If needed, the GRI can inform this query for NULL chromosome/rid: `SELECT ... FROM tableName WHERE _gri_rid IS NULL`.</small>
 
-The generated subquery will not match any rows with NULL feature coordinates. If needed, the GRI can inform this query for NULL chromosome/rid: `SELECT ... FROM tableName WHERE _gri_rid IS NULL`.
+#### Level bounds optimization
 
-#### GRI query reuse
+The optional, trailing `ceiling` & `floor` arguments to `genomic_range_rowids()` optimize GRI queries by skipping steps that'd be useless in view of the length distribution of the indexed features. (See Internals for full explanation.)
 
-The subquery-generation routine includes an automatic optimization to eliminate steps that aren't necessary given the actual length distribution of the indexed features. 
+The extension supplies a SQL helper function `genomic_range_index_levels(tableName)` to detect the appropriate bounds for (the current snapshot of) the table. Example usage:
 
-**❗ Writes to the indexed table that change the min/max feature length may render previously-generated subqueries incorrect (liable to yield incomplete results). The query statement should be regenerated and recompiled in this case.**
+```sql
+SELECT col1, col2, ... FROM exons, genomic_range_index_levels('exons')
+  WHERE exons._rowid_ IN
+    genomic_range_rowids('exons', 'chr12', 111803912, 111804012,
+                        _gri_ceiling, _gri_floor)
+```
 
-The optimization procedure accesses the GRI to collect this information, which isn't too costly, but nor is it free. It's worthwhile in the typical case that the generated subquery will execute many times as a prepared statement on a read-only table.
+Here `_gri_ceiling` and `_gri_floor` are columns of the single row computed by `genomic_range_index_levels('exons')`.
 
-If needed, you can direct the routine to skip the automatic optimization, and produce a slightly less-efficient subquery that will remain correct even if the feature length distribution changes. If the subquery will only be used a few times, then this might well be faster overall. To do this, set the optional `ceiling` argument to an integer 0 &lt; *C* &lt; 16 such that all (present & future) indexed features are guaranteed to have lengths &le;16<sup>*C*</sup>. For example, if you're querying features on the human genome, then you can set `ceiling=7` because the lengthiest chromosome sequence is &lt;16<sup>7</sup>nt. <small>If you set `ceiling` and the GRI was initially created with a positive `floor` value, then you optionally may also set `floor` to that same value here.</small>
+Alternatively, your program might first query `genomic_range_index_levels()` alone, then pass the bounds in to subsequent prepared queries, e.g. in Python:
+
+```python3
+(gri_ceiling, gri_floor) = next(
+    con.execute("SELECT * FROM genomic_range_index_levels('exons')")
+  )
+for (queryChrom, queryBegin, queryEnd) in queryRanges:
+  exons = list(
+    con.execute(
+      "SELECT * from exons WHERE exons._rowid_ IN \
+        genomic_range_rowids('exons',?,?,?,?,?)",
+      (queryChrom, queryBegin, queryEnd, gri_ceiling, gri_floor)
+    )
+  )
+  ...
+```
+
+This bounds detection procedure has a small cost, which will be worthwhile if the bounds help many subsequent GRI queries (but possibly not if just for a few queries).
+
+**❗ The bounds should be redetected if the min/max feature length may have been changed by inserts or updates to the table. GRI queries with incorrect bounds are liable to produce incomplete results.**
+
+Omitting the bounds is always safe, albeit slower. <small>Instead of auto-detecting current bounds, they can be figured manually as follows. Set the integer ceiling to *C*, 0 &lt; *C* &lt; 16, such that all (present & future) indexed features are guaranteed to have lengths &le;16<sup>*C*</sup>. For example, if you're querying features on the human genome, then you can set ceiling=7 because the lengthiest chromosome sequence is &lt;16<sup>7</sup>nt. Set the integer floor *F* &le; *C* to (i) the floor value supplied at GRI creation, (ii) *F* &gt; 0 such that the minimum possible feature length &gt;16<sup>*F*-1</sup>, or (iii) zero. The default, safe, albeit slower bounds are C=15, F=0.</small>
 
 ### Reference genome metadata
 
@@ -632,7 +573,7 @@ The optional `assembly` argument restricts the retrieved sequences to those with
 
 Table identifies each feature's chromosome by rid, and we want to see them with text chromosome names.
 
-```
+``` sql
 SELECT gri_refseq_name, feature_table.*
   FROM feature_table NATURAL JOIN _gri_refseq
 ```
@@ -643,41 +584,37 @@ Alternatively, the application code can read rid from the row and translate it u
 
 #### Query rid using chromosome name
 
-We're making a GRI query on a table that stores rid integers, but our query range has a chromosome name. (e.g. in Python)
+We're making a GRI query on a table that stores rid integers, but our query range has a chromosome name.
 
-``` python3
-query = """
-  SELECT feature_table.* FROM
-    (SELECT _gri_rid AS rid FROM _gri_refseq
-     WHERE gri_refseq_name=?1) AS query, feature_table
-    WHERE feature_table._rowid_ IN
-""" + genomicsqlite.genomic_range_rowids_sql(dbconn, 'feature_table', 'query.rid')
-results = list(dbconn.execute(query, ('chr12',111803912,111804012)))
+``` sql
+SELECT feature_table.* FROM
+  (SELECT _gri_rid AS rid FROM _gri_refseq
+    WHERE gri_refseq_name='chr12') AS query, feature_table
+  WHERE feature_table._rowid_ IN
+    genomic_range_rowids('feature_table',query.rid,111803912,111804012)
 ```
 
-In the GRI subquery, we fill out the rid by referencing the transient `query` table where we looked up the rid corresponding to the chromosome name parameter.
-
-Alternatively, the application code can first convert the query name to rid using the lookup table generated by the **Get Reference Sequences by Name** routine.
+We use a subquery to look up the rid corresponding to the known chromosome name. Alternatively, the application code can first convert the query name to rid using the lookup table generated by the **Get Reference Sequences by Name** routine.
 
 #### Join two tables on genomic range overlap
 
 We've two tables with genomic features to join by range overlap. Only the "right-hand" table must have a GRI; preferably the smaller of the two. For example, annotating a table of variants with the surrounding exon(s), if any:
 
-``` python3
-query = ("""
-  SELECT variants.*, exons._rowid_
-  FROM variants LEFT JOIN exons ON exons._rowid_ IN """
-  + genomicsqlite.genomic_range_rowids_sql(
-      dbconn, 'exons',
-      'variants.chromosome',
-      'variants.beginPosition',
-      'variants.endPosition'
-  ))
-for row in dbconn.execute(query):
-  ...
+``` sql
+SELECT variants.*, exons._rowid_
+FROM genomic_range_index_levels('exons'),
+     variants LEFT JOIN exons ON exons._rowid_ IN
+  genomic_range_rowids(
+    'exons',
+    variants.chrom,
+    variants.beginPos,
+    variants.endPos,
+    _gri_ceiling,
+    _gri_floor
+  )
 ```
 
-We fill out the GRI query range using the three coordinate columns of the variants table.
+We fill out the GRI query range using the three coordinate columns of the variants table. The level bounds optimization is highly desirable for the "tight loop" of GRI queries during a join.
 
 ### Advice for big data
 

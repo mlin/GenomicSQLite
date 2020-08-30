@@ -332,13 +332,13 @@ def test_gri_levels_in_sql(tmp_path):
 
     con.executescript("CREATE TABLE empty(rid TEXT, beg INTEGER, end INTEGER)")
     with pytest.raises(sqlite3.OperationalError, match="missing genomic range index"):
-        con.execute("SELECT gri_ceiling, gri_floor FROM genomic_range_index_levels('empty')")
+        con.execute("SELECT _gri_ceiling, _gri_floor FROM genomic_range_index_levels('empty')")
 
     con.executescript(
         genomicsqlite.create_genomic_range_index_sql(con, "empty", "rid", "beg", "end")
     )
     results = list(
-        con.execute("SELECT gri_ceiling, gri_floor FROM genomic_range_index_levels('empty')")
+        con.execute("SELECT _gri_ceiling, _gri_floor FROM genomic_range_index_levels('empty')")
     )
     assert results == [(15, 0)]
 
