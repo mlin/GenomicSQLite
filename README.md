@@ -27,7 +27,7 @@ More to come. (Help wanted; see [Language Bindings Guide](https://mlin.github.io
 
 ## Building from source
 
-![build](https://github.com/mlin/GenomicSQLite/workflows/build/badge.svg?branch=main)
+[![build](https://github.com/mlin/GenomicSQLite/workflows/build/badge.svg?branch=main)](https://github.com/mlin/GenomicSQLite/actions?query=workflow%3Abuild)
 
 Most will prefer to install a pre-built shared library (see above). To build from source, see our [Actions yml (Ubuntu 20.04)](https://github.com/mlin/GenomicSQLite/blob/main/.github/workflows/build.yml) or [Dockerfile (Ubuntu 16.04)](https://github.com/mlin/GenomicSQLite/blob/main/Dockerfile) used to build the more-portable releases. Briefly, you'll need:
 
