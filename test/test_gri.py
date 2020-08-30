@@ -318,6 +318,102 @@ def test_attach(tmp_path):
     assert len(refseq_by_name) > 24
 
 
+def test_gri_levels_in_sql(tmp_path):
+    dbfile = str(tmp_path / "test.gsql")
+    con = genomicsqlite.connect(dbfile, unsafe_load=True)
+    _fill_exons(con)
+    con.commit()
+
+    results = list(con.execute("SELECT * FROM genomic_range_index_levels('exons')"))
+    assert results == [(3, 1)]
+
+    with pytest.raises(sqlite3.OperationalError, match="no such table"):
+        con.execute("SELECT * FROM genomic_range_index_levels('nonexistent')")
+
+    con.executescript("CREATE TABLE empty(rid TEXT, beg INTEGER, end INTEGER)")
+    with pytest.raises(sqlite3.OperationalError, match="missing genomic range index"):
+        con.execute("SELECT _gri_ceiling, _gri_floor FROM genomic_range_index_levels('empty')")
+
+    con.executescript(
+        genomicsqlite.create_genomic_range_index_sql(con, "empty", "rid", "beg", "end")
+    )
+    results = list(
+        con.execute("SELECT _gri_ceiling, _gri_floor FROM genomic_range_index_levels('empty')")
+    )
+    assert results == [(15, 0)]
+
+
+def test_query_in_sql(tmp_path):
+    dbfile = str(tmp_path / "test.gsql")
+    con = genomicsqlite.connect(dbfile, unsafe_load=True)
+    _fill_exons(con)
+    con.commit()
+
+    query = "SELECT id FROM exons WHERE exons._rowid_ IN genomic_range_rowids('exons',?,?,?)"
+    results = list(con.execute(query, ("chr17", 43044294, 43048294)))
+
+    control_query = genomicsqlite.genomic_range_rowids_sql(con, "exons")
+    control_query = "SELECT id FROM exons WHERE exons._rowid_ IN\n" + control_query
+    control_results = list(con.execute(control_query, ("chr17", 43044294, 43048294)))
+
+    assert results == control_results
+
+    for expl in con.execute(
+        "EXPLAIN QUERY PLAN SELECT _rowid_ FROM genomic_range_rowids('exons',?,?,?) ORDER BY _rowid_",
+        ("chr17", 43044294, 43048294),
+    ):
+        assert "USE TEMP B-TREE FOR ORDER BY" not in expl[3]
+
+    assert next(
+        (
+            expl[3]
+            for expl in con.execute(
+                "EXPLAIN QUERY PLAN SELECT _rowid_ FROM genomic_range_rowids('exons',?,?,?) ORDER BY _rowid_ DESC",
+                ("chr17", 43044294, 43048294),
+            )
+            if "USE TEMP B-TREE FOR ORDER BY" in expl[3]
+        )
+    )
+
+    with pytest.raises(sqlite3.OperationalError, match="domain error"):
+        con.execute(
+            "SELECT * FROM genomic_range_rowids('exons', 'chr17', 43044294, 43048294, 16, 0)"
+        )
+
+    dbfile2 = str(tmp_path / "test2.gsql")
+    con2 = genomicsqlite.connect(dbfile2, unsafe_load=True)
+    _fill_exons(con2)
+    con2.commit()
+    con2.close()
+
+    con.executescript(genomicsqlite.attach_sql(con, dbfile2, "db2", immutable=True))
+    query = """
+        SELECT main.exons.id, db2.exons.id
+            FROM main.exons LEFT JOIN db2.exons ON
+            db2.exons._rowid_ IN genomic_range_rowids('db2.exons', main.exons.rid, main.exons.beg, main.exons.end)
+            AND main.exons.id != db2.exons.id ORDER BY main.exons.id, db2.exons.id
+        """
+    results = list(con.execute(query))
+    assert len(results) == 5191
+
+    with pytest.raises(sqlite3.OperationalError, match="no such table"):
+        con.execute(
+            "SELECT * FROM genomic_range_rowids('nonexistent', 'chr17', 43044294, 43048294)"
+        )
+
+    con.executescript("CREATE TABLE empty(rid TEXT, beg INTEGER, end INTEGER)")
+    with pytest.raises(sqlite3.OperationalError, match="no such index"):
+        con.execute("SELECT * FROM genomic_range_rowids('empty', 'chr17', 43044294, 43048294)")
+
+    con.executescript(
+        genomicsqlite.create_genomic_range_index_sql(con, "empty", "rid", "beg", "end")
+    )
+    results = list(
+        con.execute("SELECT * FROM genomic_range_rowids('empty', 'chr17', 43044294, 43048294)")
+    )
+    assert results == []
+
+
 def _fill_exons(con, floor=None, table="exons", gri=True, len_gri=False):
     con.execute(
         f"CREATE TABLE {table}(rid TEXT NOT NULL, beg INTEGER NOT NULL, end INTEGER NOT NULL, len INTEGER NOT NULL, id TEXT NOT NULL)"

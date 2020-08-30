@@ -73,7 +73,6 @@ wget -nv -O - https://raw.githubusercontent.com/mlin/GenomicSQLite/release/test/
 
 Even if you're not planning to use Python, this test's detailed logs may be useful to diagnose general problems loading the extension.
 
-
 ## Use cases
 
 The extension makes SQLite an efficient foundation for:
@@ -87,6 +86,8 @@ The extension makes SQLite an efficient foundation for:
 
 ### Contraindications
 
-1. Huge numerical arrays: see [HDF5](https://www.hdfgroup.org/solutions/hdf5/), [Zarr](https://zarr.readthedocs.io/en/stable/), [Parquet](https://parquet.apache.org/), [Arrow](https://arrow.apache.org/). <small>SQLite's [BLOB I/O](https://www.sqlite.org/c3ref/blob_open.html) leaves the door open for mash-ups!</small>
+1. Huge numerical arrays: see [HDF5](https://www.hdfgroup.org/solutions/hdf5/), [Zarr](https://zarr.readthedocs.io/en/stable/), [Parquet](https://parquet.apache.org/), [Arrow](https://arrow.apache.org/), [TileDB](https://github.com/TileDB-Inc/TileDB). <small>SQLite's [BLOB I/O](https://www.sqlite.org/c3ref/blob_open.html) leaves the door open for mash-ups!</small>
 2. Parallel SQL analytics / OLAP: see [Spark](https://spark.apache.org/), [DuckDB](https://duckdb.org/), many commercial products. <small>(Some bases can be covered with a sharding harness for a pool of threads with their own SQLite connections...)</small>
 3. Streaming: SQLite storage relies on randomly reading & writing throughout the database file.
+
+**Proceed to the Programming Guide section to get started building applications.**

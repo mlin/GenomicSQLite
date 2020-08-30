@@ -122,8 +122,10 @@ def main():
         results = list(dbconn.execute(query))
         control = "SELECT exons1.id, exons2.id FROM exons1 LEFT JOIN exons2 NOT INDEXED ON NOT (exons2.end < exons1.pos OR exons2.pos > exons1.end) ORDER BY exons1.id, exons2.id"
         control_results = list(dbconn.execute(control))
-        assert len(control_results) == 1139
-        assert results == control_results
+        assert len(control_results) == 1139, "unexpected control query results"
+        assert (
+            results == control_results
+        ), "discrepancy between genomic_range_rowids_sql() and control results"
 
         if gri_constraints != 3:
             print("GRI query opcodes:")
@@ -138,6 +140,20 @@ def main():
             )
 
             sys.exit(2)
+
+        assert next(dbconn.execute("SELECT * FROM genomic_range_index_levels('exons2')")) == (
+            3,
+            1,
+        ), "incorrect results from genomic_range_index_levels()"
+        query2 = """
+            SELECT exons1.id, exons2.id
+            FROM genomic_range_index_levels('exons2'), exons1 LEFT JOIN exons2 ON exons2._rowid_ IN
+                genomic_range_rowids('exons2', exons1.chrom, exons1.pos, exons1.end, _gri_ceiling, _gri_floor)
+            ORDER BY exons1.id, exons2.id
+            """
+        assert (
+            list(dbconn.execute(query2)) == control_results
+        ), "discrepancy between genomic_range_rowids() and control results"
 
         dbconn.close()
         print("\nGenomicSQLite smoke test OK =)\n")

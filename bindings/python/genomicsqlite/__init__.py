@@ -60,7 +60,11 @@ def connect(dbfile: str, read_only: bool = False, **kwargs) -> sqlite3.Connectio
     config_json = json.dumps(config)
 
     # formulate the URI connection string
-    uri = _execute1(_MEMCONN, "SELECT genomicsqlite_uri(?,?)", (dbfile, config_json),)
+    uri = _execute1(
+        _MEMCONN,
+        "SELECT genomicsqlite_uri(?,?)",
+        (dbfile, config_json),
+    )
     if read_only:
         uri += "&mode=ro"
 
@@ -68,7 +72,11 @@ def connect(dbfile: str, read_only: bool = False, **kwargs) -> sqlite3.Connectio
     conn = sqlite3.connect(uri, uri=True, **kwargs)
 
     # perform GenomicSQLite tuning
-    tuning_sql = _execute1(conn, "SELECT genomicsqlite_tuning_sql(?)", (config_json,),)
+    tuning_sql = _execute1(
+        conn,
+        "SELECT genomicsqlite_tuning_sql(?)",
+        (config_json,),
+    )
     conn.executescript(tuning_sql)
 
     return conn
@@ -87,7 +95,12 @@ def vacuum_into_sql(conn: sqlite3.Connection, destfile: str, **config) -> str:
 
 
 def create_genomic_range_index_sql(
-    conn: sqlite3.Connection, table: str, rid: str, beg: str, end: str, floor: Optional[int] = None,
+    conn: sqlite3.Connection,
+    table: str,
+    rid: str,
+    beg: str,
+    end: str,
+    floor: Optional[int] = None,
 ) -> str:
     return _execute1(
         conn, "SELECT create_genomic_range_index_sql(?,?,?,?,?)", (table, rid, beg, end, floor)

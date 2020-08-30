@@ -63,7 +63,6 @@ The other routines are much simpler. The binding for each just takes its require
 * `SELECT genomicsqlite_attach_sql(dbfilename, schema_name, config_json)` takes the same `config_json` as would Open
 * `SELECT genomicsqlite_vacuum_into_sql(destfilename, config_json)`
 * `SELECT create_genomic_range_index_sql(tableName, chromosome, beginPosition, endPosition[, floor])`: floor is an integer, others text.
-* `SELECT genomic_range_rowids_sql(tableName[, qrid, qbeg, qend][, ceiling[, floor]])` ceiling and floor are integers.
 * `SELECT put_reference_assembly_sql(assembly)`
 * `SELECT put_reference_sequence_sql(name, length[, assembly, refget_id, meta_json, rid])` length and rid are integers.
 
