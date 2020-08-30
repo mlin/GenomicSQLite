@@ -310,7 +310,7 @@ This bounds detection procedure has a small cost, which will be worthwhile if us
 
 Omitting the bounds is always safe, albeit slower. <small>Instead of detecting current bounds, they can be figured manually as follows. Set the integer ceiling to *C*, 0 &lt; *C* &lt; 16, such that all (present & future) indexed features are guaranteed to have lengths &le;16<sup>*C*</sup>. For example, if you're querying features on the human genome, then you can set ceiling=7 because the lengthiest chromosome sequence is &lt;16<sup>7</sup>nt. Set the integer floor *F* to (i) the floor value supplied at GRI creation, if any; (ii) *F* &gt; 0 such that the minimum possible feature length &gt;16<sup>*F*-1</sup>, if any; or (iii) zero. The default, safe, albeit slower bounds are C=15, F=0.</small>
 
-#### Joining tables on genomic range overlap
+#### Joining tables on range overlap
 
 Suppose we have two tables with genomic features to join on range overlap. Only the "right-hand" table must have a GRI; preferably the smaller of the two. For example, annotating a table of variants with the surrounding exon(s), if any:
 
@@ -328,7 +328,7 @@ FROM genomic_range_index_levels('exons'),
   )
 ```
 
-We fill out the GRI query range using the three coordinate columns of the variants table. The level bounds optimization is highly desirable for the "tight loop" of GRI queries during a join.
+We fill out the GRI query range using the three coordinate columns of the variants table. The level bounds optimization is highly desirable for the "tight loop" of GRI queries during a join. See also "Advice for big data" below.
 
 ### Reference genome metadata
 
@@ -623,7 +623,7 @@ A SQLite table's rowid order indicates its physical storage layout. It's therefo
 You can sort the rows of an existing table into a new table with the same schema, with something like `INSERT INTO sorted SELECT * FROM original NOT INDEXED ORDER BY chromosome, beginPosition`. The Genomics Extension enables SQLite's [parallel, external merge-sorter](https://sqlite.org/src/file/src/vdbesort.c) to execute this efficiently; still, if it's feasible to load sorted data upfront, so much the better.
 
 <small>
-Note 1. `NOT INDEXED` is there to force SQLite to use the external sorter instead of some index that'd mislead it into reading the entire table in a shuffled order. If applicable, make sure [it's configured](https://www.sqlite.org/tempfiles.html) to use a suitable storage subsystem for big temporary files.
+Note 1. Make sure [SQLite is configured](https://www.sqlite.org/tempfiles.html) to use a suitable storage subsystem for big temporary files generated whilst sorting. `NOT INDEXED` forces SQLite to use the external sorter instead of some index that'd mislead it into reading the entire table in a shuffled order.
 
 Note 2. The "original" table should come from a separate [attached database](https://www.sqlite.org/lang_attach.html) to avoid `DROP TABLE original` from the final database, which is costly due to the need to defragment afterwards.
 </small>
@@ -632,7 +632,7 @@ A series of many GRI queries (including in the course of a join) should also pro
 
 If you expect a GRI query to yield a very large, contiguous rowid result set (e.g. all features on a chromosome, in a table *known* to be range-sorted), then the following specialized query plan may be advantageous:
 
-1. Ask GRI for *first* relevant rowid `ORDER BY _rowid_ LIMIT 1`
+1. Ask GRI for *first* relevant rowid, `SELECT MIN(_rowid_) AS firstRowid FROM genomic_range_rowids(...)`
 2. Open a cursor on `SELECT ... FROM tableName WHERE _rowid_ >= firstRowid`
 3. Loop through rows for as long as they're relevant.
 

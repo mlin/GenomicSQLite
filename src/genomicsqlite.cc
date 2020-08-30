@@ -905,6 +905,7 @@ class GenomicRangeIndexLevelsTVF : public SQLiteVirtualTable {
         info->orderByConsumed = 1;
         info->estimatedCost = 1;
         info->estimatedRows = 1;
+        info->idxFlags = SQLITE_INDEX_SCAN_UNIQUE;
         return SQLITE_OK;
     }
 
