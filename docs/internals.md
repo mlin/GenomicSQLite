@@ -152,7 +152,9 @@ Following the name of the indexed table *to be queried*, the routine takes three
 
 **❗ The table name and expressions are textually pasted into a SQL template. Take care to prevent SQL injection, if they're in any way determined by external input.**
 
-**❗ Unlike `genomic_range_rowids()`, the `genomic_range_rowids_sql` subquery generator uses auto-detected level bounds unless overridden by the `ceiling` and `floor` arguments. If the generated SQL query will be reused on a table that may have changed in the meantime, then ceiling & floor should be overidden to looser bounds based on the maximum and minimum possible feature lengths (ceiling=15 and floor=0 for maximum generality).**
+Unlike `genomic_range_rowids()`, the `genomic_range_rowids_sql` subquery generator defaults to level bounds auto-detected from the table at the time of subquery generation.
+
+**❗ If the generated SQL query will be reused on a table that may have changed in the meantime, then ceiling & floor should be overidden based on the maximum and minimum possible feature length (ceiling=15 and floor=0 for full generality). **
 
 If your language bindings don't include a wrapper for this routine, you can use the database connection to get the text result of `SELECT genomic_range_rowids_sql(tableName[, qrid, qbeg, qend[, ceiling, floor]])`.
 

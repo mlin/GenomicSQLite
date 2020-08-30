@@ -375,6 +375,11 @@ def test_query_in_sql(tmp_path):
         )
     )
 
+    with pytest.raises(sqlite3.OperationalError, match="domain error"):
+        con.execute(
+            "SELECT * FROM genomic_range_rowids('exons', 'chr17', 43044294, 43048294, 16, 0)"
+        )
+
     dbfile2 = str(tmp_path / "test2.gsql")
     con2 = genomicsqlite.connect(dbfile2, unsafe_load=True)
     _fill_exons(con2)

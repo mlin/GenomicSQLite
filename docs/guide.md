@@ -136,7 +136,7 @@ The aforementioned zstd_level, threads, and page_size options all affect the com
 
 GenomicSQLite enables creation of a **Genomic Range Index (GRI)** for any database table in which each row represents a genomic feature with (chromosome, beginPosition, endPosition) coordinates. The coordinates may be sourced from table columns or by computing arithmetic expressions thereof. The index tracks any updates to the underlying table as usual, with one caveat explained below.
 
-Once indexed, the table can be queried for all features overlapping a query range. A GRI query yields a [rowid](https://www.sqlite.org/rowidtable.html) set, which your SQL query can select from the indexed table for further filtering or analysis. Please review the brief SQLite documentation on [rowid](https://www.sqlite.org/rowidtable.html) and [Autoincrement](https://www.sqlite.org/autoinc.html) to proceed.
+Once indexed, the table can be queried for all features overlapping a query range. A GRI query yields a [rowid](https://www.sqlite.org/rowidtable.html) set, which your SQL query can select from the indexed table for further filtering or analysis. Please review the brief SQLite documentation on [rowid](https://www.sqlite.org/rowidtable.html) and [Autoincrement](https://www.sqlite.org/autoinc.html).
 
 ### Conventions
 
@@ -304,11 +304,11 @@ for (queryChrom, queryBegin, queryEnd) in queryRanges:
   ...
 ```
 
-This bounds detection procedure has a small cost, which will be worthwhile if the bounds help many subsequent GRI queries (but possibly not if just for a few queries).
+This bounds detection procedure has a small cost, which will be worthwhile if used to speed up many subsequent GRI queries (but possibly not if just for a few queries).
 
 **❗ The bounds should be redetected if the min/max feature length may have been changed by inserts or updates to the table. GRI queries with incorrect bounds are liable to produce incomplete results.**
 
-Omitting the bounds is always safe, albeit slower. <small>Instead of auto-detecting current bounds, they can be figured manually as follows. Set the integer ceiling to *C*, 0 &lt; *C* &lt; 16, such that all (present & future) indexed features are guaranteed to have lengths &le;16<sup>*C*</sup>. For example, if you're querying features on the human genome, then you can set ceiling=7 because the lengthiest chromosome sequence is &lt;16<sup>7</sup>nt. Set the integer floor *F* &le; *C* to (i) the floor value supplied at GRI creation, (ii) *F* &gt; 0 such that the minimum possible feature length &gt;16<sup>*F*-1</sup>, or (iii) zero. The default, safe, albeit slower bounds are C=15, F=0.</small>
+Omitting the bounds is always safe, albeit slower. <small>Instead of detecting current bounds, they can be figured manually as follows. Set the integer ceiling to *C*, 0 &lt; *C* &lt; 16, such that all (present & future) indexed features are guaranteed to have lengths &le;16<sup>*C*</sup>. For example, if you're querying features on the human genome, then you can set ceiling=7 because the lengthiest chromosome sequence is &lt;16<sup>7</sup>nt. Set the integer floor *F* to (i) the floor value supplied at GRI creation, if any; (ii) *F* &gt; 0 such that the minimum possible feature length &gt;16<sup>*F*-1</sup>, if any; or (iii) zero. The default, safe, albeit slower bounds are C=15, F=0.</small>
 
 ### Reference genome metadata
 

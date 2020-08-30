@@ -12,7 +12,8 @@ def sam_into_sqlite(infilename, outfilename, *options):
     )
     print(" ".join(cmd))
     subprocess.run(
-        cmd, check=True,
+        cmd,
+        check=True,
     )
     print(outfilename)
 

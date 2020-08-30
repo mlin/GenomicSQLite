@@ -12,7 +12,8 @@ def vcf_into_sqlite(infilename, outfilename, *options):
     )
     print(" ".join(cmd))
     subprocess.run(
-        cmd, check=True,
+        cmd,
+        check=True,
     )
     print(outfilename)
 
@@ -66,7 +67,8 @@ def test_gnomad_sites_small(tmp_path):
 def test_gvcf_dv(tmp_path):
     dbfile = str(tmp_path / "test.gsql")
     vcf_into_sqlite(
-        os.path.join(HERE, "data/NA12878.dv0.8.0.chr21.g.vcf.gz"), str(dbfile),
+        os.path.join(HERE, "data/NA12878.dv0.8.0.chr21.g.vcf.gz"),
+        str(dbfile),
     )
     rows = 962896
     con = genomicsqlite.connect(dbfile, read_only=True)
@@ -77,7 +79,8 @@ def test_gvcf_dv(tmp_path):
 def test_gvcf_hc(tmp_path):
     dbfile = str(tmp_path / "test.gsql")
     vcf_into_sqlite(
-        os.path.join(HERE, "data/hc.NA12878.chr22:25000000-30000000.g.vcf.gz"), str(dbfile),
+        os.path.join(HERE, "data/hc.NA12878.chr22:25000000-30000000.g.vcf.gz"),
+        str(dbfile),
     )
     rows = 823480
     con = genomicsqlite.connect(dbfile, read_only=True)
@@ -88,7 +91,8 @@ def test_gvcf_hc(tmp_path):
 def test_pvcf_glnexus(tmp_path):
     dbfile = str(tmp_path / "test.gsql")
     vcf_into_sqlite(
-        os.path.join(HERE, "data/dv_glnexus.1KGP.ALDH2.vcf.gz"), str(dbfile),
+        os.path.join(HERE, "data/dv_glnexus.1KGP.ALDH2.vcf.gz"),
+        str(dbfile),
     )
     rows = 1993
     samples = 2504
