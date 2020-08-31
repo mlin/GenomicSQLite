@@ -374,7 +374,7 @@
 <li>streaming storage compression using multithreaded <a href="https://facebook.github.io/zstd/">Zstandard</a></li>
 <li>pre-tuned settings for "big data"</li>
 </ul>
-<p>Our <strong><a href="https://colab.research.google.com/drive/1ZqRjs0IFnGvb7TARUybkkfzpFQ_xrrgm?usp=sharing">Colab notebook</a></strong> demonstrates the Python interface.</p>
+<p>Our <strong><a href="https://colab.research.google.com/drive/1JaNCtyDoigH1AuEdrgqQp_qyzQ7OaAXH?usp=sharing">Colab notebook</a></strong> demonstrates key features with Python, one of several language bindings.</p>
 <p><strong>USE AT YOUR OWN RISK:</strong> The extension makes fundamental changes to the database storage layer. While designed to preserve ACID transaction safety, it's young and unlikely to have zero bugs. This project is not associated with the SQLite developers.</p>
 <h2 id="sqlite-3310-required">SQLite &ge; 3.31.0 required</h2>
 <p><strong>To use the Genomics Extension you might first need to upgrade SQLite itself.</strong> The host program must link <a href="https://www.sqlite.org/releaselog/3_31_0.html">SQLite version 3.31.0 (2020-01-22)</a> or newer. In your shell, <code>sqlite3 --version</code> displays the version installed with your OS, which is probably what your programs use; if in doubt, cause a program to report the result of <code>SELECT sqlite_version()</code>.</p>
@@ -439,10 +439,11 @@ Recommendation: -also- install the Python package, which includes a useful
 </ol>
 <h3 id="contraindications">Contraindications</h3>
 <ol>
-<li>Huge numerical arrays: see <a href="https://www.hdfgroup.org/solutions/hdf5/">HDF5</a>, <a href="https://zarr.readthedocs.io/en/stable/">Zarr</a>, <a href="https://parquet.apache.org/">Parquet</a>, <a href="https://arrow.apache.org/">Arrow</a>. <small>SQLite's <a href="https://www.sqlite.org/c3ref/blob_open.html">BLOB I/O</a> leaves the door open for mash-ups!</small></li>
+<li>Huge numerical arrays: see <a href="https://www.hdfgroup.org/solutions/hdf5/">HDF5</a>, <a href="https://zarr.readthedocs.io/en/stable/">Zarr</a>, <a href="https://parquet.apache.org/">Parquet</a>, <a href="https://arrow.apache.org/">Arrow</a>, <a href="https://github.com/TileDB-Inc/TileDB">TileDB</a>. <small>SQLite's <a href="https://www.sqlite.org/c3ref/blob_open.html">BLOB I/O</a> leaves the door open for mash-ups!</small></li>
 <li>Parallel SQL analytics / OLAP: see <a href="https://spark.apache.org/">Spark</a>, <a href="https://duckdb.org/">DuckDB</a>, many commercial products. <small>(Some bases can be covered with a sharding harness for a pool of threads with their own SQLite connections...)</small></li>
 <li>Streaming: SQLite storage relies on randomly reading &amp; writing throughout the database file.</li>
 </ol>
+<p><strong>Proceed to the Programming Guide section to get started building applications.</strong></p>
                 
               
               
