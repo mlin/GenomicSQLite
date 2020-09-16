@@ -53,8 +53,22 @@ int main(int argc, char **argv) {
     }
     printf("%s\n", version);
 
-    fprintf(stderr, "create_genomic_range_index_sql()\n");
-    char *sql = create_genomic_range_index_sql("test", "rid", "beg", "end", -1);
+    fprintf(stderr, "put_genomic_reference_assembly_sql() @%d\n", sqlite3_total_changes(pDb));
+    char *sql = put_genomic_reference_assembly_sql("GRCh38_no_alt_analysis_set", 0);
+    if (!sql) {
+        fprintf(stderr, "put_genomic_reference_assembly_sql -> null\n");
+        return 1;
+    }
+    rc = sqlite3_exec(pDb, sql, 0, 0, &zErrMsg);
+    if (rc != SQLITE_OK) {
+        fprintf(stderr,
+                "sqlite3_exec(\"put_genomic_reference_assembly_sql(GRCh38))\") -> %d // %s\n", rc,
+                zErrMsg ? zErrMsg : sqlite3_errstr(rc));
+        return 1;
+    }
+
+    fprintf(stderr, "create_genomic_range_index_sql() @%d\n", sqlite3_total_changes(pDb));
+    sql = create_genomic_range_index_sql("test", "rid", "beg", "end", -1);
     if (!sql) {
         fprintf(stderr, "create_genomic_range_index_sql -> null\n");
         return 1;

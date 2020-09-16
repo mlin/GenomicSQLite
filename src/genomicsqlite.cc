@@ -1132,16 +1132,41 @@ static int register_genomicsqlite_functions(sqlite3 *db, const char **pzErrMsg,
         rc =
             sqlite3_create_function_v2(db, fntab[i].fn, fntab[i].nArg, SQLITE_UTF8 | fntab[i].flags,
                                        nullptr, fntab[i].fp, nullptr, nullptr, nullptr);
-        if (rc != SQLITE_OK)
+        if (rc != SQLITE_OK) {
+            if (pzErrMsg) {
+                *pzErrMsg =
+                    sqlite3_mprintf("Genomics Extension failed to register %s", fntab[i].fn);
+            }
             return rc;
+        }
     }
     rc = RegisterSQLiteVirtualTable<GenomicRangeIndexLevelsTVF>(db, "genomic_range_index_levels");
-    if (rc != SQLITE_OK)
+    if (rc != SQLITE_OK) {
+        if (pzErrMsg) {
+            *pzErrMsg =
+                sqlite3_mprintf("Genomics Extension failed to register genomic_range_index_levels");
+        }
         return rc;
+    }
     rc = RegisterSQLiteVirtualTable<GenomicRangeRowidsTVF>(db, "genomic_range_rowids");
-    if (rc != SQLITE_OK)
+    if (rc != SQLITE_OK) {
+        if (pzErrMsg) {
+            *pzErrMsg =
+                sqlite3_mprintf("Genomics Extension failed to register genomic_range_rowids");
+        }
         return rc;
-    return genomicsqliteJson1Register(db);
+    }
+    // genomicsqliteJson1Register() may return SQLITE_BUSY if JSON1 (possibly another version
+    // thereof) is already loaded, and the extension is being loaded by SELECT load_extension().
+    // That is tolerable.
+    rc = genomicsqliteJson1Register(db);
+    if (rc != SQLITE_OK && rc != SQLITE_BUSY) {
+        if (pzErrMsg) {
+            *pzErrMsg = sqlite3_mprintf("Genomics Extension failed to register JSON1");
+        }
+        return rc;
+    }
+    return SQLITE_OK;
 }
 
 /*
@@ -1156,25 +1181,29 @@ extern "C" int sqlite3_genomicsqlite_init(sqlite3 *db, char **pzErrMsg,
     const string MIN_SQLITE_VERSION = "3.31.0";
     if (sqlite3_libversion_number() < MIN_SQLITE_VERSION_NUMBER) {
         if (pzErrMsg) {
-            string version_msg = "SQLite library version " + string(sqlite3_libversion()) +
-                                 " is older than " + MIN_SQLITE_VERSION +
-                                 " which is required by Genomics Extension " GIT_REVISION;
-            *pzErrMsg = (char *)sqlite3_malloc(version_msg.size() + 1);
-            if (*pzErrMsg) {
-                strcpy(*pzErrMsg, version_msg.c_str());
-            }
+            *pzErrMsg = sqlite3_mprintf(
+                "SQLite library version %s is older than %s required by Genomics Extension %s",
+                sqlite3_libversion(), MIN_SQLITE_VERSION.c_str(), GIT_REVISION);
         }
         return SQLITE_ERROR;
     }
 
     int rc = (new ZstdVFS())->Register("zstd");
-    if (rc != SQLITE_OK)
+    if (rc != SQLITE_OK) {
+        if (pzErrMsg) {
+            *pzErrMsg = sqlite3_mprintf("Genomics Extension failed initializing zstd_vfs");
+        }
         return rc;
-    rc = register_genomicsqlite_functions(db, nullptr, pApi);
+    }
+    rc = register_genomicsqlite_functions(db, (const char **)pzErrMsg, pApi);
     if (rc != SQLITE_OK)
         return rc;
     rc = sqlite3_auto_extension((void (*)(void))register_genomicsqlite_functions);
-    if (rc != SQLITE_OK)
+    if (rc != SQLITE_OK) {
+        if (pzErrMsg) {
+            *pzErrMsg = sqlite3_mprintf("Genomics Extension failed sqlite3_auto_extension");
+        }
         return rc;
+    }
     return SQLITE_OK_LOAD_PERMANENTLY;
 }
