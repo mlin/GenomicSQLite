@@ -16,10 +16,12 @@ Bindings should endeavor to integrate "naturally" with the host language and its
 
 The module should first locate the extension shared-library file (e.g. `libgenomicsqlite.so` on Linux), but it doesn't actually load it; instead, it *tells SQLite to load it*. This can occur either during global module initialization or on the first connection attempt.
 
-1. Unless the `GENOMICSQLITE_SYSTEM_LIBRARY` environment variable is truthy, prefer first a platform-appropriate library file shipped with the bindings, if you choose to do so (see Packaging below). For development, start with prebuilt binaries from [GitHub Releases](https://github.com/mlin/GenomicSQLite/releases).
-2. If none is available, then use some appropriate helper function (e.g. Python's [`ctypes.util.find_library()`](https://docs.python.org/3/library/ctypes.html#finding-shared-libraries)) to look through the usual system paths for shared libraries. Or, just fall back to "libgenomicsqlite" to let SQLite look for it using `dlopen()`. 
-3. Use the language SQLite3 bindings to open a connection to a [`:memory:` database](https://www.sqlite.org/inmemorydb.html), which will be used just for these initialization operations.
-4. On the connection, perform [`sqlite3_load_extension()`](https://www.sqlite.org/c3ref/load_extension.html), or equivalent, on the found library path.
+1. Select the shared-library file in the following order of preference. For development, start with prebuilt binaries from [GitHub Releases](https://github.com/mlin/GenomicSQLite/releases).
+    1. Value of `GENOMICSQLITE_LIBRARY` environment variable, if nonempty
+    2. Platform-appropriate file shipped with the bindings, if you choose to do so (see Packaging, below)
+    3. Fall back to `"libgenomicsqlite"` to let SQLite use `dlopen()` to look for it in default locations
+2. Use the language SQLite3 bindings to open a connection to a [`:memory:` database](https://www.sqlite.org/inmemorydb.html), which will just serve these initialization operations.
+3. On the connection, [enable extension loading](https://www.sqlite.org/c3ref/enable_load_extension.html) if needed and perform [`sqlite3_load_extension()`](https://www.sqlite.org/c3ref/load_extension.html), or equivalent, on the library filename.
 
 The extension needs to be loaded only once per process: upon first loading, it [registers itself](https://www.sqlite.org/c3ref/auto_extension.html) to activate automatically on each new connection opened.
 

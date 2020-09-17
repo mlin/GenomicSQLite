@@ -39,9 +39,8 @@ It's usually easiest to obtain the extension as a pre-compiled shared library (L
     # -or-
     conda install -c mlin genomicsqlite
 
-    # The package loads a bundled shared library by default. To ignore the bundled
-    # file and search the regular dynamic-linking paths instead, set environment
-    # GENOMICSQLITE_SYSTEM_LIBRARY=1
+    # The package loads a bundled shared library by default. To override the
+    # bundled file, set environment variable GENOMICSQLITE_LIBRARY to a filename.
     ```
 
 === "C/C++"
@@ -51,7 +50,7 @@ It's usually easiest to obtain the extension as a pre-compiled shared library (L
     Build your program with the shared library, and also ensure the dynamic linker
     will find it at runtime, by either --
         1. installing it in a system or user lib directory (+ refresh cache)
-        2. setting LD_LIBRARY_PATH or DYLD_LIBRARY_PATH environment variable
+        2. setting LD_LIBRARY_PATH environment variable
         3. building with -rpath
 
     Recommendation: -also- install the Python package, which includes a useful
