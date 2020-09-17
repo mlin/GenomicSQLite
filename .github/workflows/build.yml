@@ -131,8 +131,8 @@ jobs:
         mvn deploy -Drevision=${{ env.GIT_REVISION }} -B -f bindings/jdbc/genomicsqlite-jdbc/pom.xml
     - uses: actions/upload-artifact@v2
       with:
-        path: bindings/jdbc/genomicsqlite-jdbc/target/*.jar
+        path: bindings/jdbc/genomicsqlite-jdbc/target/genomicsqlite-jdbc-${{ GIT_REVISION }}.jar
     - uses: actions/upload-artifact@v2
       with:
         name: genomicsqlite-jdbc-${{ env.GIT_REVISION }}-mvn-repo
-        path: bindings/jdbc/genomicsqlite-jdbc/target/mvn-repo
+        path: bindings/jdbc/genomicsqlite-jdbc/target/mvn-repo/
