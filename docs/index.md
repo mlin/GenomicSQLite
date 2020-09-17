@@ -40,7 +40,7 @@ It's usually easiest to obtain the extension as a pre-compiled shared library (L
     conda install -c mlin genomicsqlite
 
     # The package loads a bundled shared library by default. To override the
-    # bundled file, set environment variable GENOMICSQLITE_LIBRARY to a filename.
+    # bundled file, set environment variable LIBGENOMICSQLITE to a filename.
     ```
 
 === "C/C++"

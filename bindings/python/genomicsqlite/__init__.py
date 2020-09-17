@@ -12,16 +12,17 @@ from typing import Optional, NamedTuple, Dict, Any
 _HERE = os.path.dirname(__file__)
 _YES = ("1", "true", "t", "yes", "y")
 
-# Module initialization -- locate shared library file; preferably the copy installed with this
-# package, otherwise look in the usual places.
-_DLL = os.environ.get("GENOMICSQLITE_LIBRARY", "").strip()
+# Module initialization -- locate shared library file
+_DLL = os.environ.get("LIBGENOMICSQLITE", "").strip()  # use env var if present
 if not _DLL and platform.machine() == "x86_64":
+    # select platform-appropriate library bundled with this package
     _DLL = {"Linux": ".so", "Darwin": ".dylib"}.get(platform.system(), None)
     if _DLL:
         _DLL = os.path.join(_HERE, "libgenomicsqlite") + _DLL
         if not os.path.isfile(_DLL):
             _DLL = None
 if not _DLL:
+    # otherwise, let SQLite use dlopen() to look for it
     _DLL = "libgenomicsqlite"
 # open a dummy connection to :memory: just for loading the extension.
 _MEMCONN = sqlite3.connect(":memory:")

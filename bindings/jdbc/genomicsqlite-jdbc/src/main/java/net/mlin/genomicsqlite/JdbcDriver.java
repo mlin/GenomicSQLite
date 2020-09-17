@@ -141,7 +141,7 @@ public class JdbcDriver extends org.sqlite.JDBC {
     // filename, which will be deleted on exit. sources:
     // https://stackoverflow.com/questions/228477/how-do-i-programmatically-determine-operating-system-in-java
     // https://github.com/xerial/sqlite-jdbc/blob/master/src/main/java/org/sqlite/SQLiteJDBCLoader.java
-    String override = System.getenv("GENOMICSQLITE_LIBRARY");
+    String override = System.getenv("LIBGENOMICSQLITE");
     if (override != null && override.trim().length() > 0) return override;
     String ans = null;
     String basename = getLibraryBasename();

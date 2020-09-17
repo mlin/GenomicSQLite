@@ -17,7 +17,7 @@ Bindings should endeavor to integrate "naturally" with the host language and its
 The module should first locate the extension shared-library file (e.g. `libgenomicsqlite.so` on Linux), but it doesn't actually load it; instead, it *tells SQLite to load it*. This can occur either during global module initialization or on the first connection attempt.
 
 1. Select the shared-library file in the following order of preference. For development, start with prebuilt binaries from [GitHub Releases](https://github.com/mlin/GenomicSQLite/releases).
-    1. Value of `GENOMICSQLITE_LIBRARY` environment variable, if nonempty
+    1. Value of `LIBGENOMICSQLITE` environment variable, if nonempty
     2. Platform-appropriate file shipped with the bindings, if you choose to do so (see Packaging, below)
     3. Fall back to `"libgenomicsqlite"` to let SQLite use `dlopen()` to look for it in default locations
 2. Use the language SQLite3 bindings to open a connection to a [`:memory:` database](https://www.sqlite.org/inmemorydb.html), which will just serve these initialization operations.
