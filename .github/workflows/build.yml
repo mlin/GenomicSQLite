@@ -99,7 +99,7 @@ jobs:
         name: libgenomicsqlite.dylib
         path: libgenomicsqlite.dylib
 
-  combined-zip:
+  artifacts:
     runs-on: ubuntu-20.04
     needs: [linux-so, macOS-dylib]
     steps:
@@ -129,10 +129,10 @@ jobs:
       run: |
         cp libgenomicsqlite.so libgenomicsqlite.dylib bindings/jdbc/genomicsqlite-jdbc/src/main/resources/
         mvn deploy -Drevision=${{ env.GIT_REVISION }} -B -f bindings/jdbc/genomicsqlite-jdbc/pom.xml
-    - uses: actions/upload-artifct@v2
+    - uses: actions/upload-artifact@v2
       with:
         path: bindings/jdbc/genomicsqlite-jdbc/target/*.jar
-    - uses: actions/upload-artifct@v2
+    - uses: actions/upload-artifact@v2
       with:
         name: genomicsqlite-jdbc-${{ env.GIT_REVISION }}-mvn-repo
         path: bindings/jdbc/genomicsqlite-jdbc/target/mvn-repo
