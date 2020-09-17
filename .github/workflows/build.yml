@@ -18,6 +18,8 @@ jobs:
         sudo pip3 install --system pre-commit $PIP_DEPS black flake8 pylint
     - name: pre-commit
       run: pre-commit run --all-files
+    - name: mvn spotless:check
+      run: cd bindings/jdbc/genomicsqlite-jdbc && mvn spotless:check
 
   test:
     runs-on: ubuntu-20.04

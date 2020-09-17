@@ -19,7 +19,7 @@ The module should first locate the extension shared-library file (e.g. `libgenom
 1. Unless the `GENOMICSQLITE_SYSTEM_LIBRARY` environment variable is truthy, prefer first a platform-appropriate library file shipped with the bindings, if you choose to do so (see Packaging below). For development, start with prebuilt binaries from [GitHub Releases](https://github.com/mlin/GenomicSQLite/releases).
 2. If none is available, then use some appropriate helper function (e.g. Python's [`ctypes.util.find_library()`](https://docs.python.org/3/library/ctypes.html#finding-shared-libraries)) to look through the usual system paths for shared libraries. Or, just fall back to "libgenomicsqlite" to let SQLite look for it using `dlopen()`. 
 3. Use the language SQLite3 bindings to open a connection to a [`:memory:` database](https://www.sqlite.org/inmemorydb.html), which will be used just for these initialization operations.
-4. On the connection, [enable extension loading](https://www.sqlite.org/c3ref/enable_load_extension.html) and perform the equivalent of [`sqlite3_load_extension()`](https://www.sqlite.org/c3ref/load_extension.html) on the found library path.
+4. On the connection, perform [`sqlite3_load_extension()`](https://www.sqlite.org/c3ref/load_extension.html), or equivalent, on the found library path.
 
 The extension needs to be loaded only once per process: upon first loading, it [registers itself](https://www.sqlite.org/c3ref/auto_extension.html) to activate automatically on each new connection opened.
 
