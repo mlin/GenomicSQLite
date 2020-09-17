@@ -133,6 +133,6 @@ jobs:
       with:
         path: bindings/jdbc/genomicsqlite-jdbc/target/*.jar
     - uses: actions/upload-artifct@v2
-        with:
-          name: genomicsqlite-jdbc-${{ env.GIT_REVISION }}-mvn-repo
-          path: bindings/jdbc/genomicsqlite-jdbc/target/mvn-repo
+      with:
+        name: genomicsqlite-jdbc-${{ env.GIT_REVISION }}-mvn-repo
+        path: bindings/jdbc/genomicsqlite-jdbc/target/mvn-repo
