@@ -22,6 +22,7 @@ Programming language support:
 
 * C/C++
 * Python &ge;3.6
+* Java & JVM languages
 
 More to come. (Help wanted; see [Language Bindings Guide](https://mlin.github.io/GenomicSQLite/bindings/))
 
