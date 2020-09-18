@@ -65,9 +65,9 @@ The Genomics Extension integrates with your programming language's existing SQLi
 === "Java"
     ```java
     java.util.Properties config = new java.util.Properties();
-    config.setProperty("genomicsqlite_config_json", "{}");
-    // Properties may originate from org.sqlite.SQLiteConfig with
-    // genomicsqlite_config_json added in.
+    config.setProperty("genomicsqlite.config_json", "{}");
+    // Properties may originate from org.sqlite.SQLiteConfig.toProperties()
+    // with genomicsqlite.config_json added in.
 
     Connection dbconn = DriverManager.getConnection(
       "jdbc:genomicsqlite:" + dbfileName,

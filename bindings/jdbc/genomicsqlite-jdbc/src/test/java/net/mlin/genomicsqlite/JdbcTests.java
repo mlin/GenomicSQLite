@@ -19,7 +19,7 @@ public class JdbcTests {
         "jdbc:genomicsqlite:/tmp/GenomicSQLiteJDBC." + java.util.UUID.randomUUID().toString();
     assertTrue(JdbcDriver.isValidURL(url)); // triggers driver registration absent JAR
     Properties prop = new Properties();
-    prop.setProperty("genomicsqlite_config_json", "{\"threads\": 3}");
+    prop.setProperty("genomicsqlite.config_json", "{\"threads\": 3}");
     Connection conn = DriverManager.getConnection(url, prop);
     System.err.println(GenomicSQLite.version(conn));
 

@@ -91,7 +91,7 @@ public class JdbcDriver extends org.sqlite.JDBC {
     // admit individual settings through Properties; we just need to namespace them to avoid any
     // future conflict with settings to be passed through to sqlite-jdbc.
     prop = prop != null ? prop : new java.util.Properties();
-    String config_json = prop.getProperty("genomicsqlite_config_json", "{}");
+    String config_json = prop.getProperty("genomicsqlite.config_json", "{}");
 
     ensureExtension();
     // generate connection URI
