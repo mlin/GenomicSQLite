@@ -38,24 +38,35 @@ It's usually easiest to obtain the extension as a pre-compiled shared library (L
     pip3 install [--user|--system] genomicsqlite
     # -or-
     conda install -c mlin genomicsqlite
-
-    # The package loads a bundled shared library by default. To override the
-    # bundled file, set environment variable LIBGENOMICSQLITE to a filename.
     ```
+    The package loads a bundled shared library by default. To override the bundled file, set environment variable `LIBGENOMICSQLITE` to a filename.
+
+=== "JVM"
+    Add entries like the following to your Maven `pom.xml`:
+    ```xml
+    <repositories>
+      <repository>
+        <id>genomicsqlite-jdbc</id>
+        <url>https://raw.githubusercontent.com/wiki/mlin/GenomicSQLite/mvn-repo/</url>
+      </repository>
+    </repositories>
+
+    <dependencies>
+      <dependency>
+        <groupId>net.mlin</groupId>
+        <artifactId>genomicsqlite-jdbc</artifactId>
+        <version>vX.Y.Z</version>
+      </dependency>
+    </dependencies>
+    ```
+    Or, download the JAR from [GitHub Releases](https://github.com/mlin/GenomicSQLite/releases) and place it in your CLASSPATH, along with [sqlite-jdbc](https://github.com/xerial/sqlite-jdbc) which is also required. The package loads a bundled shared library by default. To override the bundled file, set environment variable `LIBGENOMICSQLITE` to a filename.
+
+    Recommendation: *also* install the Python package, which includes a useful command-line shell and smoke-test script.
 
 === "C/C++"
-    ``` bash
-    Download zip of shared library and genomicsqlite.h from GitHub Releases:
-        https://github.com/mlin/GenomicSQLite/releases
-    Build your program with the shared library, and also ensure the dynamic linker
-    will find it at runtime, by either --
-        1. installing it in a system or user lib directory (+ refresh cache)
-        2. setting LD_LIBRARY_PATH environment variable
-        3. building with -rpath
+    Download zip of shared library and `genomicsqlite.h` from [GitHub Releases](https://github.com/mlin/GenomicSQLite/releases). Build your program with them, and also ensure the dynamic linker will find the shared library at runtime, by either: (1) installing it in a system or user lib directory & refreshing cache, (2) setting `LD_LIBRARY_PATH` environment variable, (3) building with `-rpath`.
 
-    Recommendation: -also- install the Python package, which includes a useful
-                    command-line shell and smoke-test script.
-    ```
+    Recommendation: *also* install the Python package, which includes a useful command-line shell and smoke-test script.
 
 See our [GitHub README](https://github.com/mlin/GenomicSQLite) for the source build procedure, if needed.
 

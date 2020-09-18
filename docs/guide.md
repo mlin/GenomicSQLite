@@ -3,6 +3,7 @@
 The Genomics Extension integrates with your programming language's existing SQLite3 bindings to provide a familiar experience wherever possible.
 
 * Python: [sqlite3](https://docs.python.org/3/library/sqlite3.html)
+* Java/JVM: [sqlite-jdbc](https://github.com/xerial/sqlite-jdbc)
 * C++: [SQLiteCpp](https://github.com/SRombauts/SQLiteCpp) (optional, recommended) or directly using...
 * C: [SQLite C/C++ API](https://www.sqlite.org/cintro.html)
 
@@ -12,6 +13,12 @@ The Genomics Extension integrates with your programming language's existing SQLi
     ``` python3
     import sqlite3
     import genomicsqlite
+    ```
+
+=== "Java"
+    ```java
+    import java.sql.*;
+    import net.mlin.genomicsqlite.GenomicSQLite;
     ```
 
 === "C++"
@@ -53,6 +60,19 @@ The Genomics Extension integrates with your programming language's existing SQLi
       **kwargs  #  genomicsqlite + sqlite3.connect() arguments
     )
     assert isinstance(dbconn, sqlite3.Connection)
+    ```
+
+=== "Java"
+    ```java
+    java.util.Properties config = new java.util.Properties();
+    config.setProperty("genomicsqlite_config_json", "{}");
+    // Properties may originate from org.sqlite.SQLiteConfig with
+    // genomicsqlite_config_json added in.
+
+    Connection dbconn = DriverManager.getConnection(
+      "jdbc:genomicsqlite:" + dbfileName,
+      config
+    );
     ```
 
 === "SQLiteCpp"
@@ -162,6 +182,18 @@ The extension provides routines to populate a small `_gri_refseq` table describi
       'endPosition'
     )
     dbconn.executescript(create_gri_sql)
+    ```
+
+=== "Java"
+    ```java
+    String griSql = GenomicSQLite.createGenomicRangeIndexSQL(
+      dbconn,
+      "tableName",
+      "chromosome",
+      "beginPosition",
+      "endPosition"
+    );
+    dbconn.createStatement().executeUpdate(griSql);
     ```
 
 === "SQLiteCpp"
@@ -351,6 +383,14 @@ The following routines support the aforementioned, recommended convention for st
     dbconn.executescript(refseq_sql)
     ```
 
+=== "Java"
+    ```java
+    String refSql = GenomicSQLite.putReferenceAssemblySQL(
+      dbconn, "GRCh38_no_alt_analysis_set"
+    );
+    dbconn.createStatement().executeUpdate(refSql);
+    ```
+
 === "SQLiteCpp"
     ``` c++
     std::string PutGenomicReferenceAssemblySQL(
@@ -412,6 +452,16 @@ Available assemblies:
       # optional: assembly, refget_id, meta (dict), rid
     )
     dbconn.executescript(refseq_sql)
+    ```
+
+=== "Java"
+    ```java
+    String refSql = GenomicSQLite.putReferenceSequenceSQL(
+      dbconn, "chr17", 83257441L
+      // optional overloads:
+      // String assembly, String refget_id, String meta_json, long rid
+    );
+    dbconn.createStatement().executeUpdate(refSql);
     ```
 
 === "SQLiteCpp"
@@ -495,6 +545,20 @@ If the `rid` argument is omitted or -1 then it will be assigned automatically up
     # refseq_by_rid: Dict[int, ReferenceSequence]
     ```
 
+=== "Java"
+    ```java
+    import java.util.HashMap;
+    import net.mlin.genomicsqlite.ReferenceSequence;
+    /*
+    public class ReferenceSequence {
+      public final long rid, length;
+      public final String name, assembly, refgetId, metaJson;
+    }
+    */
+    HashMap<Long, ReferenceSequence> refseqByRid
+      = GenomicSQLite.getReferenceSequencesByRid(dbconn);
+    ```
+
 === "SQLiteCpp"
     ``` c++
     struct gri_refseq_t {
@@ -548,6 +612,20 @@ The optional `assembly` argument restricts the retrieved sequences to those with
 
     refseq_by_name = genomicsqlite.get_reference_sequences_by_name(dbconn)
     # refseq_by_name: Dict[str, ReferenceSequence]
+    ```
+
+=== "Java"
+    ```java
+    import java.util.HashMap;
+    import net.mlin.genomicsqlite.ReferenceSequence;
+    /*
+    public class ReferenceSequence {
+      public final long rid, length;
+      public final String name, assembly, refgetId, metaJson;
+    }
+    */
+    HashMap<String, ReferenceSequence> refseqByName
+      = GenomicSQLite.getReferenceSequencesByName(dbconn);
     ```
 
 === "SQLiteCpp"
@@ -675,6 +753,18 @@ But this plan strongly depends on the contiguity assumption.
     # compressed.db now attached as db2
     ```
 
+=== "Java"
+    ```java
+    // If needed, no-op to trigger initial load of Genomics Extension:
+    DriverManager.getConnection("jdbc:genomicsqlite::memory:");
+
+    Connection dbconn = DriverManager.getConnection("jdbc:sqlite:any.db");
+    String attachSql = GenomicSQLite.attachSQL(dbconn, "compressed.db", "db2", "{}");
+    //                                                             config_json ^^^^
+    dbconn.createStatement().executeUpdate(attachSql);
+    // compressed.db now attached as db2
+    ```
+
 === "SQLiteCpp"
     ``` c++
     std::string GenomicSQLiteAttachSQL(
@@ -747,6 +837,20 @@ But this plan strongly depends on the contiguity assumption.
     dbconn2 = genomicsqlite.connect('compressed.db')
     ```
 
+=== "Java"
+    ```java
+    // If needed, no-op to trigger initial load of Genomics Extension:
+    DriverManager.getConnection("jdbc:genomicsqlite::memory:");
+
+    Connection dbconn = DriverManager.getConnection("jdbc:sqlite:existing.db");
+    String vacuumSql = GenomicSQLite.vacuumIntoSQL(dbconn, "compressed.db", "{}");
+    //                                                          config_json ^^^^
+    dbconn.createStatement().executeUpdate(vaccumSql);
+    Connection dbconn2 = DriverManager.getConnection(
+      "jdbc:genomicsqlite:compressed.db"
+    );
+    ```
+
 === "SQLiteCpp"
     ``` c++
     std::string GenomicSQLiteVacuumIntoSQL(
@@ -811,6 +915,11 @@ But this plan strongly depends on the contiguity assumption.
 === "Python"
     ``` python3
     genomicsqlite.__version__
+    ```
+
+=== "Java"
+    ```java
+    String genomicsqliteVersion = GenomicSQLite.version(dbconn);
     ```
 
 === "C++"
