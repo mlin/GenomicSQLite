@@ -59,7 +59,7 @@ It's usually easiest to obtain the extension as a pre-compiled shared library (L
       </dependency>
     </dependencies>
     ```
-    Or, download the JAR from [GitHub Releases](https://github.com/mlin/GenomicSQLite/releases) and place it in your CLASSPATH, along with [sqlite-jdbc](https://github.com/xerial/sqlite-jdbc) which is also required. The package loads a bundled shared library by default. To override the bundled file, set environment variable `LIBGENOMICSQLITE` to a filename.
+    Or, download the JAR from [GitHub Releases](https://github.com/mlin/GenomicSQLite/releases) and place it in your classpath, along with [sqlite-jdbc](https://github.com/xerial/sqlite-jdbc)'s JAR which is also required. The package loads a bundled shared library by default. To override the bundled file, set environment variable `LIBGENOMICSQLITE` to a filename.
 
     Recommendation: *also* install the Python package, which includes a useful command-line shell and smoke-test script.
 
