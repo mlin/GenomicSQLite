@@ -374,7 +374,7 @@
 <li>streaming storage compression using multithreaded <a href="https://facebook.github.io/zstd/">Zstandard</a></li>
 <li>pre-tuned settings for "big data"</li>
 </ul>
-<p>Our <strong><a href="https://colab.research.google.com/drive/1JaNCtyDoigH1AuEdrgqQp_qyzQ7OaAXH?usp=sharing">Colab notebook</a></strong> demonstrates key features with Python, one of several language bindings.</p>
+<p>Our <strong><a href="https://colab.research.google.com/drive/1OlHPOcRQBhDmEnS1wtOdtUGDkcD7LtKx?usp=sharing">Colab notebook</a></strong> demonstrates key features with Python, one of several language bindings.</p>
 <p><strong>USE AT YOUR OWN RISK:</strong> The extension makes fundamental changes to the database storage layer. While designed to preserve ACID transaction safety, it's young and unlikely to have zero bugs. This project is not associated with the SQLite developers.</p>
 <h2 id="sqlite-3310-required">SQLite &ge; 3.31.0 required</h2>
 <p><strong>To use the Genomics Extension you might first need to upgrade SQLite itself.</strong> The host program must link <a href="https://www.sqlite.org/releaselog/3_31_0.html">SQLite version 3.31.0 (2020-01-22)</a> or newer. In your shell, <code>sqlite3 --version</code> displays the version installed with your OS, which is probably what your programs use; if in doubt, cause a program to report the result of <code>SELECT sqlite_version()</code>.</p>
@@ -390,30 +390,36 @@
 <p>You can always <code>SELECT sqlite_version()</code> to verify the upgrade in your program.</p>
 <h2 id="installation">Installation</h2>
 <p>It's usually easiest to obtain the extension as a pre-compiled shared library (Linux .so or macOS .dylib), either installed with a package manager, or downloaded from <a href="https://github.com/mlin/GenomicSQLite/releases">GitHub Releases</a>.</p>
-<div class="tabbed-set" data-tabs="1:2"><input checked="checked" id="__tabbed_1_1" name="__tabbed_1" type="radio" /><label for="__tabbed_1_1">Python</label><div class="tabbed-content">
-<div class="highlight"><pre><span></span><code>pip3 install <span class="o">[</span>--user<span class="p">|</span>--system<span class="o">]</span> genomicsqlite
+<div class="tabbed-set" data-tabs="1:3"><input checked="checked" id="__tabbed_1_1" name="__tabbed_1" type="radio" /><label for="__tabbed_1_1">Python</label><div class="tabbed-content">
+<p><div class="highlight"><pre><span></span><code>pip3 install <span class="o">[</span>--user<span class="p">|</span>--system<span class="o">]</span> genomicsqlite
 <span class="c1"># -or-</span>
 conda install -c mlin genomicsqlite
-
-<span class="c1"># The package loads a bundled shared library by default. To ignore the bundled</span>
-<span class="c1"># file and search the regular dynamic-linking paths instead, set environment</span>
-<span class="c1"># GENOMICSQLITE_SYSTEM_LIBRARY=1</span>
 </code></pre></div>
-
+The package loads a bundled shared library by default. To override the bundled file, set environment variable <code>LIBGENOMICSQLITE</code> to a filename.</p>
 </div>
-<input id="__tabbed_1_2" name="__tabbed_1" type="radio" /><label for="__tabbed_1_2">C/C++</label><div class="tabbed-content">
-<div class="highlight"><pre><span></span><code>Download zip of shared library and genomicsqlite.h from GitHub Releases:
-    https://github.com/mlin/GenomicSQLite/releases
-Build your program with the shared library, and also ensure the dynamic linker
-will find it at runtime, by either --
-    <span class="m">1</span>. installing it in a system or user lib directory <span class="o">(</span>+ refresh cache<span class="o">)</span>
-    <span class="m">2</span>. setting LD_LIBRARY_PATH or DYLD_LIBRARY_PATH environment variable
-    <span class="m">3</span>. building with -rpath
+<input id="__tabbed_1_2" name="__tabbed_1" type="radio" /><label for="__tabbed_1_2">JVM</label><div class="tabbed-content">
+<p>Add entries like the following to your Maven <code>pom.xml</code>:
+<div class="highlight"><pre><span></span><code><span class="nt">&lt;repositories&gt;</span>
+  <span class="nt">&lt;repository&gt;</span>
+    <span class="nt">&lt;id&gt;</span>genomicsqlite-jdbc<span class="nt">&lt;/id&gt;</span>
+    <span class="nt">&lt;url&gt;</span>https://raw.githubusercontent.com/wiki/mlin/GenomicSQLite/mvn-repo/<span class="nt">&lt;/url&gt;</span>
+  <span class="nt">&lt;/repository&gt;</span>
+<span class="nt">&lt;/repositories&gt;</span>
 
-Recommendation: -also- install the Python package, which includes a useful
-                command-line shell and smoke-test script.
+<span class="nt">&lt;dependencies&gt;</span>
+  <span class="nt">&lt;dependency&gt;</span>
+    <span class="nt">&lt;groupId&gt;</span>net.mlin<span class="nt">&lt;/groupId&gt;</span>
+    <span class="nt">&lt;artifactId&gt;</span>genomicsqlite-jdbc<span class="nt">&lt;/artifactId&gt;</span>
+    <span class="nt">&lt;version&gt;</span>vX.Y.Z<span class="nt">&lt;/version&gt;</span>
+  <span class="nt">&lt;/dependency&gt;</span>
+<span class="nt">&lt;/dependencies&gt;</span>
 </code></pre></div>
-
+Or, download the JAR from <a href="https://github.com/mlin/GenomicSQLite/releases">GitHub Releases</a> and place it in your classpath, along with <a href="https://github.com/xerial/sqlite-jdbc">sqlite-jdbc</a>'s JAR which is also required. The package loads a bundled shared library by default. To override the bundled file, set environment variable <code>LIBGENOMICSQLITE</code> to a filename.</p>
+<p>Recommendation: <em>also</em> install the Python package, which includes a useful command-line shell and smoke-test script.</p>
+</div>
+<input id="__tabbed_1_3" name="__tabbed_1" type="radio" /><label for="__tabbed_1_3">C/C++</label><div class="tabbed-content">
+<p>Download zip of shared library and <code>genomicsqlite.h</code> from <a href="https://github.com/mlin/GenomicSQLite/releases">GitHub Releases</a>. Build your program with them, and also ensure the dynamic linker will find the shared library at runtime, by either: (1) installing it in a system or user lib directory &amp; refreshing cache, (2) setting <code>LD_LIBRARY_PATH</code> environment variable, (3) building with <code>-rpath</code>.</p>
+<p>Recommendation: <em>also</em> install the Python package, which includes a useful command-line shell and smoke-test script.</p>
 </div>
 </div>
 <p>See our <a href="https://github.com/mlin/GenomicSQLite">GitHub README</a> for the source build procedure, if needed.</p>
