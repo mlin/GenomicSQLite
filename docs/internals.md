@@ -2,9 +2,13 @@
 
 ## Compression layer
 
+![Compression layer figure](sqlite_zstd_vfs.png)
+
 *To be written; for now see [sqlite_zstd_vfs](https://github.com/mlin/sqlite_zstd_vfs)*
 
 ## Genomic Range Index
+
+![GRI figure](gri.png)
 
 The GenomicSQLite GRI is a conventional multi-column B-tree index, organized so that feature overlap with any length distribution is detectable using a series of SQL "between tuples" queries. 
 
