@@ -339,8 +339,10 @@
                 
                 <h1 id="genomics-extension-internals">Genomics Extension Internals</h1>
 <h2 id="compression-layer">Compression layer</h2>
+<p><img alt="Compression layer figure" src="../sqlite_zstd_vfs.png" /></p>
 <p><em>To be written; for now see <a href="https://github.com/mlin/sqlite_zstd_vfs">sqlite_zstd_vfs</a></em></p>
 <h2 id="genomic-range-index">Genomic Range Index</h2>
+<p><img alt="GRI figure" src="../gri.png" /></p>
 <p>The GenomicSQLite GRI is a conventional multi-column B-tree index, organized so that feature overlap with any length distribution is detectable using a series of SQL "between tuples" queries. </p>
 <ol>
 <li>Partition the features into "levels" according to their length. Each level <em>L</em> for 0 &le; <em>L</em> &lt; 16 consists of all features with 16<sup>L-1</sup> &lt; length &le; 16<sup>L</sup>. (Level 0 has features of length 0 or 1.)</li>
