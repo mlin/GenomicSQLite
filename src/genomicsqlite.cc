@@ -19,6 +19,7 @@ using namespace std;
 #else
 #define _DBG false && cerr
 #endif
+#define _DBGV(x) _DBG << #x << " = " << (x) << endl;
 
 /**************************************************************************************************
  * connection & tuning helpers
@@ -1087,6 +1088,261 @@ GetGenomicReferenceSequencesByName(sqlite3 *dbconn, const string &assembly, cons
 }
 
 /**************************************************************************************************
+ * SQL helper functions for compactly storing DNA/RNA sequences
+ **************************************************************************************************/
+
+/*
+crumbs = []
+for c in (chr(i) for i in range(256)):
+    if c in "TtUu":
+        crumbs.append(0)
+    elif c in "Cc":
+        crumbs.append(1)
+    elif c in "Aa":
+        crumbs.append(2)
+    elif c in "Gg":
+        crumbs.append(3)
+    else:
+        crumbs.append(0xFF)
+print(crumbs)
+*/
+const unsigned char dna_crumb_table[] = {
+    0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF,
+    0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF,
+    0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF,
+    0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF,
+    0xFF, 2,    0xFF, 1,    0xFF, 0xFF, 0xFF, 3,    0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF,
+    0xFF, 0xFF, 0xFF, 0xFF, 0,    0,    0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF,
+    0xFF, 2,    0xFF, 1,    0xFF, 0xFF, 0xFF, 3,    0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF,
+    0xFF, 0xFF, 0xFF, 0xFF, 0,    0,    0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF,
+    0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF,
+    0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF,
+    0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF,
+    0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF,
+    0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF,
+    0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF,
+    0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF,
+    0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF};
+
+static vector<unsigned char> dna_twobit(const char *seq, size_t len) {
+    if (!len) {
+        return {};
+    }
+
+    // header byte: the low two bits specify how many crumbs at the end of the buffer must be
+    // ignored by the decoder (0, 1, 2, or 3)
+    auto trailing_crumbs = (4 - len % 4) % 4;
+    assert(trailing_crumbs >= 0 && trailing_crumbs <= 3);
+
+    vector<unsigned char> ans;
+    ans.reserve(len / 4 + 2);
+    ans.push_back((unsigned char)trailing_crumbs);
+
+    unsigned char byte = 0;
+    for (size_t i = 0; i < len; ++i) {
+        const char c_i = seq[i];
+        if (c_i <= 0) {
+            throw runtime_error("non-ASCII input to dna_twobit()");
+        }
+        assert(c_i >= 0 && c_i < 128);
+        const unsigned char crumb = dna_crumb_table[c_i];
+        if (crumb > 3) {
+            return {};
+        }
+        assert((byte >> 6) == 0);
+        byte = (byte << 2) | crumb;
+        if (i % 4 == 3) {
+            ans.push_back(byte);
+            byte = 0;
+        }
+    }
+
+    if (trailing_crumbs) {
+        assert((byte >> (2 * (4 - trailing_crumbs))) == 0);
+        byte <<= (2 * trailing_crumbs);
+        ans.push_back(byte);
+    } else {
+        assert(byte == 0);
+    }
+
+    return ans;
+}
+
+static void sqlfn_dna_twobit(sqlite3_context *ctx, int argc, sqlite3_value **argv) {
+    assert(argc == 1);
+    if (sqlite3_value_type(argv[0]) == SQLITE_NULL) {
+        return sqlite3_result_null(ctx);
+    }
+    ARG_TYPE(0, SQLITE_TEXT);
+    auto seqlen = sqlite3_value_bytes(argv[0]);
+    assert(seqlen >= 0);
+    const char *seq = (const char *)sqlite3_value_text(argv[0]);
+
+    try {
+        auto crumbs = dna_twobit(seq, (size_t)seqlen);
+        if (crumbs.empty()) {
+            sqlite3_result_value(ctx, argv[0]);
+        } else {
+            sqlite3_result_blob64(ctx, crumbs.data(), crumbs.size(), SQLITE_TRANSIENT);
+        }
+    } catch (std::bad_alloc &) {
+        sqlite3_result_error_nomem(ctx);
+    } catch (std::exception &exn) {
+        sqlite3_result_error(ctx, exn.what(), -1);
+    }
+}
+
+static void sqlfn_rna_twobit(sqlite3_context *ctx, int argc, sqlite3_value **argv) {
+    sqlfn_dna_twobit(ctx, argc, argv);
+}
+
+static size_t twobit_dna_length(const void *crumbs, size_t sz) {
+    if (sz < 2) {
+        return 0;
+    }
+    const unsigned char *bytes = (const unsigned char *)crumbs;
+    unsigned char trailing_crumbs = bytes[0] & 0b11;
+    size_t ans = 4 * (sz - 1) - trailing_crumbs;
+    if (ans > 2147483647) { // https://www.sqlite.org/limits.html
+        throw SQLite::Exception("BLOB is too large for twobit_dna()", SQLITE_TOOBIG);
+    }
+    return ans;
+}
+
+static void sqlfn_twobit_dna_length(sqlite3_context *ctx, int argc, sqlite3_value **argv) {
+    assert(argc == 1);
+    try {
+        if (sqlite3_value_type(argv[0]) == SQLITE_BLOB) {
+            size_t sz = sqlite3_value_bytes(argv[0]);
+            sqlite3_result_int64(ctx, twobit_dna_length(sqlite3_value_blob(argv[0]), sz));
+        } else if (sqlite3_value_type(argv[0]) == SQLITE_TEXT) {
+            sqlite3_result_int64(ctx, sqlite3_value_bytes(argv[0]));
+        } else if (sqlite3_value_type(argv[0]) == SQLITE_NULL) {
+            sqlite3_result_null(ctx);
+        } else {
+            sqlite3_result_error(ctx, "twobit_dna_length() expected BLOB or TEXT", -1);
+        }
+    } catch (std::bad_alloc &) {
+        sqlite3_result_error_nomem(ctx);
+    } catch (SQLite::Exception &exn) {
+        if (exn.getErrorCode() == SQLITE_TOOBIG) {
+            sqlite3_result_error_toobig(ctx);
+        } else {
+            sqlite3_result_error(ctx, exn.getErrorStr(), -1);
+        }
+    } catch (std::exception &exn) {
+        sqlite3_result_error(ctx, exn.what(), -1);
+    }
+}
+
+static void sqlfn_twobit_rna_length(sqlite3_context *ctx, int argc, sqlite3_value **argv) {
+    sqlfn_twobit_dna_length(ctx, argc, argv);
+}
+
+const char crumb_dna_table[] = {'T', 'C', 'A', 'G'};
+const char crumb_rna_table[] = {'U', 'C', 'A', 'G'};
+
+static void twobit_dna_impl(sqlite3_context *ctx, int argc, sqlite3_value **argv, bool rna) {
+    assert(argc >= 1 && argc <= 3);
+    bool blob = sqlite3_value_type(argv[0]) == SQLITE_BLOB;
+    if (!blob) {
+        if (sqlite3_value_type(argv[0]) == SQLITE_NULL) {
+            return sqlite3_result_null(ctx);
+        }
+        if (sqlite3_value_type(argv[0]) != SQLITE_TEXT) {
+            return sqlite3_result_error(ctx, "twobit_dna() expected BLOB or TEXT", -1);
+        }
+    }
+
+    // Y and Z are as https://sqlite.org/lang_corefunc.html#substr
+    ssize_t Y = 0, Zval = -1;
+    ARG_OPTIONAL(Y, 1, SQLITE_INTEGER, int);
+    ARG_OPTIONAL(Zval, 2, SQLITE_INTEGER, int);
+    ssize_t *Z = (argc >= 3 && sqlite3_value_type(argv[2]) != SQLITE_NULL) ? &Zval : nullptr;
+
+    try {
+        size_t sz = (size_t)sqlite3_value_bytes(argv[0]);
+        size_t len = blob ? twobit_dna_length(sqlite3_value_blob(argv[0]), sz) : sz;
+
+        // based on Y and Z, explicate the zero-based offset & length of the desired substring.
+        // see this convoluted logic:
+        //   https://github.com/sqlite/sqlite/blob/d924e7bc78a4ca604bce0f8d9d0390d3feddba01/src/func.c#L299
+        size_t sub_ofs = 0;
+        if (Y > 0) {
+            sub_ofs = Y - 1;
+        } else if (Y < 0) {
+            sub_ofs = (size_t)max(0L, Y + (ssize_t)len);
+        }
+        if (sub_ofs > len) {
+            return sqlite3_result_text(ctx, "", 0, SQLITE_STATIC);
+        }
+        size_t sub_len = len - sub_ofs;
+        if (Z) {
+            if (*Z < 0) {
+                sub_len = (size_t)(0 - *Z);
+                sub_len = min(sub_ofs, sub_len);
+                sub_ofs -= sub_len;
+            } else {
+                sub_len = (size_t)*Z;
+                if (Y == 0) {
+                    sub_len -= min(1UL, sub_len);
+                } else if (0 - Y > (ssize_t)len) {
+                    sub_len -= min(sub_len, 0 - Y - len);
+                }
+                sub_len = min(sub_len, len - sub_ofs);
+            }
+        }
+        if (sub_len == 0) {
+            return sqlite3_result_text(ctx, "", 0, SQLITE_STATIC);
+        }
+        assert(sub_ofs + sub_len <= len);
+
+        if (blob) {
+            // decode crumbs
+            string ans;
+            ans.reserve(sub_len);
+            const char *table = rna ? crumb_rna_table : crumb_dna_table;
+            const unsigned char *byte =
+                ((const unsigned char *)sqlite3_value_blob(argv[0])) + 1 + sub_ofs / 4;
+            for (auto which_crumb = sub_ofs % 4; sub_len > 0; --sub_len) {
+                unsigned char crumb = (*byte >> (2 * (3 - which_crumb))) & 0b11;
+                ans.push_back(table[crumb]);
+                if (++which_crumb == 4) {
+                    ++byte;
+                    which_crumb = 0;
+                }
+            }
+            sqlite3_result_text(ctx, ans.c_str(), ans.size(), SQLITE_TRANSIENT);
+        } else if (sub_ofs == 0 && sub_len == len) {
+            // pass through complete text
+            sqlite3_result_value(ctx, argv[0]);
+        } else {
+            // substr of text
+            sqlite3_result_text(ctx, ((const char *)sqlite3_value_text(argv[0])) + sub_ofs, sub_len,
+                                SQLITE_TRANSIENT);
+        }
+    } catch (std::bad_alloc &) {
+        sqlite3_result_error_nomem(ctx);
+    } catch (SQLite::Exception &exn) {
+        if (exn.getErrorCode() == SQLITE_TOOBIG) {
+            sqlite3_result_error_toobig(ctx);
+        } else {
+            sqlite3_result_error(ctx, exn.getErrorStr(), -1);
+        }
+    } catch (std::exception &exn) {
+        sqlite3_result_error(ctx, exn.what(), -1);
+    }
+}
+
+static void sqlfn_twobit_dna(sqlite3_context *ctx, int argc, sqlite3_value **argv) {
+    twobit_dna_impl(ctx, argc, argv, false);
+}
+
+static void sqlfn_twobit_rna(sqlite3_context *ctx, int argc, sqlite3_value **argv) {
+    twobit_dna_impl(ctx, argc, argv, true);
+}
+
+/**************************************************************************************************
  * SQLite loadable extension initialization
  **************************************************************************************************/
 
@@ -1125,7 +1381,17 @@ static int register_genomicsqlite_functions(sqlite3 *db, const char **pzErrMsg,
                  {FPNM(put_genomic_reference_sequence_sql), 6, 0},
                  {FPNM(put_genomic_reference_sequence_sql), 7, 0},
                  {FPNM(put_genomic_reference_assembly_sql), 1, 0},
-                 {FPNM(put_genomic_reference_assembly_sql), 2, 0}};
+                 {FPNM(put_genomic_reference_assembly_sql), 2, 0},
+                 {FPNM(dna_twobit), 1, SQLITE_DETERMINISTIC},
+                 {FPNM(rna_twobit), 1, SQLITE_DETERMINISTIC},
+                 {FPNM(twobit_dna_length), 1, SQLITE_DETERMINISTIC},
+                 {FPNM(twobit_rna_length), 1, SQLITE_DETERMINISTIC},
+                 {FPNM(twobit_dna), 1, SQLITE_DETERMINISTIC},
+                 {FPNM(twobit_dna), 2, SQLITE_DETERMINISTIC},
+                 {FPNM(twobit_dna), 3, SQLITE_DETERMINISTIC},
+                 {FPNM(twobit_rna), 1, SQLITE_DETERMINISTIC},
+                 {FPNM(twobit_rna), 2, SQLITE_DETERMINISTIC},
+                 {FPNM(twobit_rna), 3, SQLITE_DETERMINISTIC}};
 
     int rc;
     for (int i = 0; i < sizeof(fntab) / sizeof(fntab[0]); ++i) {
