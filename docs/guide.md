@@ -937,7 +937,7 @@ Given a two-bit-encoded BLOB value, return the uppercased text nucleotide sequen
 
 Given a TEXT value, pass it through unchanged. Given NULL, return NULL. Any other first input is an error.
 
-The optional `Y` and `Z` arguments provide equivalent functionality to [`substr(twobit_dna(X),Y,Z)`](https://sqlite.org/lang_corefunc.html#substr) without decoding the whole sequence. Unfortunately however, [SQLite internals](https://sqlite.org/forum/forumpost/756c1a1e48?t=h) don't allow either approach to achieve true random access into very long sequences. Consider paginating long sequences across multiple rows if that's needed.
+The optional `Y` and `Z` arguments lead to [`substr(twobit_dna(X),Y,Z)`](https://sqlite.org/lang_corefunc.html#substr) without decoding the whole sequence. Unfortunately however, [SQLite internals](https://sqlite.org/forum/forumpost/756c1a1e48?t=h) don't allow truly random access into long sequences by either approach (runtime is still proportional to total length). Consider splitting long sequences across multiple rows if that's needed, perhaps in 50K-nucleotide chunks so that each two-bit-encoded BLOB fits within one 16KiB inner page of the database.
 
 Notice that the encoding function passes through TEXT values if they contain any non-nucleotide character, and the decoding function always passes through TEXT values. Therefore, if you fill a BLOB column with encoded values, it will use the two-bit encoding in rows with nucleotide-only sequences, and store the original text values in other rows. However, "decoding" the original text values will preserve their case and T/U letters, unlike decoded BLOBs.
 
