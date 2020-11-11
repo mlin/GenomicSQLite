@@ -917,7 +917,7 @@ The Genomics Extension supplies SQL functions to pack a DNA/RNA text sequence in
 
 Given any TEXT value matching `[AaCcGgTtUu]+`, compute a two-bit-encoded BLOB value that can later be decoded using `twobit_dna()` or `twobit_rna()`.
 
-Given any other ASCII TEXT value, including the empty string, pass it through it unchanged. Given NULL, return NULL. Any other input is an error.
+Given any other ASCII TEXT value, including the empty string, pass it through unchanged. Given NULL, return NULL. Any other input is an error.
 
 `rna_twobit()` and `dna_twobit()` are the same function; the two-bit encoding doesn't distinguish between `T` and `U`, and it's case-insensitive.
 
@@ -937,7 +937,7 @@ Given a two-bit-encoded BLOB value, return the uppercased text nucleotide sequen
 
 Given a TEXT value, pass it through unchanged. Given NULL, return NULL. Any other first input is an error.
 
-The optional `Y` and `Z` arguments provide [`substr(twobit_dna(X),Y,Z)`](https://sqlite.org/lang_corefunc.html#substr) without decoding the whole sequence. Unfortunately however, neither provides efficient random access within very long sequences, due to SQLite's pagination and UTF-8 layers. Consider splitting long sequences across multiple rows if that's needed.
+The optional `Y` and `Z` arguments provide equivalent functionality to [`substr(twobit_dna(X),Y,Z)`](https://sqlite.org/lang_corefunc.html#substr) without decoding the whole sequence. Unfortunately however, [SQLite internals](https://sqlite.org/forum/forumpost/756c1a1e48?t=h) don't allow either approach to achieve true random access into very long sequences. Consider paginating long sequences across multiple rows if that's needed.
 
 Notice that the encoding function passes through TEXT values if they contain any non-nucleotide character, and the decoding function always passes through TEXT values. Therefore, if you fill a BLOB column with encoded values, it will use the two-bit encoding in rows with nucleotide-only sequences, and store the original text values in other rows. However, "decoding" the original text values will preserve their case and T/U letters, unlike decoded BLOBs.
 

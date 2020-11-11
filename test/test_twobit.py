@@ -3,7 +3,7 @@ import math
 import genomicsqlite
 
 
-def test_twobit(tmp_path):
+def test_twobit():
     con = genomicsqlite.connect(":memory:")
 
     random.seed(42)
@@ -54,8 +54,10 @@ def test_twobit(tmp_path):
     assert next(con.execute("SELECT twobit_dna('acgt 1',-2,-3)"))[0] == "cgt"
 
     # exhaustively test offset/length corner cases
-    for x in range(-9, 9):
-        for y in range(-9, 9):
-            decoded = next(con.execute("SELECT twobit_rna(dna_twobit('gattaca'),?,?)", (x, y)))[0]
-            control = next(con.execute("SELECT substr('GAUUACA',?,?)", (x, y)))[0]
-            assert decoded == control, str((x, y))
+    for xtest in range(-9, 9):
+        for ytest in range(-9, 9):
+            decoded = next(
+                con.execute("SELECT twobit_rna(dna_twobit('gattaca'),?,?)", (xtest, ytest))
+            )[0]
+            control = next(con.execute("SELECT substr('GAUUACA',?,?)", (xtest, ytest)))[0]
+            assert decoded == control, str((xtest, ytest))
