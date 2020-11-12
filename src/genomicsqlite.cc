@@ -1287,7 +1287,7 @@ static void twobit_nucleotides(sqlite3_context *ctx, int argc, sqlite3_value **a
         if (sub_len == 0) {
             return sqlite3_result_text(ctx, "", 0, SQLITE_STATIC);
         }
-        assert(sub_ofs + sub_len <= min(len, sz));
+        assert(sub_ofs + sub_len <= (blob ? len : sz));
 
         if (blob) {
             // decode crumbs
