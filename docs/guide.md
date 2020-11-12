@@ -905,7 +905,9 @@ But this plan strongly depends on the contiguity assumption.
 
 #### Two-bit encoding for nucleotide sequences
 
-The Genomics Extension supplies SQL functions to pack a DNA/RNA text sequence into a smaller BLOB using two bits per nucleotide. Storing a large database of sequences this way can be more efficient for certain applications, by fitting 4X more nucleotides into a given cache memory space compared to plain text. (It is not, however, expected to shrink the database file much on disk, owing to the storage compression applied to all data.)
+The Genomics Extension supplies SQL functions to pack a DNA/RNA sequence TEXT value into a smaller BLOB value, using two bits per nucleotide. (Review [SQLite Datatypes](https://www.sqlite.org/datatype3.html) on the important differences between TEXT and BLOB values & columns.)
+
+Storing a large database of sequences using such BLOBs, instead of sequence TEXT, can improve efficiency by fitting 4X more nucleotides into a given cache memory space. It is not, however, expected to shrink the database file much on disk, owing to the storage compression applied to all data.
 
 **↪ Two-bit encoding**
 
@@ -928,13 +930,16 @@ Given any other ASCII TEXT value, including the empty string, pass it through un
     SELECT twobit_rna(nucleotides_twobit('UCAG'),Y,Z)
     ```
 
-Given a two-bit-encoded BLOB value, produce the nucleotide sequence as uppercased text, with `T`'s for `twobit_dna()` and `U`'s for `twobit_rna()`.
+Given a BLOB value, perform two-bit decoding to produce a nucleotide sequence as uppercased text, with `T`'s for `twobit_dna()` and `U`'s for `twobit_rna()`.
 
 Given a TEXT value, pass it through unchanged. Given NULL, return NULL. Any other first input is an error.
 
 The optional `Y` and `Z` arguments can be supplied to compute [`substr(twobit_dna(X),Y,Z)`](https://sqlite.org/lang_corefunc.html#substr) without decoding the whole sequence. Unfortunately however, [SQLite internals](https://sqlite.org/forum/forumpost/756c1a1e48?t=h) don't allow truly random access into long sequences by either approach (runtime is still proportional to total length). Consider splitting long sequences across multiple rows if that's needed (perhaps in 50K-nucleotide chunks, so that each two-bit-encoded BLOB fits within one 16KiB inner page of the database).
 
-Notice that the encoding function passes through TEXT values if they contain any non-nucleotide character, and the decoding function always passes through TEXT values. Therefore, if you fill a BLOB column with encoded values, it will use the two-bit encoding in rows with nucleotide-only sequences, and store the original text values in other rows. However, "decoding" the original text values will preserve their case and T/U letters, unlike decoded BLOBs.
+Notice that the encoding function passes through TEXT values if they contain any non-nucleotide character, and the decoding function always passes through TEXT values. Therefore, if 
+a BLOB column `C` is filled with `nucleotides_twobit(...)`, and you `SELECT twobit_dna(C) FROM ...`, the original TEXT value is stored & returned automatically for any cell containing a non-nucleotide character, while the two-bit-encoded BLOBs are used exactly where possible. However, the original TEXT values would have their case and T/U letters preserved, unlike decoded BLOBs.
+
+Lastly, take care not to run the decoder on an arbitrary BLOB *not* originally produced by the two-bit encoder, which would produce a garbage nucleotide sequence.
 
 **↪ Two-bit sequence length**
 
