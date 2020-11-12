@@ -1231,8 +1231,52 @@ static void sqlfn_twobit_length(sqlite3_context *ctx, int argc, sqlite3_value **
     }
 }
 
-const char crumb_dna_table[] = {'T', 'C', 'A', 'G'};
-const char crumb_rna_table[] = {'U', 'C', 'A', 'G'};
+const char *twobit_dna4mers[] = {
+    "TTTT", "TTTC", "TTTA", "TTTG", "TTCT", "TTCC", "TTCA", "TTCG", "TTAT", "TTAC", "TTAA", "TTAG",
+    "TTGT", "TTGC", "TTGA", "TTGG", "TCTT", "TCTC", "TCTA", "TCTG", "TCCT", "TCCC", "TCCA", "TCCG",
+    "TCAT", "TCAC", "TCAA", "TCAG", "TCGT", "TCGC", "TCGA", "TCGG", "TATT", "TATC", "TATA", "TATG",
+    "TACT", "TACC", "TACA", "TACG", "TAAT", "TAAC", "TAAA", "TAAG", "TAGT", "TAGC", "TAGA", "TAGG",
+    "TGTT", "TGTC", "TGTA", "TGTG", "TGCT", "TGCC", "TGCA", "TGCG", "TGAT", "TGAC", "TGAA", "TGAG",
+    "TGGT", "TGGC", "TGGA", "TGGG", "CTTT", "CTTC", "CTTA", "CTTG", "CTCT", "CTCC", "CTCA", "CTCG",
+    "CTAT", "CTAC", "CTAA", "CTAG", "CTGT", "CTGC", "CTGA", "CTGG", "CCTT", "CCTC", "CCTA", "CCTG",
+    "CCCT", "CCCC", "CCCA", "CCCG", "CCAT", "CCAC", "CCAA", "CCAG", "CCGT", "CCGC", "CCGA", "CCGG",
+    "CATT", "CATC", "CATA", "CATG", "CACT", "CACC", "CACA", "CACG", "CAAT", "CAAC", "CAAA", "CAAG",
+    "CAGT", "CAGC", "CAGA", "CAGG", "CGTT", "CGTC", "CGTA", "CGTG", "CGCT", "CGCC", "CGCA", "CGCG",
+    "CGAT", "CGAC", "CGAA", "CGAG", "CGGT", "CGGC", "CGGA", "CGGG", "ATTT", "ATTC", "ATTA", "ATTG",
+    "ATCT", "ATCC", "ATCA", "ATCG", "ATAT", "ATAC", "ATAA", "ATAG", "ATGT", "ATGC", "ATGA", "ATGG",
+    "ACTT", "ACTC", "ACTA", "ACTG", "ACCT", "ACCC", "ACCA", "ACCG", "ACAT", "ACAC", "ACAA", "ACAG",
+    "ACGT", "ACGC", "ACGA", "ACGG", "AATT", "AATC", "AATA", "AATG", "AACT", "AACC", "AACA", "AACG",
+    "AAAT", "AAAC", "AAAA", "AAAG", "AAGT", "AAGC", "AAGA", "AAGG", "AGTT", "AGTC", "AGTA", "AGTG",
+    "AGCT", "AGCC", "AGCA", "AGCG", "AGAT", "AGAC", "AGAA", "AGAG", "AGGT", "AGGC", "AGGA", "AGGG",
+    "GTTT", "GTTC", "GTTA", "GTTG", "GTCT", "GTCC", "GTCA", "GTCG", "GTAT", "GTAC", "GTAA", "GTAG",
+    "GTGT", "GTGC", "GTGA", "GTGG", "GCTT", "GCTC", "GCTA", "GCTG", "GCCT", "GCCC", "GCCA", "GCCG",
+    "GCAT", "GCAC", "GCAA", "GCAG", "GCGT", "GCGC", "GCGA", "GCGG", "GATT", "GATC", "GATA", "GATG",
+    "GACT", "GACC", "GACA", "GACG", "GAAT", "GAAC", "GAAA", "GAAG", "GAGT", "GAGC", "GAGA", "GAGG",
+    "GGTT", "GGTC", "GGTA", "GGTG", "GGCT", "GGCC", "GGCA", "GGCG", "GGAT", "GGAC", "GGAA", "GGAG",
+    "GGGT", "GGGC", "GGGA", "GGGG"};
+const char *twobit_rna4mers[] = {
+    "UUUU", "UUUC", "UUUA", "UUUG", "UUCU", "UUCC", "UUCA", "UUCG", "UUAU", "UUAC", "UUAA", "UUAG",
+    "UUGU", "UUGC", "UUGA", "UUGG", "UCUU", "UCUC", "UCUA", "UCUG", "UCCU", "UCCC", "UCCA", "UCCG",
+    "UCAU", "UCAC", "UCAA", "UCAG", "UCGU", "UCGC", "UCGA", "UCGG", "UAUU", "UAUC", "UAUA", "UAUG",
+    "UACU", "UACC", "UACA", "UACG", "UAAU", "UAAC", "UAAA", "UAAG", "UAGU", "UAGC", "UAGA", "UAGG",
+    "UGUU", "UGUC", "UGUA", "UGUG", "UGCU", "UGCC", "UGCA", "UGCG", "UGAU", "UGAC", "UGAA", "UGAG",
+    "UGGU", "UGGC", "UGGA", "UGGG", "CUUU", "CUUC", "CUUA", "CUUG", "CUCU", "CUCC", "CUCA", "CUCG",
+    "CUAU", "CUAC", "CUAA", "CUAG", "CUGU", "CUGC", "CUGA", "CUGG", "CCUU", "CCUC", "CCUA", "CCUG",
+    "CCCU", "CCCC", "CCCA", "CCCG", "CCAU", "CCAC", "CCAA", "CCAG", "CCGU", "CCGC", "CCGA", "CCGG",
+    "CAUU", "CAUC", "CAUA", "CAUG", "CACU", "CACC", "CACA", "CACG", "CAAU", "CAAC", "CAAA", "CAAG",
+    "CAGU", "CAGC", "CAGA", "CAGG", "CGUU", "CGUC", "CGUA", "CGUG", "CGCU", "CGCC", "CGCA", "CGCG",
+    "CGAU", "CGAC", "CGAA", "CGAG", "CGGU", "CGGC", "CGGA", "CGGG", "AUUU", "AUUC", "AUUA", "AUUG",
+    "AUCU", "AUCC", "AUCA", "AUCG", "AUAU", "AUAC", "AUAA", "AUAG", "AUGU", "AUGC", "AUGA", "AUGG",
+    "ACUU", "ACUC", "ACUA", "ACUG", "ACCU", "ACCC", "ACCA", "ACCG", "ACAU", "ACAC", "ACAA", "ACAG",
+    "ACGU", "ACGC", "ACGA", "ACGG", "AAUU", "AAUC", "AAUA", "AAUG", "AACU", "AACC", "AACA", "AACG",
+    "AAAU", "AAAC", "AAAA", "AAAG", "AAGU", "AAGC", "AAGA", "AAGG", "AGUU", "AGUC", "AGUA", "AGUG",
+    "AGCU", "AGCC", "AGCA", "AGCG", "AGAU", "AGAC", "AGAA", "AGAG", "AGGU", "AGGC", "AGGA", "AGGG",
+    "GUUU", "GUUC", "GUUA", "GUUG", "GUCU", "GUCC", "GUCA", "GUCG", "GUAU", "GUAC", "GUAA", "GUAG",
+    "GUGU", "GUGC", "GUGA", "GUGG", "GCUU", "GCUC", "GCUA", "GCUG", "GCCU", "GCCC", "GCCA", "GCCG",
+    "GCAU", "GCAC", "GCAA", "GCAG", "GCGU", "GCGC", "GCGA", "GCGG", "GAUU", "GAUC", "GAUA", "GAUG",
+    "GACU", "GACC", "GACA", "GACG", "GAAU", "GAAC", "GAAA", "GAAG", "GAGU", "GAGC", "GAGA", "GAGG",
+    "GGUU", "GGUC", "GGUA", "GGUG", "GGCU", "GGCC", "GGCA", "GGCG", "GGAU", "GGAC", "GGAA", "GGAG",
+    "GGGU", "GGGC", "GGGA", "GGGG"};
 
 static void twobit_nucleotides(sqlite3_context *ctx, int argc, sqlite3_value **argv, bool rna) {
     assert(argc >= 1 && argc <= 3);
@@ -1290,19 +1334,24 @@ static void twobit_nucleotides(sqlite3_context *ctx, int argc, sqlite3_value **a
         assert(sub_ofs + sub_len <= (blob ? len : sz));
 
         if (blob) {
-            // decode crumbs
+            // decode two-bit-encoded BLOB
             string ans;
             ans.reserve(sub_len);
-            const char *table = rna ? crumb_rna_table : crumb_dna_table;
-            const unsigned char *byte =
+            const char **table = rna ? twobit_rna4mers : twobit_dna4mers;
+            const unsigned char *pbyte =
                 ((const unsigned char *)sqlite3_value_blob(argv[0])) + 1 + sub_ofs / 4;
-            for (auto which_crumb = sub_ofs % 4; sub_len > 0; --sub_len) {
-                unsigned char crumb = (*byte >> (2 * (3 - which_crumb))) & 0b11;
-                ans.push_back(table[crumb]);
-                if (++which_crumb == 4) {
-                    ++byte;
-                    which_crumb = 0;
-                }
+            // decode first payload byte (maybe only part of it) crumb-by-crumb
+            for (auto crumb = sub_ofs % 4; crumb < 4 && sub_len > 0; --sub_len) {
+                ans.push_back(table[*pbyte][crumb++]);
+            }
+            // decode internal bytes to 4-mers
+            for (++pbyte; sub_len > 4; sub_len -= 4) {
+                ans.append(table[*(pbyte++)], 4);
+            }
+            // decode last payload byte crumb-by-crumb, if needed
+            for (size_t crumb = 0; sub_len > 0; --sub_len) {
+                assert(crumb < 4);
+                ans.push_back(table[*pbyte][crumb++]);
             }
             sqlite3_result_text(ctx, ans.c_str(), ans.size(), SQLITE_TRANSIENT);
         } else if (sub_ofs == 0 && sub_len == len) {
