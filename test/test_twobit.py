@@ -20,11 +20,15 @@ def test_twobit():
             not rna and ("u" not in seq and "U" not in seq)
         )
 
-        crumbs = next(con.execute("SELECT dna_twobit(?)", (seq,)))[0]
+        crumbs = next(con.execute("SELECT nucleotides_twobit(?)", (seq,)))[0]
         assert isinstance(crumbs, bytes)
         assert len(crumbs) == math.ceil(len(seq) / 4) + 1
 
-        query = f"SELECT {'twobit_rna' if rna else 'twobit_dna'}(dna_twobit(?))"
+        assert next(con.execute("SELECT twobit_length(nucleotides_twobit(?))", (seq,)))[0] == len(
+            seq
+        )
+
+        query = f"SELECT {'twobit_rna' if rna else 'twobit_dna'}(nucleotides_twobit(?))"
         decoded = next(con.execute(query, (seq,)))[0]
         assert decoded == seq.upper()
 
@@ -47,7 +51,7 @@ def test_twobit():
         )[0]
         assert decoded == control
 
-    assert next(con.execute("SELECT dna_twobit('acgt 1')"))[0] == "acgt 1"
+    assert next(con.execute("SELECT nucleotides_twobit('acgt 1')"))[0] == "acgt 1"
     assert next(con.execute("SELECT twobit_dna('acgt 1')"))[0] == "acgt 1"
     assert next(con.execute("SELECT twobit_dna('acgt 1',1,6)"))[0] == "acgt 1"
     assert next(con.execute("SELECT twobit_dna('acgt 1',3,3)"))[0] == "gt "
@@ -57,7 +61,7 @@ def test_twobit():
     for xtest in range(-9, 9):
         for ytest in range(-9, 9):
             decoded = next(
-                con.execute("SELECT twobit_rna(dna_twobit('gattaca'),?,?)", (xtest, ytest))
+                con.execute("SELECT twobit_rna(nucleotides_twobit('gattaca'),?,?)", (xtest, ytest))
             )[0]
             control = next(con.execute("SELECT substr('GAUUACA',?,?)", (xtest, ytest)))[0]
             assert decoded == control, str((xtest, ytest))

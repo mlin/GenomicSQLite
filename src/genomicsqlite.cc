@@ -1124,7 +1124,7 @@ const unsigned char dna_crumb_table[] = {
     0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF,
     0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF};
 
-static vector<unsigned char> dna_twobit(const char *seq, size_t len) {
+static vector<unsigned char> nucleotides_twobit(const char *seq, size_t len) {
     if (!len) {
         return {};
     }
@@ -1168,7 +1168,7 @@ static vector<unsigned char> dna_twobit(const char *seq, size_t len) {
     return ans;
 }
 
-static void sqlfn_dna_twobit(sqlite3_context *ctx, int argc, sqlite3_value **argv) {
+static void sqlfn_nucleotides_twobit(sqlite3_context *ctx, int argc, sqlite3_value **argv) {
     assert(argc == 1);
     if (sqlite3_value_type(argv[0]) == SQLITE_NULL) {
         return sqlite3_result_null(ctx);
@@ -1179,7 +1179,7 @@ static void sqlfn_dna_twobit(sqlite3_context *ctx, int argc, sqlite3_value **arg
     const char *seq = (const char *)sqlite3_value_text(argv[0]);
 
     try {
-        auto crumbs = dna_twobit(seq, (size_t)seqlen);
+        auto crumbs = nucleotides_twobit(seq, (size_t)seqlen);
         if (crumbs.empty()) {
             sqlite3_result_value(ctx, argv[0]);
         } else {
@@ -1192,11 +1192,7 @@ static void sqlfn_dna_twobit(sqlite3_context *ctx, int argc, sqlite3_value **arg
     }
 }
 
-static void sqlfn_rna_twobit(sqlite3_context *ctx, int argc, sqlite3_value **argv) {
-    sqlfn_dna_twobit(ctx, argc, argv);
-}
-
-static size_t twobit_dna_length(const void *crumbs, size_t sz) {
+static size_t twobit_length(const void *crumbs, size_t sz) {
     if (sz < 2) {
         return 0;
     }
@@ -1209,18 +1205,18 @@ static size_t twobit_dna_length(const void *crumbs, size_t sz) {
     return ans;
 }
 
-static void sqlfn_twobit_dna_length(sqlite3_context *ctx, int argc, sqlite3_value **argv) {
+static void sqlfn_twobit_length(sqlite3_context *ctx, int argc, sqlite3_value **argv) {
     assert(argc == 1);
     try {
         if (sqlite3_value_type(argv[0]) == SQLITE_BLOB) {
             size_t sz = sqlite3_value_bytes(argv[0]);
-            sqlite3_result_int64(ctx, twobit_dna_length(sqlite3_value_blob(argv[0]), sz));
+            sqlite3_result_int64(ctx, twobit_length(sqlite3_value_blob(argv[0]), sz));
         } else if (sqlite3_value_type(argv[0]) == SQLITE_TEXT) {
             sqlite3_result_int64(ctx, sqlite3_value_bytes(argv[0]));
         } else if (sqlite3_value_type(argv[0]) == SQLITE_NULL) {
             sqlite3_result_null(ctx);
         } else {
-            sqlite3_result_error(ctx, "twobit_dna_length() expected BLOB or TEXT", -1);
+            sqlite3_result_error(ctx, "twobit_length() expected BLOB or TEXT", -1);
         }
     } catch (std::bad_alloc &) {
         sqlite3_result_error_nomem(ctx);
@@ -1235,14 +1231,10 @@ static void sqlfn_twobit_dna_length(sqlite3_context *ctx, int argc, sqlite3_valu
     }
 }
 
-static void sqlfn_twobit_rna_length(sqlite3_context *ctx, int argc, sqlite3_value **argv) {
-    sqlfn_twobit_dna_length(ctx, argc, argv);
-}
-
 const char crumb_dna_table[] = {'T', 'C', 'A', 'G'};
 const char crumb_rna_table[] = {'U', 'C', 'A', 'G'};
 
-static void twobit_dna_impl(sqlite3_context *ctx, int argc, sqlite3_value **argv, bool rna) {
+static void twobit_nucleotides(sqlite3_context *ctx, int argc, sqlite3_value **argv, bool rna) {
     assert(argc >= 1 && argc <= 3);
     bool blob = sqlite3_value_type(argv[0]) == SQLITE_BLOB;
     if (!blob) {
@@ -1262,7 +1254,7 @@ static void twobit_dna_impl(sqlite3_context *ctx, int argc, sqlite3_value **argv
 
     try {
         size_t sz = (size_t)sqlite3_value_bytes(argv[0]);
-        size_t len = blob ? twobit_dna_length(sqlite3_value_blob(argv[0]), sz) : sz;
+        size_t len = blob ? twobit_length(sqlite3_value_blob(argv[0]), sz) : sz;
 
         // based on Y and Z, explicate the zero-based offset & length of the desired substring.
         // see this convoluted logic:
@@ -1335,11 +1327,11 @@ static void twobit_dna_impl(sqlite3_context *ctx, int argc, sqlite3_value **argv
 }
 
 static void sqlfn_twobit_dna(sqlite3_context *ctx, int argc, sqlite3_value **argv) {
-    twobit_dna_impl(ctx, argc, argv, false);
+    twobit_nucleotides(ctx, argc, argv, false);
 }
 
 static void sqlfn_twobit_rna(sqlite3_context *ctx, int argc, sqlite3_value **argv) {
-    twobit_dna_impl(ctx, argc, argv, true);
+    twobit_nucleotides(ctx, argc, argv, true);
 }
 
 /**************************************************************************************************
@@ -1382,10 +1374,8 @@ static int register_genomicsqlite_functions(sqlite3 *db, const char **pzErrMsg,
                  {FPNM(put_genomic_reference_sequence_sql), 7, 0},
                  {FPNM(put_genomic_reference_assembly_sql), 1, 0},
                  {FPNM(put_genomic_reference_assembly_sql), 2, 0},
-                 {FPNM(dna_twobit), 1, SQLITE_DETERMINISTIC},
-                 {FPNM(rna_twobit), 1, SQLITE_DETERMINISTIC},
-                 {FPNM(twobit_dna_length), 1, SQLITE_DETERMINISTIC},
-                 {FPNM(twobit_rna_length), 1, SQLITE_DETERMINISTIC},
+                 {FPNM(nucleotides_twobit), 1, SQLITE_DETERMINISTIC},
+                 {FPNM(twobit_length), 1, SQLITE_DETERMINISTIC},
                  {FPNM(twobit_dna), 1, SQLITE_DETERMINISTIC},
                  {FPNM(twobit_dna), 2, SQLITE_DETERMINISTIC},
                  {FPNM(twobit_dna), 3, SQLITE_DETERMINISTIC},
