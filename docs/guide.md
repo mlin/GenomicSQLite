@@ -907,7 +907,7 @@ But this plan strongly depends on the contiguity assumption.
 
 The extension supplies SQL functions to pack a DNA/RNA sequence TEXT value into a smaller BLOB value, using two bits per nucleotide. (Review [SQLite Datatypes](https://www.sqlite.org/datatype3.html) on the important differences between TEXT and BLOB values & columns.)
 
-Storing a large database of sequences using such BLOBs instead of TEXT can improve efficiency, by fitting 4X more nucleotides into a given cache memory space. It is not, however, expected to greatly shrink the database file on disk, owing to the automatic storage compression layer.
+Storing a large database of sequences using such BLOBs instead of TEXT can improve application I/O efficiency, by caching 4X more nucleotides given the same memory space. It is not, however, expected to greatly shrink the database file on disk, owing to the automatic storage compression layer.
 
 **↪ Two-bit encoding**
 
