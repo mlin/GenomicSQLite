@@ -1104,6 +1104,7 @@ for c in (chr(i) for i in range(256)):
         crumbs.append(3)
     else:
         crumbs.append(0xFF)
+
 print(crumbs)
 */
 const unsigned char dna_crumb_table[] = {
@@ -1231,6 +1232,18 @@ static void sqlfn_twobit_length(sqlite3_context *ctx, int argc, sqlite3_value **
     }
 }
 
+/*
+letters = ('T', 'C', 'A', 'G')
+dna4mers = []
+for byte in range(256):
+    rev4mer = []
+    for _ in range(4):
+        rev4mer.append(letters[byte & 0b11])
+        byte = byte >> 2
+    dna4mers.append(''.join(reversed(rev4mer)))
+
+print(dna4mers)
+*/
 const char *twobit_dna4mers[] = {
     "TTTT", "TTTC", "TTTA", "TTTG", "TTCT", "TTCC", "TTCA", "TTCG", "TTAT", "TTAC", "TTAA", "TTAG",
     "TTGT", "TTGC", "TTGA", "TTGG", "TCTT", "TCTC", "TCTA", "TCTG", "TCCT", "TCCC", "TCCA", "TCCG",
