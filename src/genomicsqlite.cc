@@ -1183,7 +1183,7 @@ static void sqlfn_nucleotides_twobit(sqlite3_context *ctx, int argc, sqlite3_val
     }
 
     try {
-        size_t bufsz = (seqlen + 3) / 4 + 1;
+        size_t bufsz = (seqlen + 7) / 4;
         std::unique_ptr<unsigned char[]> buf(new unsigned char[bufsz]);
         int rc = nucleotides_twobit(seq, (size_t)seqlen, buf.get());
         if (rc == -2) {
