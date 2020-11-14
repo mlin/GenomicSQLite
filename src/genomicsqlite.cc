@@ -1126,41 +1126,37 @@ const unsigned char dna_crumb_table[] = {
     0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF};
 
 extern "C" int nucleotides_twobit(const char *seq, size_t len, void *out) {
-    if (len == 0) {
-        return -1;
-    }
-
-    unsigned char *outbytes = (unsigned char *)out;
+    unsigned char *outbyte = (unsigned char *)out;
 
     // header byte: the low two bits specify how many crumbs at the end of the buffer must be
     // ignored by the decoder (0, 1, 2, or 3)
     auto trailing_crumbs = (4 - len % 4) % 4;
     assert(trailing_crumbs >= 0 && trailing_crumbs <= 3);
-    *(outbytes++) = trailing_crumbs;
+    *(outbyte++) = trailing_crumbs;
 
     unsigned char byte = 0;
     for (size_t i = 0; i < len; ++i) {
         const char c_i = seq[i];
         if (c_i <= 0) {
-            return -3;
+            return -2;
         }
         assert(c_i >= 0 && c_i < 128);
         const unsigned char crumb = dna_crumb_table[c_i];
         if (crumb > 3) {
-            return -2;
+            return -1;
         }
         assert((byte >> 6) == 0);
         byte = (byte << 2) | crumb;
         if (i % 4 == 3) {
-            *(outbytes++) = byte;
+            *(outbyte++) = byte;
             byte = 0;
         }
     }
 
     if (trailing_crumbs) {
-        assert((byte >> (2 * (4 - trailing_crumbs))) == 0);
+        assert(len && (byte >> (2 * (4 - trailing_crumbs))) == 0);
         byte <<= (2 * trailing_crumbs);
-        *outbytes = byte;
+        *outbyte = byte;
     } else {
         assert(byte == 0);
     }
@@ -1187,10 +1183,10 @@ static void sqlfn_nucleotides_twobit(sqlite3_context *ctx, int argc, sqlite3_val
     }
 
     try {
-        size_t bufsz = (seqlen - 1) / 4 + 2;
+        size_t bufsz = (seqlen + 3) / 4 + 1;
         std::unique_ptr<unsigned char[]> buf(new unsigned char[bufsz]);
         int rc = nucleotides_twobit(seq, (size_t)seqlen, buf.get());
-        if (rc == -3) {
+        if (rc == -2) {
             return sqlite3_result_error(ctx, "non-ASCII input to nucleotides_twobit()", -1);
         } else if (rc != 0) {
             return sqlite3_result_value(ctx, argv[0]);

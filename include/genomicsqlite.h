@@ -94,11 +94,10 @@ char *put_genomic_reference_sequence_sql(const char *name, sqlite3_int64 length,
 
 /*
  * Two-bit encode the nucleotide character sequence of specified length. The output buffer must be
- * preallocated (len-1)/4+2 bytes. Return codes:
- *  0 = success; wrote (len-1)/4+2 bytes
- * -1 = len is zero (avoid this, since you had to know len to allocate the buffer)
- * -2 = encountered non-nucleotide ASCII character
- * -3 = encountered non-ASCII character (e.g. UTF-8) or NUL
+ * preallocated (len+3)/4+1 bytes. Return codes:
+ *  0 = success; wrote (len+3)/4+1 bytes
+ * -1 = encountered non-nucleotide ASCII character
+ * -2 = encountered non-ASCII character (e.g. UTF-8) or NUL
  */
 int nucleotides_twobit(const char *seq, size_t len, void *out);
 
