@@ -907,7 +907,7 @@ But this plan strongly depends on the contiguity assumption.
 
 The extension supplies SQL functions to pack a DNA/RNA sequence TEXT value into a smaller BLOB value, using two bits per nucleotide. (Review [SQLite Datatypes](https://www.sqlite.org/datatype3.html) on the important differences between TEXT and BLOB values & columns.)
 
-Storing a large database of sequences using such BLOBs instead of TEXT can improve application I/O efficiency, by caching 4X more nucleotides given the same memory space. It is not, however, expected to greatly shrink the database file on disk, owing to the automatic storage compression layer.
+Storing a large database of sequences using such BLOBs instead of TEXT can improve application I/O efficiency, with up to 4X more nucleotides cached in the same memory space. It is not, however, expected to greatly shrink the database file on disk, owing to the automatic storage compression.
 
 **↪ Two-bit encoding**
 
@@ -950,6 +950,15 @@ Given a two-bit-encoded BLOB value, return the length of the *decoded* sequence 
 
 Given a TEXT value, return its byte length. Given NULL, return NULL. Any other input is an error.
 
+#### JSON functions
+
+The Genomics Extension bundles the SQLite developers' [JSON1 extension](https://www.sqlite.org/json1.html) and enables it automatically. The following conventions are recommended,
+
+1. JSON object columns should be named *_json with type `TEXT DEFAULT '{}'`.
+2. JSON array columns should be named *_jsarray with type `TEXT DEFAULT '[]'`.
+
+The JSON1 functions can be used with [generated columns](https://sqlite.org/gencol.html) to effectively enable indices on JSON-embedded fields.
+
 #### Genomics Extension version
 
 **↪ GenomicSQLite Version**
@@ -979,15 +988,6 @@ Given a TEXT value, return its byte length. Given NULL, return NULL. Any other i
     char* genomicsqlite_version();
     /* result to be sqlite3_free() */
     ```
-
-#### JSON functions
-
-The Genomics Extension bundles the SQLite developers' [JSON1 extension](https://www.sqlite.org/json1.html) and enables it automatically. The following conventions are recommended,
-
-1. JSON object columns should be named *_json with type `TEXT DEFAULT '{}'`.
-2. JSON array columns should be named *_jsarray with type `TEXT DEFAULT '[]'`.
-
-The JSON1 functions can be used with [generated columns](https://sqlite.org/gencol.html) to effectively enable indices on JSON-embedded fields.
 
 ## genomicsqlite interactive shell
 
