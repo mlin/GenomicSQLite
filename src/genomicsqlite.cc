@@ -1166,10 +1166,16 @@ extern "C" int nucleotides_twobit(const char *seq, size_t len, void *out) {
 
 static void sqlfn_nucleotides_twobit(sqlite3_context *ctx, int argc, sqlite3_value **argv) {
     assert(argc == 1);
-    if (sqlite3_value_type(argv[0]) == SQLITE_NULL) {
+    auto arg0ty = sqlite3_value_type(argv[0]);
+    switch (arg0ty) {
+    case SQLITE_TEXT:
+    case SQLITE_BLOB:
+        break;
+    case SQLITE_NULL:
         return sqlite3_result_null(ctx);
+    default:
+        return sqlite3_result_error(ctx, "nucleotides_twobit() expected BLOB or TEXT", -1);
     }
-    ARG_TYPE(0, SQLITE_TEXT);
 
     auto seqlen = sqlite3_value_bytes(argv[0]);
     assert(seqlen >= 0);
@@ -1177,7 +1183,8 @@ static void sqlfn_nucleotides_twobit(sqlite3_context *ctx, int argc, sqlite3_val
         return sqlite3_result_value(ctx, argv[0]);
     }
 
-    const char *seq = (const char *)sqlite3_value_text(argv[0]);
+    auto seq = (const char *)(arg0ty == SQLITE_TEXT ? sqlite3_value_text(argv[0])
+                                                    : sqlite3_value_blob(argv[0]));
     if (!seq) {
         return sqlite3_result_error_nomem(ctx);
     }
@@ -1189,7 +1196,7 @@ static void sqlfn_nucleotides_twobit(sqlite3_context *ctx, int argc, sqlite3_val
         if (rc == -2) {
             return sqlite3_result_error(ctx, "non-ASCII input to nucleotides_twobit()", -1);
         } else if (rc != 0) {
-            return sqlite3_result_value(ctx, argv[0]);
+            return sqlite3_result_text(ctx, seq, seqlen, SQLITE_TRANSIENT);
         }
         return sqlite3_result_blob64(ctx, buf.get(), bufsz, SQLITE_TRANSIENT);
     } catch (std::bad_alloc &) {
@@ -1319,14 +1326,17 @@ extern "C" void twobit_rna(const void *data, size_t ofs, size_t len, char *out) 
 
 static void twobit_nucleotides(sqlite3_context *ctx, int argc, sqlite3_value **argv, bool rna) {
     assert(argc >= 1 && argc <= 3);
-    bool blob = sqlite3_value_type(argv[0]) == SQLITE_BLOB;
-    if (!blob) {
-        if (sqlite3_value_type(argv[0]) == SQLITE_NULL) {
-            return sqlite3_result_null(ctx);
-        }
-        if (sqlite3_value_type(argv[0]) != SQLITE_TEXT) {
-            return sqlite3_result_error(ctx, "twobit_dna() expected BLOB or TEXT", -1);
-        }
+    bool blob = false;
+    switch (sqlite3_value_type(argv[0])) {
+    case SQLITE_TEXT:
+        break;
+    case SQLITE_BLOB:
+        blob = true;
+        break;
+    case SQLITE_NULL:
+        return sqlite3_result_null(ctx);
+    default:
+        return sqlite3_result_error(ctx, "twobit_dna() expected BLOB or TEXT", -1);
     }
 
     // Y and Z are as https://sqlite.org/lang_corefunc.html#substr
