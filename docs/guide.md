@@ -934,12 +934,12 @@ Given a BLOB value, perform two-bit decoding to produce a nucleotide sequence as
 
 Given a TEXT value, pass it through unchanged. Given NULL, return NULL. Any other first input is an error.
 
-The optional `Y` and `Z` arguments can be used to compute [`substr(twobit_dna(X),Y,Z)`](https://sqlite.org/lang_corefunc.html#substr) more efficiently, without decoding the whole sequence. Unfortunately however, [SQLite internals](https://sqlite.org/forum/forumpost/756c1a1e48?t=h) still cause it to use time & memory proportional to the full length of X, not Z. If frequent random access into long sequences is needed, then consider splitting them across multiple rows.
+The optional `Y` and `Z` arguments can be used to compute [`substr(twobit_dna(X),Y,Z)`](https://sqlite.org/lang_corefunc.html#substr) more efficiently, without decoding the whole sequence. Unfortunately however, [SQLite internals](https://sqlite.org/forum/forumpost/756c1a1e48?t=h) still cause this operation to use time & memory proportional to the full length of X, not Z. If frequent random access into long sequences is needed, then consider splitting them across multiple rows.
 
 Notice that the encoding function passes through TEXT values if they contain any non-nucleotide character, and the decoding function always passes through TEXT values. Therefore, if 
 a BLOB column `C` is filled with `nucleotides_twobit(...)`, and you `SELECT twobit_dna(C) FROM ...`, the original TEXT value is stored & returned automatically for any cell containing a non-nucleotide character, while the two-bit-encoded BLOBs are used exactly where possible. However, the original TEXT values would have their case and T/U letters preserved, unlike decoded BLOBs.
 
-Lastly, take care not to run the decoder on an arbitrary BLOB *not* originally produced by the two-bit encoder, which would produce a garbage nucleotide sequence.
+Lastly, take care not to give the decoder arbitrary BLOBs *not* originally produced by the two-bit encoder, yielding garbage nucleotide sequences.
 
 **↪ Two-bit sequence length**
 
