@@ -930,7 +930,7 @@ Given any other ASCII TEXT value, including the empty string, pass it through un
     SELECT twobit_rna(nucleotides_twobit('UCAG'),Y,Z)
     ```
 
-Given a BLOB value, perform two-bit decoding to produce a nucleotide sequence as uppercased text, with `T`'s for `twobit_dna()` and `U`'s for `twobit_rna()`. Take care to only use BLOBs originally produced by the two-bit encoder, as any BLOB *will* decode to some nucleotide sequence.
+Given a BLOB value, perform two-bit decoding to produce a nucleotide sequence as uppercased TEXT, with `T`'s for `twobit_dna()` and `U`'s for `twobit_rna()`. Take care to only use BLOBs originally produced by the two-bit encoder, as any BLOB *will* decode to some nucleotide sequence.
 
 Given a TEXT value, pass it through unchanged. Given NULL, return NULL. Any other first input is an error.
 
