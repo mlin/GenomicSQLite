@@ -116,7 +116,7 @@ jobs:
       run: |
         cp include/genomicsqlite.h .
         git fetch origin --tags
-        echo "::set-env name=GIT_REVISION::$(git describe --tags --always)"
+        echo "GIT_REVISION=$(git describe --tags --always)" >> $GITHUB_ENV
     - uses: actions/upload-artifact@v2
       with:
         name: GenomicSQLite-${{ env.GIT_REVISION }}
