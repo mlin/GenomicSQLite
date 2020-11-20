@@ -65,8 +65,8 @@ The other routines are much simpler. The binding for each just takes its require
 * `SELECT genomicsqlite_attach_sql(dbfilename, schema_name, config_json)` takes the same `config_json` as would Open
 * `SELECT genomicsqlite_vacuum_into_sql(destfilename, config_json)`
 * `SELECT create_genomic_range_index_sql(tableName, chromosome, beginPosition, endPosition[, floor])`: floor is an integer, others text.
-* `SELECT put_reference_assembly_sql(assembly)`
-* `SELECT put_reference_sequence_sql(name, length[, assembly, refget_id, meta_json, rid])` length and rid are integers.
+* `SELECT put_genomic_reference_assembly_sql(assembly[, schema])`
+* `SELECT put_genomic_reference_sequence_sql(name, length[, assembly, refget_id, meta_json, rid, schema])` length and rid are integers.
 
 Optional text arguments can default to NULL, and optional integers can default to -1.
 
@@ -78,7 +78,7 @@ SELECT
     gri_refseq_name, gri_refseq_length,
     gri_assembly, gri_refget_id,
     gri_refseq_meta_json
-FROM _gri_refseq
+FROM [schema.]_gri_refseq [WHERE assembly = ?]
 ```
 
 and loads the results into some linguistically-natural data structure that'll provide quick lookup of those attributes by rid. Then, **Get Reference Sequences by Name** can simply call that and "invert" the results.

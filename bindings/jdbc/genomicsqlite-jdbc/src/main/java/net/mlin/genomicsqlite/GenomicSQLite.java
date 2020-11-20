@@ -70,10 +70,45 @@ public class GenomicSQLite {
     return createGenomicRangeIndexSQL(conn, tableName, rid, beginPosition, endPosition, -1);
   }
 
+  public static String putReferenceAssemblySQL(Connection conn, String assembly, String schema)
+      throws SQLException {
+    PreparedStatement stmt =
+        conn.prepareStatement("SELECT put_genomic_reference_assembly_sql(?,?)");
+    stmt.setString(1, assembly);
+    if (schema != null) {
+      stmt.setString(2, schema);
+    }
+    ResultSet row = stmt.executeQuery();
+    row.next();
+    return row.getString(1);
+  }
+
   public static String putReferenceAssemblySQL(Connection conn, String assembly)
       throws SQLException {
-    PreparedStatement stmt = conn.prepareStatement("SELECT put_genomic_reference_assembly_sql(?)");
-    stmt.setString(1, assembly);
+    return putReferenceAssemblySQL(conn, assembly, null);
+  }
+
+  public static String putReferenceSequenceSQL(
+      Connection conn,
+      String name,
+      long length,
+      String assembly,
+      String refget_id,
+      String meta_json,
+      long rid,
+      String schema)
+      throws SQLException {
+    PreparedStatement stmt =
+        conn.prepareStatement("SELECT put_genomic_reference_sequence_sql(?,?,?,?,?,?,?)");
+    stmt.setString(1, name);
+    stmt.setLong(2, length);
+    stmt.setString(3, assembly);
+    stmt.setString(4, refget_id);
+    stmt.setString(5, meta_json);
+    stmt.setLong(6, rid);
+    if (schema != null) {
+      stmt.setString(7, schema);
+    }
     ResultSet row = stmt.executeQuery();
     row.next();
     return row.getString(1);
@@ -88,17 +123,7 @@ public class GenomicSQLite {
       String meta_json,
       long rid)
       throws SQLException {
-    PreparedStatement stmt =
-        conn.prepareStatement("SELECT put_genomic_reference_sequence_sql(?,?,?,?,?,?)");
-    stmt.setString(1, name);
-    stmt.setLong(2, length);
-    stmt.setString(3, assembly);
-    stmt.setString(4, refget_id);
-    stmt.setString(5, meta_json);
-    stmt.setLong(6, rid);
-    ResultSet row = stmt.executeQuery();
-    row.next();
-    return row.getString(1);
+    return putReferenceSequenceSQL(conn, name, length, assembly, refget_id, meta_json, rid, null);
   }
 
   public static String putReferenceSequenceSQL(
@@ -109,16 +134,7 @@ public class GenomicSQLite {
       String refget_id,
       String meta_json)
       throws SQLException {
-    PreparedStatement stmt =
-        conn.prepareStatement("SELECT put_genomic_reference_sequence_sql(?,?,?,?,?)");
-    stmt.setString(1, name);
-    stmt.setLong(2, length);
-    if (assembly != null) stmt.setString(3, assembly);
-    if (refget_id != null) stmt.setString(4, refget_id);
-    if (meta_json != null) stmt.setString(5, meta_json);
-    ResultSet row = stmt.executeQuery();
-    row.next();
-    return row.getString(1);
+    return putReferenceSequenceSQL(conn, name, length, assembly, refget_id, meta_json, -1);
   }
 
   public static String putReferenceSequenceSQL(
@@ -129,18 +145,22 @@ public class GenomicSQLite {
 
   public static String putReferenceSequenceSQL(
       Connection conn, String name, long length, String assembly) throws SQLException {
-    return putReferenceSequenceSQL(conn, name, length, assembly, null, null);
+    return putReferenceSequenceSQL(conn, name, length, assembly);
   }
 
   public static String putReferenceSequenceSQL(Connection conn, String name, long length)
       throws SQLException {
-    return putReferenceSequenceSQL(conn, name, length, null, null, null);
+    return putReferenceSequenceSQL(conn, name, length, null);
   }
 
   public static HashMap<Long, ReferenceSequence> getReferenceSequencesByRid(
-      Connection conn, String assembly) throws SQLException {
+      Connection conn, String assembly, String schema) throws SQLException {
     String sql =
-        "SELECT _gri_rid, gri_refseq_name, gri_refseq_length, gri_assembly, gri_refget_id, gri_refseq_meta_json FROM _gri_refseq";
+        "SELECT _gri_rid, gri_refseq_name, gri_refseq_length, gri_assembly, gri_refget_id, gri_refseq_meta_json FROM ";
+    if (schema != null && schema.length() > 0) {
+      sql += schema + ".";
+    }
+    sql += "_gri_refseq";
     PreparedStatement stmt;
     if (assembly != null) {
       stmt = conn.prepareStatement(sql + " WHERE gri_assembly = ?");
@@ -164,16 +184,21 @@ public class GenomicSQLite {
     return ans;
   }
 
+  public static HashMap<Long, ReferenceSequence> getReferenceSequencesByRid(
+      Connection conn, String assembly) throws SQLException {
+    return getReferenceSequencesByRid(conn, assembly, null);
+  }
+
   public static HashMap<Long, ReferenceSequence> getReferenceSequencesByRid(Connection conn)
       throws SQLException {
     return getReferenceSequencesByRid(conn, null);
   }
 
   public static HashMap<String, ReferenceSequence> getReferenceSequencesByName(
-      Connection conn, String assembly) throws SQLException {
+      Connection conn, String assembly, String schema) throws SQLException {
     HashMap<String, ReferenceSequence> ans = new HashMap<String, ReferenceSequence>();
     for (HashMap.Entry<Long, ReferenceSequence> entry :
-        getReferenceSequencesByRid(conn, assembly).entrySet()) {
+        getReferenceSequencesByRid(conn, assembly, schema).entrySet()) {
       ReferenceSequence grs = entry.getValue();
       if (ans.containsKey(grs.name)) {
         throw new RuntimeException(
@@ -182,6 +207,11 @@ public class GenomicSQLite {
       ans.put(grs.name, grs);
     }
     return ans;
+  }
+
+  public static HashMap<String, ReferenceSequence> getReferenceSequencesByName(
+      Connection conn, String assembly) throws SQLException {
+    return getReferenceSequencesByName(conn, assembly, null);
   }
 
   public static HashMap<String, ReferenceSequence> getReferenceSequencesByName(Connection conn)
