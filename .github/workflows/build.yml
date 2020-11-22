@@ -115,6 +115,9 @@ jobs:
         echo "CFLAGS=-I$(brew --prefix)/include -I$(brew --prefix)/opt/sqlite/include -march=sandybridge" >> $GITHUB_ENV
         echo "CXXFLAGS=-I$(brew --prefix)/include -march=sandybridge" >> $GITHUB_ENV
         echo "LDFLAGS=-L$(brew --prefix)/lib -L$(brew --prefix)/opt/sqlite/lib" >> $GITHUB_ENV
+        # used by rusqlite:
+        echo "SQLITE_INCLUDE_DIR=$(brew --prefix)/opt/sqlite/include" >> $GITHUB_ENV
+        echo "SQLITE_LIB_DIR=$(brew --prefix)/opt/sqlite/lib" >> $GITHUB_ENV
     - name: build
       run: |
         cmake -DCMAKE_BUILD_TYPE=Release \
