@@ -28,6 +28,7 @@ jobs:
         default: true
     - name: rust lint
       run: |
+        git fetch origin --tags
         cd bindings/rust
         ./cargo check
         ./cargo fmt -- --check
