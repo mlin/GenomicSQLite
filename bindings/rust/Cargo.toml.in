@@ -1,0 +1,25 @@
+[package]
+name = "genomicsqlite"
+version = "{{GENOMICSQLITE_VERSION}}"
+authors = ["Mike Lin <dna@mlin.net>"]
+edition = "2018"
+license = "Apache"
+repository = "https://github.com/mlin/GenomicSQLite"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+json = "^0"
+
+[dependencies.rusqlite]
+version = "^0"
+features = ["load_extension", "vtab"]
+
+[dev-dependencies.uuid]
+version = "^0"
+features = ["v4"]
+
+# TODO:
+# CI fmt & test -- https://github.com/actions-rs/toolchain
+# conditionally embed libgenomicsqlite.so in release builds
+# update Programming Guide

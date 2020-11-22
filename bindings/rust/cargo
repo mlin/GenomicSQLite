@@ -1,0 +1,11 @@
+#!/bin/bash
+# wrapper for cargo that generates Cargo.toml from Cargo.toml.in, filling in git revision as
+# crate version
+set -e
+
+revision="$(git describe --tags --always --dirty)"
+revision="${revision#v}"  # strip 'v' prefix
+
+HERE=$(dirname "$0")
+sed "s/{{GENOMICSQLITE_VERSION}}/${revision}/" "${HERE}/Cargo.toml.in" > "${HERE}/Cargo.toml"
+cargo "$@"

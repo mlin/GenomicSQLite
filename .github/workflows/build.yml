@@ -20,6 +20,17 @@ jobs:
       run: pre-commit run --all-files
     - name: mvn spotless:check
       run: mvn spotless:check -B -f bindings/jdbc/genomicsqlite-jdbc/pom.xml
+    - name: rust toolchain
+      uses: actions-rs/toolchain@v1
+      with:
+        components: rustfmt, clippy
+        toolchain: stable
+        default: true
+    - name: rust lint
+      run: |
+        cd bindings/rust
+        cargo check
+        cargo fmt -- --check
 
   test:
     runs-on: ubuntu-20.04
