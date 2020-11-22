@@ -5,6 +5,7 @@ set -e
 
 revision="$(git describe --tags --always --dirty)"
 revision="${revision#v}"  # strip 'v' prefix
+>&2 echo "$revision"
 
 HERE="$(dirname "$0")"
 sed "s/{{GENOMICSQLITE_VERSION}}/${revision}/" "${HERE}/Cargo.toml.in" > "${HERE}/Cargo.toml"
