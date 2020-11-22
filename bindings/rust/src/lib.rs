@@ -7,11 +7,70 @@ use json::object::Object;
 use rusqlite::{params, Connection, LoadExtensionGuard, OpenFlags, Result, NO_PARAMS};
 use std::collections::HashMap;
 use std::env;
+#[cfg(not(debug_assertions))]
+use std::fs::File;
+#[cfg(not(debug_assertions))]
+use std::io::prelude::*;
 use std::path::Path;
 use std::sync::Once;
+use tempfile::TempDir;
 
-static START: Once = Once::new();
+/* Helper functions for bundling libgenomicsqlite.{so,dylib} into the compilation unit */
 
+// extract slice into basename under a temp directory
+#[cfg(not(debug_assertions))]
+fn extract_libgenomicsqlite_impl(
+    bytes: &[u8],
+    basename: &str,
+) -> std::io::Result<(String, TempDir)> {
+    let tmp = tempfile::tempdir()?;
+    let libpath = match tmp.path().join(basename).to_str() {
+        Some(p) => p.to_string(),
+        None => {
+            return Err(std::io::Error::new(
+                std::io::ErrorKind::InvalidInput,
+                "tempdir",
+            ))
+        }
+    };
+    {
+        let mut file = File::create(&libpath)?;
+        file.write_all(bytes)?;
+    }
+    Ok((libpath, tmp))
+}
+
+#[cfg(not(debug_assertions))]
+fn extract_libgenomicsqlite(bytes: &[u8], filename: &str) -> (String, TempDir) {
+    match extract_libgenomicsqlite_impl(bytes, filename) {
+        Ok(ans) => ans,
+        Err(_) => panic!("genomicsqlite: failed extracting temp libgenomicsqlite; check temp free space & permissions")
+    }
+}
+
+// debug: don't bundle, require developer to set LIBGENOMICSQLITE
+#[cfg(debug_assertions)]
+fn bundled_libgenomicsqlite() -> Option<(String, TempDir)> {
+    None
+}
+
+#[cfg(all(not(debug_assertions), target_os = "linux", target_arch = "x86_64"))]
+fn bundled_libgenomicsqlite() -> Option<(String, TempDir)> {
+    Some(extract_libgenomicsqlite(
+        include_bytes!("../assets/libgenomicsqlite.so"),
+        &"libgenomicsqlite.so",
+    ))
+}
+
+#[cfg(all(not(debug_assertions), target_os = "macos", target_arch = "x86_64"))]
+fn bundled_libgenomicsqlite() -> Option<(String, TempDir)> {
+    Some(extract_libgenomicsqlite(
+        include_bytes!("../assets/libgenomicsqlite.dylib"),
+        "libgenomicsqlite.dylib",
+    ))
+}
+
+// helper for simple queries
 fn query1str<P>(conn: &Connection, sql: &str, params: P) -> Result<String>
 where
     P: IntoIterator,
@@ -20,6 +79,8 @@ where
     let ans: Result<String> = conn.query_row(sql, params, |row| row.get(0));
     ans
 }
+
+static START: Once = Once::new();
 
 /// Open a [rusqlite::Connection] for a compressed database with the [ConnectionMethods] available.
 ///
@@ -47,9 +108,16 @@ pub fn open<P: AsRef<Path>>(path: P, flags: OpenFlags, config: &Object) -> Resul
 
     // once: load libgenomicsqlite extension
     START.call_once(|| {
+        let mut _tmpdir;
         let libgenomicsqlite = match env::var("LIBGENOMICSQLITE") {
             Ok(v) => v,
-            Err(_) => "libgenomicsqlite".to_string(),
+            Err(_) => match bundled_libgenomicsqlite() {
+                Some((ans, td)) => {
+                    _tmpdir = td;
+                    ans
+                }
+                None => "libgenomicsqlite".to_string(),
+            },
         };
         let _guard = LoadExtensionGuard::new(&memconn).unwrap();
         match memconn.load_extension(libgenomicsqlite.clone(), None) {
