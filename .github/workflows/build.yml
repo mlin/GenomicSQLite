@@ -29,8 +29,8 @@ jobs:
     - name: rust lint
       run: |
         cd bindings/rust
-        cargo check
-        cargo fmt -- --check
+        ./cargo check
+        ./cargo fmt -- --check
 
   test:
     runs-on: ubuntu-20.04
