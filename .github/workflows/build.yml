@@ -110,13 +110,14 @@ jobs:
         default: true
     - name: build
       run: |
-        CFLAGS="-I$(brew --prefix)/include -I$(brew --prefix)/opt/sqlite/include -march=sandybridge" \
-        CXXFLAGS="-I$(brew --prefix)/include -march=sandybridge" \
-        LDFLAGS="-L$(brew --prefix)/lib -L$(brew --prefix)/opt/sqlite/lib" \
-          cmake -DCMAKE_BUILD_TYPE=Release \
-                -DCMAKE_PREFIX_PATH=$(brew --prefix)/opt/sqlite \
-                -B build .
+        export CFLAGS="-I$(brew --prefix)/include -I$(brew --prefix)/opt/sqlite/include -march=sandybridge"
+        export CXXFLAGS="-I$(brew --prefix)/include -march=sandybridge"
+        export LDFLAGS="-L$(brew --prefix)/lib -L$(brew --prefix)/opt/sqlite/lib"
+        cmake -DCMAKE_BUILD_TYPE=Release \
+              -DCMAKE_PREFIX_PATH=$(brew --prefix)/opt/sqlite \
+              -B build .
         cmake --build build -j 4
+        bindings/rust/cargo build
     - name: otool
       run: otool -L build/libgenomicsqlite.dylib
     - name: ctest
