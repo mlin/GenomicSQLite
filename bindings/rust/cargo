@@ -3,7 +3,7 @@
 # crate version
 set -e
 
-revision="$(git describe --tags --always --dirty)"
+revision="$(git describe --tags --dirty)"
 revision="${revision#v}"  # strip 'v' prefix
 >&2 echo "$revision"
 
