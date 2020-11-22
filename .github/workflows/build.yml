@@ -88,7 +88,7 @@ jobs:
       run: |
         set -e
         cp build/libgenomicsqlite.so bindings/rust
-        cargo package --list | grep libgenomicsqlite.so
+        bindings/rust/cargo package --list | grep libgenomicsqlite.so
         bindings/rust/cargo test --release
     - name: prepare artifacts
       run: cp build/libgenomicsqlite.so include/genomicsqlite.h .
@@ -142,7 +142,7 @@ jobs:
       run: |
         set -e
         cp build/libgenomicsqlite.dylib bindings/rust
-        cargo package --list | grep libgenomicsqlite.dylib
+        bindings/rust/cargo package --list | grep libgenomicsqlite.dylib
         bindings/rust/cargo test --release
     - name: prepare artifacts
       run: cp build/libgenomicsqlite.dylib include/genomicsqlite.h .
