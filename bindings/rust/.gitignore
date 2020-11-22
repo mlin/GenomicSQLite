@@ -12,4 +12,4 @@ Cargo.lock
 
 # Cargo.toml is generated from Cargo.toml.in by ./cargo
 Cargo.toml
-assets/
+libgenomicsqlite.*

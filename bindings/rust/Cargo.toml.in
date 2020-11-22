@@ -5,7 +5,7 @@ authors = ["Mike Lin <dna@mlin.net>"]
 edition = "2018"
 license = "Apache"
 repository = "https://github.com/mlin/GenomicSQLite"
-include = ["src/**/*", "Cargo.toml", "assets/**/*"]
+include = ["src/**/*", "Cargo.toml", "libgenomicsqlite.*"]
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
@@ -22,5 +22,4 @@ version = "^0"
 features = ["v4"]
 
 # TODO:
-# test libgenomicsqlite bundling for release builds
 # update Programming Guide
