@@ -110,6 +110,8 @@ jobs:
         default: true
     - name: build environment
       run: |
+        echo "PREFIX=$(brew --prefix)" >> $GITHUB_ENV
+        echo "PATH=${PREFIX}/opt/python/libexec/bin:${PREFIX}/opt/sqlite/bin:${PATH}" >> $GITHUB_ENV
         echo "CFLAGS=-I$(brew --prefix)/include -I$(brew --prefix)/opt/sqlite/include -march=sandybridge" >> $GITHUB_ENV
         echo "CXXFLAGS=-I$(brew --prefix)/include -march=sandybridge" >> $GITHUB_ENV
         echo "LDFLAGS=-L$(brew --prefix)/lib -L$(brew --prefix)/opt/sqlite/lib" >> $GITHUB_ENV
@@ -119,12 +121,11 @@ jobs:
               -DCMAKE_PREFIX_PATH=$(brew --prefix)/opt/sqlite \
               -B build .
         cmake --build build -j 4
+        bindings/rust/cargo build
     - name: otool
       run: otool -L build/libgenomicsqlite.dylib
     - name: ctest
       run: |
-        export PREFIX=$(brew --prefix)
-        export PATH=${PREFIX}/opt/python/libexec/bin:${PREFIX}/opt/sqlite/bin:$PATH
         cd build
         otool -L test/capi_smoke_test
         ctest -V
