@@ -436,12 +436,10 @@ mod tests {
              INSERT INTO feature VALUES(3, 34, 56)",
         )
         .unwrap();
-        conn.execute_batch(
-            &conn
-                .create_genomic_range_index_sql("feature", "rid", "beg", "end")
-                .unwrap(),
-        )
-        .unwrap();
+        let gri_sql = conn
+            .create_genomic_range_index_sql("feature", "rid", "beg", "end")
+            .unwrap();
+        conn.execute_batch(&gri_sql).unwrap();
 
         // GRI query
         ans = conn

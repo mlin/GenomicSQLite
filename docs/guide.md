@@ -4,6 +4,7 @@ The Genomics Extension integrates with your programming language's existing SQLi
 
 * Python: [sqlite3](https://docs.python.org/3/library/sqlite3.html)
 * Java/JVM: [sqlite-jdbc](https://github.com/xerial/sqlite-jdbc)
+* Rust: [rusqlite](https://github.com/rusqlite/rusqlite)
 * C++: [SQLiteCpp](https://github.com/SRombauts/SQLiteCpp) (optional, recommended) or directly using...
 * C: [SQLite C/C++ API](https://www.sqlite.org/cintro.html)
 
@@ -19,6 +20,12 @@ The Genomics Extension integrates with your programming language's existing SQLi
     ```java
     import java.sql.*;
     import net.mlin.genomicsqlite.GenomicSQLite;
+    ```
+
+=== "Rust"
+    ```rust
+    use genomicsqlite::ConnectionMethods;
+    use rusqlite::{Connection, OpenFlags, params, NO_PARAMS};
     ```
 
 === "C++"
@@ -73,6 +80,16 @@ The Genomics Extension integrates with your programming language's existing SQLi
       "jdbc:genomicsqlite:" + dbfileName,
       config
     );
+    ```
+
+=== "Rust"
+    ```rust
+    let dbconn: Connection = genomicsqlite::open(
+      db_filename,
+      OpenFlags::SQLITE_OPEN_CREATE | OpenFlags::SQLITE_OPEN_READ_WRITE,
+      &json::object::Object::new()  // tuning options
+    )?;
+
     ```
 
 === "SQLiteCpp"
@@ -194,6 +211,14 @@ The extension provides routines to populate a small `_gri_refseq` table describi
       "endPosition"
     );
     dbconn.createStatement().executeUpdate(griSql);
+    ```
+
+=== "Rust"
+    ```rust
+    let gri_sql = dbconn
+      .create_genomic_range_index_sql("tableName", "chromosome",
+                                      "beginPosition", "endPosition")?;
+    dbconn.execute_batch(&gri_sql)?;
     ```
 
 === "SQLiteCpp"
@@ -391,6 +416,13 @@ The following routines support the aforementioned, recommended convention for st
     dbconn.createStatement().executeUpdate(refSql);
     ```
 
+=== "Rust"
+    ```rust
+    let ref_sql = dbconn
+      .put_reference_assembly_sql("GRCh38_no_alt_analysis_set")?;
+    dbconn.execute_batch(&ref_sql)?;
+    ```
+
 === "SQLiteCpp"
     ``` c++
     std::string PutGenomicReferenceAssemblySQL(
@@ -462,6 +494,20 @@ Available assemblies:
       // String assembly, String refget_id, String meta_json, long rid
     );
     dbconn.createStatement().executeUpdate(refSql);
+    ```
+
+=== "Rust"
+    ```rust
+    let chr17 = genomicsqlite::RefSeq {
+      rid: -1,           // -1 = automatic
+      name: "chr17",
+      length: 83257441,
+      assembly: None,    // Option<String>
+      refget_id: None,   // Option<String>
+      meta_json: json::object::Object::new(),  // meta_json
+    };
+    let ref_sql = dbconn.put_reference_sequence_sql(&chr17)?;
+    dbconn.execute_batch(&ref_sql)?;
     ```
 
 === "SQLiteCpp"
@@ -559,6 +605,22 @@ If the `rid` argument is omitted or -1 then it will be assigned automatically up
       = GenomicSQLite.getReferenceSequencesByRid(dbconn);
     ```
 
+=== "Rust"
+    ```rust
+    /*
+    struct RefSeq {
+        rid: i64,
+        name: String,
+        length: i64,
+        assembly: Option<String>,
+        refget_id: Option<String>,
+        meta_json: json::object::Object,
+    }
+    */
+    let refseqs: HashMap<i64, genomicsqlite::RefSeq> = dbconn
+      .get_reference_sequences_by_rid()?;
+    ```
+
 === "SQLiteCpp"
     ``` c++
     struct gri_refseq_t {
@@ -626,6 +688,22 @@ The optional `assembly` argument restricts the retrieved sequences to those with
     */
     HashMap<String, ReferenceSequence> refseqByName
       = GenomicSQLite.getReferenceSequencesByName(dbconn);
+    ```
+
+=== "Rust"
+    ```rust
+    /*
+    struct RefSeq {
+        rid: i64,
+        name: String,
+        length: i64,
+        assembly: Option<String>,
+        refget_id: Option<String>,
+        meta_json: json::object::Object,
+    }
+    */
+    let refseqs: HashMap<String, genomicsqlite::RefSeq> = dbconn
+      .get_reference_sequences_by_name()?;
     ```
 
 === "SQLiteCpp"
@@ -765,6 +843,25 @@ But this plan strongly depends on the contiguity assumption.
     // compressed.db now attached as db2
     ```
 
+=== "Rust"
+    ```rust
+    let genomicsqlite_options = json::object::Object::new();
+    // If needed, trigger initial load of Genomics Extension prior to
+    // opening other connections
+    let nop = genomicsqlite::open(
+      ":memory:",
+      OpenFlags::SQLITE_OPEN_CREATE | OpenFlags::SQLITE_OPEN_READ_WRITE,
+      &genomicsqlite_options
+    )?;
+
+    // dbconn: rusqlite::Connection with SQLITE_OPEN_URI
+    let attach_sql = dbconn
+      .genomicsqlite_attach_sql("compressed.db", "db2",
+                                &genomicsqlite_options)?;
+    dbconn.execute_batch(&attach_sql)?;
+    // compressed.db is now attached as db2
+    ```
+
 === "SQLiteCpp"
     ``` c++
     std::string GenomicSQLiteAttachSQL(
@@ -851,6 +948,30 @@ But this plan strongly depends on the contiguity assumption.
     );
     ```
 
+
+=== "Rust"
+    ```rust
+    let genomicsqlite_options = json::object::Object::new();
+    // If needed, trigger initial load of Genomics Extension prior to
+    // opening other connections
+    let nop = genomicsqlite::open(
+      ":memory:",
+      OpenFlags::SQLITE_OPEN_CREATE | OpenFlags::SQLITE_OPEN_READ_WRITE,
+      &genomicsqlite_options
+    )?;
+
+    // dbconn: rusqlite::Connection with SQLITE_OPEN_URI
+    let vacuum = dbconn
+      .genomicsqlite_vacuum_into_sql("compressed.db",
+                                     &genomicsqlite_options)?;
+    dbconn.execute_batch(&vacuum_sql)?;
+    let dbconn2 = genomicsqlite::open(
+      "compressed.db",
+      OpenFlags::SQLITE_OPEN_READ_WRITE,
+      &genomicsqlite_options
+    )?;
+    ```
+
 === "SQLiteCpp"
     ``` c++
     std::string GenomicSQLiteVacuumIntoSQL(
@@ -920,6 +1041,11 @@ But this plan strongly depends on the contiguity assumption.
 === "Java"
     ```java
     String genomicsqliteVersion = GenomicSQLite.version(dbconn);
+    ```
+
+=== "Rust"
+    ```rust
+    let v: String = dbconn.genomicsqlite_version();
     ```
 
 === "C++"
