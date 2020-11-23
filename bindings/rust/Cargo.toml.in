@@ -5,9 +5,15 @@ authors = ["Mike Lin <dna@mlin.net>"]
 edition = "2018"
 license = "Apache"
 repository = "https://github.com/mlin/GenomicSQLite"
+documentation = "https://mlin.github.io/GenomicSQLite"
 include = ["src/**/*", "Cargo.toml", "libgenomicsqlite.*"]
 
-# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+[features]
+# Use default-features=false to prevent bundling a platform-specific libgenomicsqlite into your
+# compilation unit. Then at runtime, you must either set env LIBGENOMICSQLITE to the library path,
+# or place it somewhere it'll be found by dlopen("libgenomicsqlite").
+default = ["bundle_libgenomicsqlite"]
+bundle_libgenomicsqlite = []
 
 [dependencies]
 json = "^0"

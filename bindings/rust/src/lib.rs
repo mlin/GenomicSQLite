@@ -7,9 +7,9 @@ use json::object::Object;
 use rusqlite::{params, Connection, LoadExtensionGuard, OpenFlags, Result, NO_PARAMS};
 use std::collections::HashMap;
 use std::env;
-#[cfg(not(debug_assertions))]
+#[cfg(feature = "bundle_libgenomicsqlite")]
 use std::fs::File;
-#[cfg(not(debug_assertions))]
+#[cfg(feature = "bundle_libgenomicsqlite")]
 use std::io::prelude::*;
 use std::path::Path;
 use std::sync::Once;
@@ -18,7 +18,7 @@ use tempfile::TempDir;
 /* Helper functions for bundling libgenomicsqlite.{so,dylib} into the compilation unit */
 
 // extract slice into basename under a temp directory
-#[cfg(not(debug_assertions))]
+#[cfg(feature = "bundle_libgenomicsqlite")]
 fn extract_libgenomicsqlite_impl(
     bytes: &[u8],
     basename: &str,
@@ -40,7 +40,7 @@ fn extract_libgenomicsqlite_impl(
     Ok((libpath, tmp))
 }
 
-#[cfg(not(debug_assertions))]
+#[cfg(feature = "bundle_libgenomicsqlite")]
 fn extract_libgenomicsqlite(bytes: &[u8], filename: &str) -> (String, TempDir) {
     match extract_libgenomicsqlite_impl(bytes, filename) {
         Ok(ans) => ans,
@@ -48,22 +48,29 @@ fn extract_libgenomicsqlite(bytes: &[u8], filename: &str) -> (String, TempDir) {
     }
 }
 
-// debug: don't bundle, require developer to set LIBGENOMICSQLITE
-#[cfg(debug_assertions)]
-fn bundled_libgenomicsqlite() -> Option<(String, TempDir)> {
+#[cfg(not(feature = "bundle_libgenomicsqlite"))]
+fn bundle_libgenomicsqlite() -> Option<(String, TempDir)> {
     None
 }
 
-#[cfg(all(not(debug_assertions), target_os = "linux", target_arch = "x86_64"))]
-fn bundled_libgenomicsqlite() -> Option<(String, TempDir)> {
+#[cfg(all(
+    feature = "bundle_libgenomicsqlite",
+    target_os = "linux",
+    target_arch = "x86_64"
+))]
+fn bundle_libgenomicsqlite() -> Option<(String, TempDir)> {
     Some(extract_libgenomicsqlite(
         include_bytes!("../libgenomicsqlite.so"),
         &"libgenomicsqlite.so",
     ))
 }
 
-#[cfg(all(not(debug_assertions), target_os = "macos", target_arch = "x86_64"))]
-fn bundled_libgenomicsqlite() -> Option<(String, TempDir)> {
+#[cfg(all(
+    feature = "bundle_libgenomicsqlite",
+    target_os = "macos",
+    target_arch = "x86_64"
+))]
+fn bundle_libgenomicsqlite() -> Option<(String, TempDir)> {
     Some(extract_libgenomicsqlite(
         include_bytes!("../libgenomicsqlite.dylib"),
         "libgenomicsqlite.dylib",
@@ -111,7 +118,7 @@ pub fn open<P: AsRef<Path>>(path: P, flags: OpenFlags, config: &Object) -> Resul
         let mut _tmpdir;
         let libgenomicsqlite = match env::var("LIBGENOMICSQLITE") {
             Ok(v) => v,
-            Err(_) => match bundled_libgenomicsqlite() {
+            Err(_) => match bundle_libgenomicsqlite() {
                 Some((ans, td)) => {
                     _tmpdir = td;
                     ans

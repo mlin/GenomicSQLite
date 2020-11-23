@@ -31,7 +31,7 @@ jobs:
     - name: rust lint
       run: |
         cd bindings/rust
-        ./cargo check
+        ./cargo check --no-default-features
         ./cargo fmt -- --check
 
   test:
@@ -88,8 +88,8 @@ jobs:
       run: |
         set -e
         cp build/libgenomicsqlite.so bindings/rust
-        bindings/rust/cargo package --list | grep libgenomicsqlite.so
         bindings/rust/cargo test --release
+        bindings/rust/cargo package --list | grep libgenomicsqlite.so
     - name: prepare artifacts
       run: cp build/libgenomicsqlite.so include/genomicsqlite.h .
     - uses: actions/upload-artifact@v2
@@ -130,7 +130,6 @@ jobs:
               -DCMAKE_PREFIX_PATH=$(brew --prefix)/opt/sqlite \
               -B build .
         cmake --build build -j 4
-        bindings/rust/cargo build
     - name: otool
       run: otool -L build/libgenomicsqlite.dylib
     - name: ctest
@@ -142,8 +141,8 @@ jobs:
       run: |
         set -e
         cp build/libgenomicsqlite.dylib bindings/rust
-        bindings/rust/cargo package --list | grep libgenomicsqlite.dylib
         bindings/rust/cargo test --release
+        bindings/rust/cargo package --list | grep libgenomicsqlite.dylib
     - name: prepare artifacts
       run: cp build/libgenomicsqlite.dylib include/genomicsqlite.h .
     - uses: actions/upload-artifact@v2
