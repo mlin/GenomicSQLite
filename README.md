@@ -8,6 +8,10 @@ This [SQLite3 loadable extension](https://www.sqlite.org/loadext.html) adds feat
 * streaming storage compression (also available [standalone](https://github.com/mlin/sqlite_zstd_vfs))
 * pre-tuned settings for "big data"
 
+This October 2020 poster discusses the context and long-run ambitions:
+
+[<img src="https://mlin.github.io/GenomicSQLite/GA4GH_8thPlenary_poster_mlin_v2.thumb.jpeg" width="400" alt="GenomicSQLite Poster"/>](https://mlin.github.io/GenomicSQLite/GA4GH_8thPlenary_poster_mlin_v2.pdf)
+
 Our **[Colab notebook](https://colab.research.google.com/drive/1OlHPOcRQBhDmEnS1wtOdtUGDkcD7LtKx?usp=sharing)** demonstrates key features with Python, one of several language bindings.
 
 **USE AT YOUR OWN RISK:** The extension makes fundamental changes to the database storage layer. While designed to preserve ACID transaction safety, it's young and unlikely to have zero bugs. This project is not associated with the SQLite developers.
