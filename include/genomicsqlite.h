@@ -1,3 +1,4 @@
+#include <stddef.h>
 #ifndef SQLITE3EXT_H
 #include <sqlite3.h>
 #endif
@@ -85,6 +86,34 @@ char *put_genomic_reference_sequence_sql(const char *name, sqlite3_int64 length,
                                          const char *assembly, const char *refget_id,
                                          const char *meta_json, sqlite3_int64 rid,
                                          const char *attached_schema);
+
+/*
+ * Low-level routines for two-bit nucleotide encoding (normally used via SQL functions, but
+ * available to C FFI callers here)
+ */
+
+/*
+ * Two-bit encode the nucleotide character sequence of specified length. The output buffer must be
+ * preallocated (len+7)/4 bytes. Return codes:
+ *  0 = success; wrote (len+7)/4 bytes
+ * -1 = encountered non-nucleotide ASCII character
+ * -2 = encountered non-ASCII character (e.g. UTF-8) or NUL
+ */
+int nucleotides_twobit(const char *seq, size_t len, void *out);
+
+/*
+ * Given two-bit-encoded blob pointer & size, compute original nucleotide sequence length
+ */
+size_t twobit_length(const void *data, size_t sz);
+
+/*
+ * Given blob pointer, two-bit-decode the nucleotide subsequence [ofs, ofs+len). To get the whole
+ * sequence, set ofs=0 & len=twobit_length(data, datasize). Caller must ensure that:
+ * 1. ofs+len <= twobit_length(data, datasize)
+ * 2. out is preallocated len+1 bytes (a null terminator will be affixed)
+ */
+void twobit_dna(const void *data, size_t ofs, size_t len, char *out);
+void twobit_rna(const void *data, size_t ofs, size_t len, char *out);
 
 /*
  * C++ bindings: are liable to throw exceptions except where marked noexcept

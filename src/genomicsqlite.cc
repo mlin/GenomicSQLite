@@ -19,6 +19,7 @@ using namespace std;
 #else
 #define _DBG false && cerr
 #endif
+#define _DBGV(x) _DBG << #x << " = " << (x) << endl;
 
 /**************************************************************************************************
  * connection & tuning helpers
@@ -1087,6 +1088,335 @@ GetGenomicReferenceSequencesByName(sqlite3 *dbconn, const string &assembly, cons
 }
 
 /**************************************************************************************************
+ * SQL helper functions for compactly storing DNA/RNA sequences
+ **************************************************************************************************/
+
+/*
+crumbs = []
+for c in (chr(i) for i in range(256)):
+    if c in "TtUu":
+        crumbs.append(0)
+    elif c in "Cc":
+        crumbs.append(1)
+    elif c in "Aa":
+        crumbs.append(2)
+    elif c in "Gg":
+        crumbs.append(3)
+    else:
+        crumbs.append(0xFF)
+
+print(crumbs)
+*/
+const unsigned char dna_crumb_table[] = {
+    0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF,
+    0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF,
+    0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF,
+    0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF,
+    0xFF, 2,    0xFF, 1,    0xFF, 0xFF, 0xFF, 3,    0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF,
+    0xFF, 0xFF, 0xFF, 0xFF, 0,    0,    0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF,
+    0xFF, 2,    0xFF, 1,    0xFF, 0xFF, 0xFF, 3,    0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF,
+    0xFF, 0xFF, 0xFF, 0xFF, 0,    0,    0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF,
+    0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF,
+    0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF,
+    0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF,
+    0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF,
+    0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF,
+    0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF,
+    0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF,
+    0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF};
+
+extern "C" int nucleotides_twobit(const char *seq, size_t len, void *out) {
+    unsigned char *outbyte = (unsigned char *)out;
+
+    // header byte: the low two bits specify how many crumbs at the end of the buffer must be
+    // ignored by the decoder (0, 1, 2, or 3)
+    auto trailing_crumbs = (4 - len % 4) % 4;
+    assert(trailing_crumbs >= 0 && trailing_crumbs <= 3);
+    *(outbyte++) = trailing_crumbs;
+
+    unsigned char byte = 0;
+    for (size_t i = 0; i < len; ++i) {
+        const char c_i = seq[i];
+        if (c_i <= 0) {
+            return -2;
+        }
+        assert(c_i >= 0 && c_i < 128);
+        const unsigned char crumb = dna_crumb_table[c_i];
+        if (crumb > 3) {
+            return -1;
+        }
+        assert((byte >> 6) == 0);
+        byte = (byte << 2) | crumb;
+        if (i % 4 == 3) {
+            *(outbyte++) = byte;
+            byte = 0;
+        }
+    }
+
+    if (trailing_crumbs) {
+        assert(len && (byte >> (2 * (4 - trailing_crumbs))) == 0);
+        byte <<= (2 * trailing_crumbs);
+        *outbyte = byte;
+    } else {
+        assert(byte == 0);
+    }
+
+    return 0;
+}
+
+static void sqlfn_nucleotides_twobit(sqlite3_context *ctx, int argc, sqlite3_value **argv) {
+    assert(argc == 1);
+    auto arg0ty = sqlite3_value_type(argv[0]);
+    switch (arg0ty) {
+    case SQLITE_TEXT:
+    case SQLITE_BLOB:
+        break;
+    case SQLITE_NULL:
+        return sqlite3_result_null(ctx);
+    default:
+        return sqlite3_result_error(ctx, "nucleotides_twobit() expected BLOB or TEXT", -1);
+    }
+
+    auto seqlen = sqlite3_value_bytes(argv[0]);
+    assert(seqlen >= 0);
+    if (!seqlen) {
+        return sqlite3_result_value(ctx, argv[0]);
+    }
+
+    auto seq = (const char *)(arg0ty == SQLITE_TEXT ? sqlite3_value_text(argv[0])
+                                                    : sqlite3_value_blob(argv[0]));
+    if (!seq) {
+        return sqlite3_result_error_nomem(ctx);
+    }
+
+    try {
+        size_t bufsz = (seqlen + 7) / 4;
+        std::unique_ptr<unsigned char[]> buf(new unsigned char[bufsz]);
+        int rc = nucleotides_twobit(seq, (size_t)seqlen, buf.get());
+        if (rc == -2) {
+            return sqlite3_result_error(ctx, "non-ASCII input to nucleotides_twobit()", -1);
+        } else if (rc != 0) {
+            return sqlite3_result_text(ctx, seq, seqlen, SQLITE_TRANSIENT);
+        }
+        return sqlite3_result_blob64(ctx, buf.get(), bufsz, SQLITE_TRANSIENT);
+    } catch (std::bad_alloc &) {
+        return sqlite3_result_error_nomem(ctx);
+    }
+}
+
+extern "C" size_t twobit_length(const void *data, size_t sz) {
+    if (sz < 2) {
+        return 0;
+    }
+    const unsigned char *bytes = (const unsigned char *)data;
+    unsigned char trailing_crumbs = bytes[0] & 0b11;
+    return 4 * (sz - 1) - trailing_crumbs;
+}
+
+static void sqlfn_twobit_length(sqlite3_context *ctx, int argc, sqlite3_value **argv) {
+    assert(argc == 1);
+    try {
+        if (sqlite3_value_type(argv[0]) == SQLITE_BLOB) {
+            size_t sz = sqlite3_value_bytes(argv[0]);
+            size_t ans = twobit_length(sqlite3_value_blob(argv[0]), sz);
+            if (ans > 2147483647) { // https://www.sqlite.org/limits.html
+                sqlite3_result_error_toobig(ctx);
+            } else {
+                sqlite3_result_int64(ctx, ans);
+            }
+        } else if (sqlite3_value_type(argv[0]) == SQLITE_TEXT) {
+            sqlite3_result_int64(ctx, sqlite3_value_bytes(argv[0]));
+        } else if (sqlite3_value_type(argv[0]) == SQLITE_NULL) {
+            sqlite3_result_null(ctx);
+        } else {
+            sqlite3_result_error(ctx, "twobit_length() expected BLOB or TEXT", -1);
+        }
+    } catch (std::bad_alloc &) {
+        sqlite3_result_error_nomem(ctx);
+    }
+}
+
+/*
+letters = ('T', 'C', 'A', 'G')
+dna4mers = []
+for byte in range(256):
+    rev4mer = []
+    for _ in range(4):
+        rev4mer.append(letters[byte & 0b11])
+        byte = byte >> 2
+    dna4mers.append(''.join(reversed(rev4mer)))
+
+print(dna4mers)
+*/
+const char *twobit_dna4mers[] = {
+    "TTTT", "TTTC", "TTTA", "TTTG", "TTCT", "TTCC", "TTCA", "TTCG", "TTAT", "TTAC", "TTAA", "TTAG",
+    "TTGT", "TTGC", "TTGA", "TTGG", "TCTT", "TCTC", "TCTA", "TCTG", "TCCT", "TCCC", "TCCA", "TCCG",
+    "TCAT", "TCAC", "TCAA", "TCAG", "TCGT", "TCGC", "TCGA", "TCGG", "TATT", "TATC", "TATA", "TATG",
+    "TACT", "TACC", "TACA", "TACG", "TAAT", "TAAC", "TAAA", "TAAG", "TAGT", "TAGC", "TAGA", "TAGG",
+    "TGTT", "TGTC", "TGTA", "TGTG", "TGCT", "TGCC", "TGCA", "TGCG", "TGAT", "TGAC", "TGAA", "TGAG",
+    "TGGT", "TGGC", "TGGA", "TGGG", "CTTT", "CTTC", "CTTA", "CTTG", "CTCT", "CTCC", "CTCA", "CTCG",
+    "CTAT", "CTAC", "CTAA", "CTAG", "CTGT", "CTGC", "CTGA", "CTGG", "CCTT", "CCTC", "CCTA", "CCTG",
+    "CCCT", "CCCC", "CCCA", "CCCG", "CCAT", "CCAC", "CCAA", "CCAG", "CCGT", "CCGC", "CCGA", "CCGG",
+    "CATT", "CATC", "CATA", "CATG", "CACT", "CACC", "CACA", "CACG", "CAAT", "CAAC", "CAAA", "CAAG",
+    "CAGT", "CAGC", "CAGA", "CAGG", "CGTT", "CGTC", "CGTA", "CGTG", "CGCT", "CGCC", "CGCA", "CGCG",
+    "CGAT", "CGAC", "CGAA", "CGAG", "CGGT", "CGGC", "CGGA", "CGGG", "ATTT", "ATTC", "ATTA", "ATTG",
+    "ATCT", "ATCC", "ATCA", "ATCG", "ATAT", "ATAC", "ATAA", "ATAG", "ATGT", "ATGC", "ATGA", "ATGG",
+    "ACTT", "ACTC", "ACTA", "ACTG", "ACCT", "ACCC", "ACCA", "ACCG", "ACAT", "ACAC", "ACAA", "ACAG",
+    "ACGT", "ACGC", "ACGA", "ACGG", "AATT", "AATC", "AATA", "AATG", "AACT", "AACC", "AACA", "AACG",
+    "AAAT", "AAAC", "AAAA", "AAAG", "AAGT", "AAGC", "AAGA", "AAGG", "AGTT", "AGTC", "AGTA", "AGTG",
+    "AGCT", "AGCC", "AGCA", "AGCG", "AGAT", "AGAC", "AGAA", "AGAG", "AGGT", "AGGC", "AGGA", "AGGG",
+    "GTTT", "GTTC", "GTTA", "GTTG", "GTCT", "GTCC", "GTCA", "GTCG", "GTAT", "GTAC", "GTAA", "GTAG",
+    "GTGT", "GTGC", "GTGA", "GTGG", "GCTT", "GCTC", "GCTA", "GCTG", "GCCT", "GCCC", "GCCA", "GCCG",
+    "GCAT", "GCAC", "GCAA", "GCAG", "GCGT", "GCGC", "GCGA", "GCGG", "GATT", "GATC", "GATA", "GATG",
+    "GACT", "GACC", "GACA", "GACG", "GAAT", "GAAC", "GAAA", "GAAG", "GAGT", "GAGC", "GAGA", "GAGG",
+    "GGTT", "GGTC", "GGTA", "GGTG", "GGCT", "GGCC", "GGCA", "GGCG", "GGAT", "GGAC", "GGAA", "GGAG",
+    "GGGT", "GGGC", "GGGA", "GGGG"};
+const char *twobit_rna4mers[] = {
+    "UUUU", "UUUC", "UUUA", "UUUG", "UUCU", "UUCC", "UUCA", "UUCG", "UUAU", "UUAC", "UUAA", "UUAG",
+    "UUGU", "UUGC", "UUGA", "UUGG", "UCUU", "UCUC", "UCUA", "UCUG", "UCCU", "UCCC", "UCCA", "UCCG",
+    "UCAU", "UCAC", "UCAA", "UCAG", "UCGU", "UCGC", "UCGA", "UCGG", "UAUU", "UAUC", "UAUA", "UAUG",
+    "UACU", "UACC", "UACA", "UACG", "UAAU", "UAAC", "UAAA", "UAAG", "UAGU", "UAGC", "UAGA", "UAGG",
+    "UGUU", "UGUC", "UGUA", "UGUG", "UGCU", "UGCC", "UGCA", "UGCG", "UGAU", "UGAC", "UGAA", "UGAG",
+    "UGGU", "UGGC", "UGGA", "UGGG", "CUUU", "CUUC", "CUUA", "CUUG", "CUCU", "CUCC", "CUCA", "CUCG",
+    "CUAU", "CUAC", "CUAA", "CUAG", "CUGU", "CUGC", "CUGA", "CUGG", "CCUU", "CCUC", "CCUA", "CCUG",
+    "CCCU", "CCCC", "CCCA", "CCCG", "CCAU", "CCAC", "CCAA", "CCAG", "CCGU", "CCGC", "CCGA", "CCGG",
+    "CAUU", "CAUC", "CAUA", "CAUG", "CACU", "CACC", "CACA", "CACG", "CAAU", "CAAC", "CAAA", "CAAG",
+    "CAGU", "CAGC", "CAGA", "CAGG", "CGUU", "CGUC", "CGUA", "CGUG", "CGCU", "CGCC", "CGCA", "CGCG",
+    "CGAU", "CGAC", "CGAA", "CGAG", "CGGU", "CGGC", "CGGA", "CGGG", "AUUU", "AUUC", "AUUA", "AUUG",
+    "AUCU", "AUCC", "AUCA", "AUCG", "AUAU", "AUAC", "AUAA", "AUAG", "AUGU", "AUGC", "AUGA", "AUGG",
+    "ACUU", "ACUC", "ACUA", "ACUG", "ACCU", "ACCC", "ACCA", "ACCG", "ACAU", "ACAC", "ACAA", "ACAG",
+    "ACGU", "ACGC", "ACGA", "ACGG", "AAUU", "AAUC", "AAUA", "AAUG", "AACU", "AACC", "AACA", "AACG",
+    "AAAU", "AAAC", "AAAA", "AAAG", "AAGU", "AAGC", "AAGA", "AAGG", "AGUU", "AGUC", "AGUA", "AGUG",
+    "AGCU", "AGCC", "AGCA", "AGCG", "AGAU", "AGAC", "AGAA", "AGAG", "AGGU", "AGGC", "AGGA", "AGGG",
+    "GUUU", "GUUC", "GUUA", "GUUG", "GUCU", "GUCC", "GUCA", "GUCG", "GUAU", "GUAC", "GUAA", "GUAG",
+    "GUGU", "GUGC", "GUGA", "GUGG", "GCUU", "GCUC", "GCUA", "GCUG", "GCCU", "GCCC", "GCCA", "GCCG",
+    "GCAU", "GCAC", "GCAA", "GCAG", "GCGU", "GCGC", "GCGA", "GCGG", "GAUU", "GAUC", "GAUA", "GAUG",
+    "GACU", "GACC", "GACA", "GACG", "GAAU", "GAAC", "GAAA", "GAAG", "GAGU", "GAGC", "GAGA", "GAGG",
+    "GGUU", "GGUC", "GGUA", "GGUG", "GGCU", "GGCC", "GGCA", "GGCG", "GGAU", "GGAC", "GGAA", "GGAG",
+    "GGGU", "GGGC", "GGGA", "GGGG"};
+
+static void twobit_nucleotides(const void *data, size_t ofs, size_t len, bool rna, char *out) {
+    const char **table = rna ? twobit_rna4mers : twobit_dna4mers;
+    const unsigned char *pbyte = ((const unsigned char *)data) + 1 + ofs / 4;
+    size_t out_cursor = 0;
+    // decode first payload byte (maybe only part of it) crumb-by-crumb
+    for (auto crumb = ofs % 4; crumb < 4 && out_cursor < len;) {
+        out[out_cursor++] = table[*pbyte][crumb++];
+    }
+    // decode internal bytes to 4-mers
+    for (++pbyte; out_cursor + 4 <= len; out_cursor += 4) {
+        memcpy(out + out_cursor, table[*(pbyte++)], 4);
+    }
+    // decode last payload byte crumb-by-crumb, if needed
+    for (size_t crumb = 0; out_cursor < len;) {
+        assert(crumb < 4);
+        out[out_cursor++] = table[*pbyte][crumb++];
+    }
+    assert(out_cursor == len);
+    out[out_cursor] = 0;
+}
+
+extern "C" void twobit_dna(const void *data, size_t ofs, size_t len, char *out) {
+    return twobit_nucleotides(data, ofs, len, false, out);
+}
+
+extern "C" void twobit_rna(const void *data, size_t ofs, size_t len, char *out) {
+    return twobit_nucleotides(data, ofs, len, true, out);
+}
+
+static void twobit_nucleotides(sqlite3_context *ctx, int argc, sqlite3_value **argv, bool rna) {
+    assert(argc >= 1 && argc <= 3);
+    bool blob = false;
+    switch (sqlite3_value_type(argv[0])) {
+    case SQLITE_TEXT:
+        break;
+    case SQLITE_BLOB:
+        blob = true;
+        break;
+    case SQLITE_NULL:
+        return sqlite3_result_null(ctx);
+    default:
+        return sqlite3_result_error(ctx, "twobit_dna() expected BLOB or TEXT", -1);
+    }
+
+    // Y and Z are as https://sqlite.org/lang_corefunc.html#substr
+    ssize_t Y = 0, Zval = -1;
+    ARG_OPTIONAL(Y, 1, SQLITE_INTEGER, int);
+    ARG_OPTIONAL(Zval, 2, SQLITE_INTEGER, int);
+    ssize_t *Z = (argc >= 3 && sqlite3_value_type(argv[2]) != SQLITE_NULL) ? &Zval : nullptr;
+
+    try {
+        size_t sz = (size_t)sqlite3_value_bytes(argv[0]);
+        size_t len = blob ? twobit_length(sqlite3_value_blob(argv[0]), sz) : sz;
+
+        // based on Y and Z, explicate the zero-based offset & length of the desired substring.
+        // see this convoluted logic:
+        //   https://github.com/sqlite/sqlite/blob/d924e7bc78a4ca604bce0f8d9d0390d3feddba01/src/func.c#L299
+        size_t sub_ofs = 0;
+        if (Y > 0) {
+            sub_ofs = Y - 1;
+        } else if (Y < 0) {
+            sub_ofs = (size_t)max(0L, Y + (ssize_t)len);
+        }
+        if (sub_ofs > len) {
+            return sqlite3_result_text(ctx, "", 0, SQLITE_STATIC);
+        }
+        size_t sub_len = len - sub_ofs;
+        if (Z) {
+            if (*Z < 0) {
+                sub_len = (size_t)(0 - *Z);
+                sub_len = min(sub_ofs, sub_len);
+                sub_ofs -= sub_len;
+            } else {
+                sub_len = (size_t)*Z;
+                if (Y == 0) {
+                    sub_len -= min(1UL, sub_len);
+                } else if (0 - Y > (ssize_t)len) {
+                    sub_len -= min(sub_len, 0 - Y - len);
+                }
+                sub_len = min(sub_len, len - sub_ofs);
+            }
+        }
+        if (sub_len == 0) {
+            return sqlite3_result_text(ctx, "", 0, SQLITE_STATIC);
+        }
+        assert(sub_ofs + sub_len <= (blob ? len : sz));
+
+        if (blob) {
+            // decode two-bit-encoded BLOB
+            unique_ptr<char[]> buf(new char[sub_len + 1]);
+            twobit_nucleotides(sqlite3_value_blob(argv[0]), sub_ofs, sub_len, rna, buf.get());
+            sqlite3_result_text(ctx, buf.get(), sub_len, SQLITE_TRANSIENT);
+        } else if (sub_ofs == 0 && sub_len == len) {
+            // pass through complete text
+            sqlite3_result_value(ctx, argv[0]);
+        } else {
+            // substr of text
+            sqlite3_result_text(ctx, ((const char *)sqlite3_value_text(argv[0])) + sub_ofs, sub_len,
+                                SQLITE_TRANSIENT);
+        }
+    } catch (std::bad_alloc &) {
+        sqlite3_result_error_nomem(ctx);
+    } catch (SQLite::Exception &exn) {
+        if (exn.getErrorCode() == SQLITE_TOOBIG) {
+            sqlite3_result_error_toobig(ctx);
+        } else {
+            sqlite3_result_error(ctx, exn.getErrorStr(), -1);
+        }
+    } catch (std::exception &exn) {
+        sqlite3_result_error(ctx, exn.what(), -1);
+    }
+}
+
+static void sqlfn_twobit_dna(sqlite3_context *ctx, int argc, sqlite3_value **argv) {
+    twobit_nucleotides(ctx, argc, argv, false);
+}
+
+static void sqlfn_twobit_rna(sqlite3_context *ctx, int argc, sqlite3_value **argv) {
+    twobit_nucleotides(ctx, argc, argv, true);
+}
+
+/**************************************************************************************************
  * SQLite loadable extension initialization
  **************************************************************************************************/
 
@@ -1125,7 +1455,15 @@ static int register_genomicsqlite_functions(sqlite3 *db, const char **pzErrMsg,
                  {FPNM(put_genomic_reference_sequence_sql), 6, 0},
                  {FPNM(put_genomic_reference_sequence_sql), 7, 0},
                  {FPNM(put_genomic_reference_assembly_sql), 1, 0},
-                 {FPNM(put_genomic_reference_assembly_sql), 2, 0}};
+                 {FPNM(put_genomic_reference_assembly_sql), 2, 0},
+                 {FPNM(nucleotides_twobit), 1, SQLITE_DETERMINISTIC},
+                 {FPNM(twobit_length), 1, SQLITE_DETERMINISTIC},
+                 {FPNM(twobit_dna), 1, SQLITE_DETERMINISTIC},
+                 {FPNM(twobit_dna), 2, SQLITE_DETERMINISTIC},
+                 {FPNM(twobit_dna), 3, SQLITE_DETERMINISTIC},
+                 {FPNM(twobit_rna), 1, SQLITE_DETERMINISTIC},
+                 {FPNM(twobit_rna), 2, SQLITE_DETERMINISTIC},
+                 {FPNM(twobit_rna), 3, SQLITE_DETERMINISTIC}};
 
     int rc;
     for (int i = 0; i < sizeof(fntab) / sizeof(fntab[0]); ++i) {
