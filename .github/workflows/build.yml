@@ -12,6 +12,8 @@ jobs:
     runs-on: ubuntu-20.04
     steps:
     - uses: actions/checkout@v2
+      with:
+        fetch-depth: 0
     - name: deps
       run: |
         sudo apt-get install -y clang-format cppcheck python3-pip
@@ -20,6 +22,17 @@ jobs:
       run: pre-commit run --all-files
     - name: mvn spotless:check
       run: mvn spotless:check -B -f bindings/jdbc/genomicsqlite-jdbc/pom.xml
+    - name: rust toolchain
+      uses: actions-rs/toolchain@v1
+      with:
+        components: rustfmt, clippy
+        toolchain: stable
+        default: true
+    - name: rust lint
+      run: |
+        cd bindings/rust
+        ./cargo check --no-default-features
+        ./cargo fmt -- --check
 
   test:
     runs-on: ubuntu-20.04
@@ -28,10 +41,17 @@ jobs:
         BUILD_TYPE: [Debug, Release]
     steps:
     - uses: actions/checkout@v2
+      with:
+        fetch-depth: 0
     - name: deps
       run: |
         sudo apt-get install -y $APT_DEPS
         sudo pip3 install --system $PIP_DEPS
+    - name: rust toolchain
+      uses: actions-rs/toolchain@v1
+      with:
+        toolchain: stable
+        default: true
     - name: build
       run: cmake -DCMAKE_BUILD_TYPE=${{ matrix.BUILD_TYPE }} -B build . && cmake --build build -j $(nproc)
     - name: test
@@ -41,6 +61,8 @@ jobs:
     runs-on: ubuntu-20.04
     steps:
     - uses: actions/checkout@v2
+      with:
+        fetch-depth: 0
     - name: build loaders
       run: |
         sudo apt-get install -y $APT_DEPS
@@ -55,8 +77,19 @@ jobs:
         docker run genomicsqlite ldd -v -r build/libgenomicsqlite.so
         echo "----"
         ldd -v -r build/libgenomicsqlite.so
+    - name: rust toolchain
+      uses: actions-rs/toolchain@v1
+      with:
+        toolchain: stable
+        default: true
     - name: test portable .so
       run: env -C build ctest -V
+    - name: test rust crate
+      run: |
+        set -e
+        cp build/libgenomicsqlite.so bindings/rust
+        bindings/rust/cargo test --release
+        bindings/rust/cargo package --list | grep libgenomicsqlite.so
     - name: prepare artifacts
       run: cp build/libgenomicsqlite.so include/genomicsqlite.h .
     - uses: actions/upload-artifact@v2
@@ -68,30 +101,48 @@ jobs:
     runs-on: macOS-10.15
     steps:
     - uses: actions/checkout@v2
+      with:
+        fetch-depth: 0
     - name: dependencies
       run: |
         brew update
         brew upgrade
         brew install $BREW_DEPS
         /usr/local/bin/pip3 install $PIP_DEPS
+    - name: rust toolchain
+      uses: actions-rs/toolchain@v1
+      with:
+        toolchain: stable
+        default: true
+    - name: build environment
+      run: |
+        echo "PREFIX=$(brew --prefix)" >> $GITHUB_ENV
+        echo "PATH=${PREFIX}/opt/python/libexec/bin:${PREFIX}/opt/sqlite/bin:${PATH}" >> $GITHUB_ENV
+        echo "CFLAGS=-I$(brew --prefix)/include -I$(brew --prefix)/opt/sqlite/include -march=sandybridge" >> $GITHUB_ENV
+        echo "CXXFLAGS=-I$(brew --prefix)/include -march=sandybridge" >> $GITHUB_ENV
+        echo "LDFLAGS=-L$(brew --prefix)/lib -L$(brew --prefix)/opt/sqlite/lib" >> $GITHUB_ENV
+        # used by rusqlite:
+        echo "SQLITE3_INCLUDE_DIR=$(brew --prefix)/opt/sqlite/include" >> $GITHUB_ENV
+        echo "SQLITE3_LIB_DIR=$(brew --prefix)/opt/sqlite/lib" >> $GITHUB_ENV
     - name: build
       run: |
-        CFLAGS="-I$(brew --prefix)/include -I$(brew --prefix)/opt/sqlite/include -march=sandybridge" \
-        CXXFLAGS="-I$(brew --prefix)/include -march=sandybridge" \
-        LDFLAGS="-L$(brew --prefix)/lib -L$(brew --prefix)/opt/sqlite/lib" \
-          cmake -DCMAKE_BUILD_TYPE=Release \
-                -DCMAKE_PREFIX_PATH=$(brew --prefix)/opt/sqlite \
-                -B build .
+        cmake -DCMAKE_BUILD_TYPE=Release \
+              -DCMAKE_PREFIX_PATH=$(brew --prefix)/opt/sqlite \
+              -B build .
         cmake --build build -j 4
     - name: otool
       run: otool -L build/libgenomicsqlite.dylib
     - name: ctest
       run: |
-        export PREFIX=$(brew --prefix)
-        export PATH=${PREFIX}/opt/python/libexec/bin:${PREFIX}/opt/sqlite/bin:$PATH
         cd build
         otool -L test/capi_smoke_test
         ctest -V
+    - name: test rust crate
+      run: |
+        set -e
+        cp build/libgenomicsqlite.dylib bindings/rust
+        bindings/rust/cargo test --release
+        bindings/rust/cargo package --list | grep libgenomicsqlite.dylib
     - name: prepare artifacts
       run: cp build/libgenomicsqlite.dylib include/genomicsqlite.h .
     - uses: actions/upload-artifact@v2
@@ -115,7 +166,6 @@ jobs:
     - name: detect GIT_REVISION
       run: |
         cp include/genomicsqlite.h .
-        git fetch origin --tags
         echo "GIT_REVISION=$(git describe --tags --always)" >> $GITHUB_ENV
     - uses: actions/upload-artifact@v2
       with:

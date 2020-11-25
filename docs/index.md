@@ -67,6 +67,16 @@ It's usually easiest to obtain the extension as a pre-compiled shared library (L
 
     Recommendation: *also* install the Python package, which includes a useful command-line shell and smoke-test script.
 
+=== "Rust"
+    Add to your project's `Cargo.toml`:
+
+    ```toml
+    [dependencies.genomicsqlite]
+    version = "^0"
+    ```
+
+    The crate will build a bundled shared library file appropriate for your platform into your compilation unit. To disable this, add `default-features = false` and at runtime, set environment variable `LIBGENOMICSQLITE` to a filename or place the library file somewhere it'll be found by `dlopen("libgenomicsqlite")`.
+
 === "C/C++"
     Download zip of shared library and `genomicsqlite.h` from [GitHub Releases](https://github.com/mlin/GenomicSQLite/releases). Build your program with them, and also ensure the dynamic linker will find the shared library at runtime, by either: (1) installing it in a system or user lib directory & refreshing cache, (2) setting `LD_LIBRARY_PATH` environment variable, (3) building with `-rpath`.
 
