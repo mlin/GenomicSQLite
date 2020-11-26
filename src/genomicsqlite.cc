@@ -1126,13 +1126,20 @@ const unsigned char dna_crumb_table[] = {
     0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF};
 
 extern "C" int nucleotides_twobit(const char *seq, size_t len, void *out) {
+    if (len == 0) {
+        return 0;
+    }
+
     unsigned char *outbyte = (unsigned char *)out;
 
-    // header byte: the low two bits specify how many crumbs at the end of the buffer must be
-    // ignored by the decoder (0, 1, 2, or 3)
+    // Header byte: the low two bits specify how many crumbs at the end of the buffer must be
+    // ignored by the decoder (0, 1, 2, or 3). Exception: if len == 1 then these low two bits
+    // encode the nucleotide directly.
     auto trailing_crumbs = (4 - len % 4) % 4;
     assert(trailing_crumbs >= 0 && trailing_crumbs <= 3);
-    *(outbyte++) = trailing_crumbs;
+    if (len > 1) {
+        *(outbyte++) = trailing_crumbs;
+    }
 
     unsigned char byte = 0;
     for (size_t i = 0; i < len; ++i) {
@@ -1155,13 +1162,15 @@ extern "C" int nucleotides_twobit(const char *seq, size_t len, void *out) {
 
     if (trailing_crumbs) {
         assert(len && (byte >> (2 * (4 - trailing_crumbs))) == 0);
-        byte <<= (2 * trailing_crumbs);
-        *outbyte = byte;
+        if (len > 1) {
+            byte <<= (2 * trailing_crumbs);
+        }
+        *(outbyte++) = byte;
     } else {
         assert(byte == 0);
     }
 
-    return 0;
+    return (outbyte - (unsigned char *)out);
 }
 
 static void sqlfn_nucleotides_twobit(sqlite3_context *ctx, int argc, sqlite3_value **argv) {
@@ -1179,7 +1188,7 @@ static void sqlfn_nucleotides_twobit(sqlite3_context *ctx, int argc, sqlite3_val
 
     auto seqlen = sqlite3_value_bytes(argv[0]);
     assert(seqlen >= 0);
-    if (!seqlen) {
+    if (seqlen <= 0) {
         return sqlite3_result_value(ctx, argv[0]);
     }
 
@@ -1190,15 +1199,14 @@ static void sqlfn_nucleotides_twobit(sqlite3_context *ctx, int argc, sqlite3_val
     }
 
     try {
-        size_t bufsz = (seqlen + 7) / 4;
-        std::unique_ptr<unsigned char[]> buf(new unsigned char[bufsz]);
+        std::unique_ptr<unsigned char[]> buf(new unsigned char[(seqlen + 7) / 4]);
         int rc = nucleotides_twobit(seq, (size_t)seqlen, buf.get());
         if (rc == -2) {
             return sqlite3_result_error(ctx, "non-ASCII input to nucleotides_twobit()", -1);
-        } else if (rc != 0) {
+        } else if (rc < 0) {
             return sqlite3_result_text(ctx, seq, seqlen, SQLITE_TRANSIENT);
         }
-        return sqlite3_result_blob64(ctx, buf.get(), bufsz, SQLITE_TRANSIENT);
+        return sqlite3_result_blob64(ctx, buf.get(), rc, SQLITE_TRANSIENT);
     } catch (std::bad_alloc &) {
         return sqlite3_result_error_nomem(ctx);
     }
@@ -1206,7 +1214,7 @@ static void sqlfn_nucleotides_twobit(sqlite3_context *ctx, int argc, sqlite3_val
 
 extern "C" size_t twobit_length(const void *data, size_t sz) {
     if (sz < 2) {
-        return 0;
+        return sz;
     }
     const unsigned char *bytes = (const unsigned char *)data;
     unsigned char trailing_crumbs = bytes[0] & 0b11;
@@ -1295,8 +1303,20 @@ const char *twobit_rna4mers[] = {
     "GGUU", "GGUC", "GGUA", "GGUG", "GGCU", "GGCC", "GGCA", "GGCG", "GGAU", "GGAC", "GGAA", "GGAG",
     "GGGU", "GGGC", "GGGA", "GGGG"};
 
-static void twobit_nucleotides(const void *data, size_t ofs, size_t len, bool rna, char *out) {
+static void twobit_nucleotides(const void *data, size_t sz, size_t ofs, size_t len, bool rna,
+                               char *out) {
     const char **table = rna ? twobit_rna4mers : twobit_dna4mers;
+    // special cases for length-0 and 1 blobs
+    if (sz < 2) {
+        if (len == 0) {
+            out[0] = 0;
+            return;
+        }
+        assert(ofs == 0 && len == 1 && sz == 1);
+        out[0] = table[*(const unsigned char *)data & 0b11][3];
+        out[1] = 0;
+        return;
+    }
     const unsigned char *pbyte = ((const unsigned char *)data) + 1 + ofs / 4;
     size_t out_cursor = 0;
     // decode first payload byte (maybe only part of it) crumb-by-crumb
@@ -1313,15 +1333,16 @@ static void twobit_nucleotides(const void *data, size_t ofs, size_t len, bool rn
         out[out_cursor++] = table[*pbyte][crumb++];
     }
     assert(out_cursor == len);
+    assert(pbyte - (const unsigned char *)data <= sz);
     out[out_cursor] = 0;
 }
 
-extern "C" void twobit_dna(const void *data, size_t ofs, size_t len, char *out) {
-    return twobit_nucleotides(data, ofs, len, false, out);
+extern "C" void twobit_dna(const void *data, size_t sz, size_t ofs, size_t len, char *out) {
+    return twobit_nucleotides(data, sz, ofs, len, false, out);
 }
 
-extern "C" void twobit_rna(const void *data, size_t ofs, size_t len, char *out) {
-    return twobit_nucleotides(data, ofs, len, true, out);
+extern "C" void twobit_rna(const void *data, size_t sz, size_t ofs, size_t len, char *out) {
+    return twobit_nucleotides(data, sz, ofs, len, true, out);
 }
 
 static void twobit_nucleotides(sqlite3_context *ctx, int argc, sqlite3_value **argv, bool rna) {
@@ -1385,7 +1406,7 @@ static void twobit_nucleotides(sqlite3_context *ctx, int argc, sqlite3_value **a
         if (blob) {
             // decode two-bit-encoded BLOB
             unique_ptr<char[]> buf(new char[sub_len + 1]);
-            twobit_nucleotides(sqlite3_value_blob(argv[0]), sub_ofs, sub_len, rna, buf.get());
+            twobit_nucleotides(sqlite3_value_blob(argv[0]), sz, sub_ofs, sub_len, rna, buf.get());
             sqlite3_result_text(ctx, buf.get(), sub_len, SQLITE_TRANSIENT);
         } else if (sub_ofs == 0 && sub_len == len) {
             // pass through complete text

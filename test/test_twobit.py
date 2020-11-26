@@ -7,7 +7,7 @@ def test_twobit():
     con = genomicsqlite.connect(":memory:")
 
     random.seed(42)
-    for seqlen in (random.randint(1, 1250) for _ in range(5000)):
+    for seqlen in (random.randint(2, 1250) for _ in range(5000)):
         rna = random.choice((False, True))
 
         nucs = (
@@ -51,6 +51,12 @@ def test_twobit():
         )[0]
         assert decoded == control
 
+    for nuc in "AGCTagct":
+        assert next(con.execute("SELECT length(nucleotides_twobit(?))", (nuc,)))[0] == 1
+        assert (
+            next(con.execute("SELECT twobit_dna(nucleotides_twobit(?))", (nuc,)))[0] == nuc.upper()
+        )
+    assert next(con.execute("SELECT nucleotides_twobit('')"))[0] == ""
     assert next(con.execute("SELECT nucleotides_twobit('acgt 1')"))[0] == "acgt 1"
     assert next(con.execute("SELECT twobit_dna('acgt 1')"))[0] == "acgt 1"
     assert next(con.execute("SELECT twobit_dna('acgt 1',1,6)"))[0] == "acgt 1"

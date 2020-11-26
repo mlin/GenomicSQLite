@@ -1037,9 +1037,9 @@ Storing a large database of sequences using such BLOBs instead of TEXT can impro
     SELECT nucleotides_twobit('TCAG')
     ```
 
-Given any TEXT value matching `[AaCcGgTtUu]+`, compute a two-bit-encoded BLOB value that can later be decoded using `twobit_dna()` or `twobit_rna()`. The two-bit encoding is case-insensitive and considers `T` and `U` equivalent.
+Given a TEXT value consisting only of characters from `ACGTUacgtu`, compute a two-bit-encoded BLOB value that can later be decoded using `twobit_dna()` or `twobit_rna()`. Given any other ASCII TEXT value, pass it through unchanged. The encoding is case-insensitive and considers `T` and `U` equivalent.
 
-Given any other ASCII TEXT value, including the empty string, pass it through unchanged. Given a BLOB, first attempt to coerce it to ASCII TEXT. Given NULL, return NULL. Any other input is an error.
+Given a BLOB, first attempt to coerce it to ASCII TEXT. Given NULL, return NULL. Any other input is an error.
 
 **↪ Two-bit decoding**
 
@@ -1051,7 +1051,7 @@ Given any other ASCII TEXT value, including the empty string, pass it through un
     SELECT twobit_rna(nucleotides_twobit('UCAG'),Y,Z)
     ```
 
-Given a BLOB value, perform two-bit decoding to produce a nucleotide sequence as uppercased TEXT, with `T`'s for `twobit_dna()` and `U`'s for `twobit_rna()`. Take care to only use BLOBs originally produced by the two-bit encoder, as any BLOB *will* decode to some nucleotide sequence.
+Given a two-bit-encoded BLOB value, decode the nucleotide sequence as uppercased TEXT, with `T`'s for `twobit_dna()` and `U`'s for `twobit_rna()`. Take care to only use BLOBs originally produced by `nucleotides_twobit()`, as other BLOBs may decode to garbage nucleotide sequences.
 
 Given a TEXT value, pass it through unchanged. Given NULL, return NULL. Any other first input is an error.
 
