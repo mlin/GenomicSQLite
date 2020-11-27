@@ -3,7 +3,7 @@ import math
 import genomicsqlite
 
 
-def test_twobit():
+def test_twobit_random():
     con = genomicsqlite.connect(":memory:")
 
     random.seed(42)
@@ -51,6 +51,10 @@ def test_twobit():
         )[0]
         assert decoded == control
 
+
+def test_twobit_corner_cases():
+    con = genomicsqlite.connect(":memory:")
+
     for nuc in "AGCTagct":
         assert next(con.execute("SELECT length(nucleotides_twobit(?))", (nuc,)))[0] == 1
         assert (
@@ -71,3 +75,26 @@ def test_twobit():
             )[0]
             control = next(con.execute("SELECT substr('GAUUACA',?,?)", (xtest, ytest)))[0]
             assert decoded == control, str((xtest, ytest))
+
+
+def test_twobit_column():
+    # test populating a column with mixed BLOB and TEXT values
+    con = genomicsqlite.connect(":memory:")
+
+    con.executescript("CREATE TABLE test(test_twobit BLOB)")
+    for elt in list("Tu") + ["foo", "bar", "gATuaCa"]:
+        con.execute("INSERT INTO test(test_twobit) VALUES(nucleotides_twobit(?))", (elt,))
+
+    column = list(con.execute("SELECT test_twobit FROM test"))
+    assert isinstance(column[0][0], bytes), str([type(x[0]) for x in column])
+    assert isinstance(column[-1][0], bytes)
+    assert isinstance(column[-2][0], str)
+    assert column[-2][0] == "bar"
+
+    assert list(con.execute("SELECT twobit_dna(test_twobit) FROM test")) == [
+        ("T",),
+        ("T",),
+        ("foo",),
+        ("bar",),
+        ("GATTACA",),
+    ]

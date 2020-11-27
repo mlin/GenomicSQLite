@@ -1176,14 +1176,10 @@ extern "C" int nucleotides_twobit(const char *seq, size_t len, void *out) {
 static void sqlfn_nucleotides_twobit(sqlite3_context *ctx, int argc, sqlite3_value **argv) {
     assert(argc == 1);
     auto arg0ty = sqlite3_value_type(argv[0]);
-    switch (arg0ty) {
-    case SQLITE_TEXT:
-    case SQLITE_BLOB:
-        break;
-    case SQLITE_NULL:
+    if (arg0ty == SQLITE_NULL) {
         return sqlite3_result_null(ctx);
-    default:
-        return sqlite3_result_error(ctx, "nucleotides_twobit() expected BLOB or TEXT", -1);
+    } else if (arg0ty != SQLITE_TEXT) {
+        return sqlite3_result_error(ctx, "nucleotides_twobit() expected TEXT", -1);
     }
 
     auto seqlen = sqlite3_value_bytes(argv[0]);
@@ -1192,8 +1188,7 @@ static void sqlfn_nucleotides_twobit(sqlite3_context *ctx, int argc, sqlite3_val
         return sqlite3_result_value(ctx, argv[0]);
     }
 
-    auto seq = (const char *)(arg0ty == SQLITE_TEXT ? sqlite3_value_text(argv[0])
-                                                    : sqlite3_value_blob(argv[0]));
+    auto seq = (const char *)sqlite3_value_text(argv[0]);
     if (!seq) {
         return sqlite3_result_error_nomem(ctx);
     }
