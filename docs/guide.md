@@ -28,32 +28,34 @@ The Genomics Extension integrates with your programming language's existing SQLi
     use rusqlite::{Connection, OpenFlags, params, NO_PARAMS};
     ```
 
+    The `genomicsqlite::ConnectionMethods` trait makes available GenomicSQLite-specific methods for
+    `rusqlite::Connection` (and `rusqlite::Transaction`). See [rustdoc](https://docs.rs/genomicsqlite)
+    for some extra details.
+
 === "C++"
     ``` c++
-    // link program to sqlite3 and genomicsqlite libraries; optionally, SQLiteCpp:
-    //     https://github.com/SRombauts/SQLiteCpp
     #include <sqlite3.h>
     #include "SQLiteCpp/SQLiteCpp.h" // optional 
     #include "genomicsqlite.h"
-
-    // General note: most GenomicSQLite C++ routines are liable to throw.
     ```
+
+    Link the program to `sqlite3` and `genomicsqlite` libraries; optionally,
+    [SQLiteCpp](https://github.com/SRombauts/SQLiteCpp).
+
+    General note: GenomicSQLite C++ routines are liable to throw exceptions.
 
 === "C"
     ``` c
-    /* link program to sqlite3 and genomicsqlite libraries */
     #include <sqlite3.h>
     #include "genomicsqlite.h"
-
-    /* General note: all GenomicSQLite C routines returning a char* string use
-     * the following convention:
-     * If the operation suceeds then it's a nonempty, null-terminated string.
-     * Otherwise it points to a null byte followed immediately by a nonempty,
-     * null-terminated error message.
-     * IN EITHER CASE, the caller should free the string with sqlite3_free().
-     * Null is returned only if malloc failed.
-     */
     ```
+
+    Link the program to `sqlite3` and `genomicsqlite` libraries.
+
+    All GenomicSQLite C routines returning a `char*` string use the following convention. If the
+    operation succeeds, then it's a nonempty, null-terminated string. Otherwise, it points to a
+    null byte followed immediately by a nonempty, null-terminated error message. *In either case,*
+    the caller must free the string with `sqlite3_free()`. NULL is returned only if out of memory.
 
 ## Opening a compressed database
 

@@ -170,6 +170,8 @@ pub struct RefSeq {
 }
 
 /// Methods for GenomicSQLite [rusqlite::Connection]s; see [Programming Guide](https://mlin.github.io/GenomicSQLite/guide/#tuning-options)
+/// for each method's semantics. The methods can also be invoked on an open
+/// [rusqlite::Transaction], via its implicit `Deref<Target=Connection>`.
 pub trait ConnectionMethods {
     /// Get Genomics Extension version
     fn genomicsqlite_version(&self) -> String;
@@ -415,7 +417,7 @@ mod tests {
         );
         let mut config = json::object::Object::new();
         config.insert("threads", json::JsonValue::from(3));
-        let conn = super::open(
+        let mut conn = super::open(
             dbfn,
             OpenFlags::SQLITE_OPEN_CREATE | OpenFlags::SQLITE_OPEN_READ_WRITE,
             &config,
@@ -428,18 +430,25 @@ mod tests {
             .unwrap();
         assert_eq!(ans, 3);
 
-        // load table & create GRI
-        conn.execute_batch(
-            "CREATE TABLE feature(rid INTEGER, beg INTEGER, end INTEGER);
-             INSERT INTO feature VALUES(3, 12, 34);
-             INSERT INTO feature VALUES(3, 0, 23);
-             INSERT INTO feature VALUES(3, 34, 56)",
-        )
-        .unwrap();
-        let gri_sql = conn
-            .create_genomic_range_index_sql("feature", "rid", "beg", "end")
+        // begin transaction
+        {
+            let txn = conn.transaction().unwrap();
+
+            // load table & create GRI
+            txn.execute_batch(
+                "CREATE TABLE feature(rid INTEGER, beg INTEGER, end INTEGER);
+                INSERT INTO feature VALUES(3, 12, 34);
+                INSERT INTO feature VALUES(3, 0, 23);
+                INSERT INTO feature VALUES(3, 34, 56)",
+            )
             .unwrap();
-        conn.execute_batch(&gri_sql).unwrap();
+            let gri_sql = txn
+                .create_genomic_range_index_sql("feature", "rid", "beg", "end")
+                .unwrap();
+            txn.execute_batch(&gri_sql).unwrap();
+
+            txn.commit().unwrap();
+        }
 
         // GRI query
         ans = conn
