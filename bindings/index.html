@@ -478,8 +478,8 @@
 <li><code>SELECT genomicsqlite_attach_sql(dbfilename, schema_name, config_json)</code> takes the same <code>config_json</code> as would Open</li>
 <li><code>SELECT genomicsqlite_vacuum_into_sql(destfilename, config_json)</code></li>
 <li><code>SELECT create_genomic_range_index_sql(tableName, chromosome, beginPosition, endPosition[, floor])</code>: floor is an integer, others text.</li>
-<li><code>SELECT put_reference_assembly_sql(assembly)</code></li>
-<li><code>SELECT put_reference_sequence_sql(name, length[, assembly, refget_id, meta_json, rid])</code> length and rid are integers.</li>
+<li><code>SELECT put_genomic_reference_assembly_sql(assembly[, schema])</code></li>
+<li><code>SELECT put_genomic_reference_sequence_sql(name, length[, assembly, refget_id, meta_json, rid, schema])</code> length and rid are integers.</li>
 </ul>
 <p>Optional text arguments can default to NULL, and optional integers can default to -1.</p>
 <p>The bindings for <strong>Get Reference Sequences by Rid</strong> just read the <code>_gri_refseq</code> table like,</p>
@@ -488,7 +488,7 @@
     gri_refseq_name, gri_refseq_length,
     gri_assembly, gri_refget_id,
     gri_refseq_meta_json
-FROM _gri_refseq
+FROM [schema.]_gri_refseq [WHERE assembly = ?]
 </code></pre></div>
 
 <p>and loads the results into some linguistically-natural data structure that'll provide quick lookup of those attributes by rid. Then, <strong>Get Reference Sequences by Name</strong> can simply call that and "invert" the results.</p>

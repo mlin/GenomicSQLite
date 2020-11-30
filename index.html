@@ -392,7 +392,7 @@
 <p>You can always <code>SELECT sqlite_version()</code> to verify the upgrade in your program.</p>
 <h2 id="installation">Installation</h2>
 <p>It's usually easiest to obtain the extension as a pre-compiled shared library (Linux .so or macOS .dylib), either installed with a package manager, or downloaded from <a href="https://github.com/mlin/GenomicSQLite/releases">GitHub Releases</a>.</p>
-<div class="tabbed-set" data-tabs="1:3"><input checked="checked" id="__tabbed_1_1" name="__tabbed_1" type="radio" /><label for="__tabbed_1_1">Python</label><div class="tabbed-content">
+<div class="tabbed-set" data-tabs="1:4"><input checked="checked" id="__tabbed_1_1" name="__tabbed_1" type="radio" /><label for="__tabbed_1_1">Python</label><div class="tabbed-content">
 <p><div class="highlight"><pre><span></span><code>pip3 install <span class="o">[</span>--user<span class="p">|</span>--system<span class="o">]</span> genomicsqlite
 <span class="c1"># -or-</span>
 conda install -c mlin genomicsqlite
@@ -419,7 +419,15 @@ The package loads a bundled shared library by default. To override the bundled f
 Or, download the JAR from <a href="https://github.com/mlin/GenomicSQLite/releases">GitHub Releases</a> and place it in your classpath, along with <a href="https://github.com/xerial/sqlite-jdbc">sqlite-jdbc</a>'s JAR which is also required. The package loads a bundled shared library by default. To override the bundled file, set environment variable <code>LIBGENOMICSQLITE</code> to a filename.</p>
 <p>Recommendation: <em>also</em> install the Python package, which includes a useful command-line shell and smoke-test script.</p>
 </div>
-<input id="__tabbed_1_3" name="__tabbed_1" type="radio" /><label for="__tabbed_1_3">C/C++</label><div class="tabbed-content">
+<input id="__tabbed_1_3" name="__tabbed_1" type="radio" /><label for="__tabbed_1_3">Rust</label><div class="tabbed-content">
+<p>Add to your project's <code>Cargo.toml</code>:</p>
+<div class="highlight"><pre><span></span><code><span class="k">[dependencies.genomicsqlite]</span>
+<span class="n">version</span> <span class="o">=</span> <span class="s">&quot;^0&quot;</span>
+</code></pre></div>
+
+<p>Building with the crate will include a platform-appropriate shared library file within your compilation unit, to be extracted &amp; loaded at runtime. To disable this, add <code>default-features = false</code> and at runtime, set environment variable <code>LIBGENOMICSQLITE</code> to a filename or place the library file somewhere it'll be found by <code>dlopen("libgenomicsqlite")</code>.</p>
+</div>
+<input id="__tabbed_1_4" name="__tabbed_1" type="radio" /><label for="__tabbed_1_4">C/C++</label><div class="tabbed-content">
 <p>Download zip of shared library and <code>genomicsqlite.h</code> from <a href="https://github.com/mlin/GenomicSQLite/releases">GitHub Releases</a>. Build your program with them, and also ensure the dynamic linker will find the shared library at runtime, by either: (1) installing it in a system or user lib directory &amp; refreshing cache, (2) setting <code>LD_LIBRARY_PATH</code> environment variable, (3) building with <code>-rpath</code>.</p>
 <p>Recommendation: <em>also</em> install the Python package, which includes a useful command-line shell and smoke-test script.</p>
 </div>

@@ -363,8 +363,8 @@
 </li>
         
           <li class="md-nav__item">
-  <a href="#genomics-extension-version" class="md-nav__link">
-    Genomics Extension version
+  <a href="#two-bit-encoding-for-nucleotide-sequences" class="md-nav__link">
+    Two-bit encoding for nucleotide sequences
   </a>
   
 </li>
@@ -372,6 +372,13 @@
           <li class="md-nav__item">
   <a href="#json-functions" class="md-nav__link">
     JSON functions
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#genomics-extension-version" class="md-nav__link">
+    Genomics Extension version
   </a>
   
 </li>
@@ -610,8 +617,8 @@
 </li>
         
           <li class="md-nav__item">
-  <a href="#genomics-extension-version" class="md-nav__link">
-    Genomics Extension version
+  <a href="#two-bit-encoding-for-nucleotide-sequences" class="md-nav__link">
+    Two-bit encoding for nucleotide sequences
   </a>
   
 </li>
@@ -619,6 +626,13 @@
           <li class="md-nav__item">
   <a href="#json-functions" class="md-nav__link">
     JSON functions
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#genomics-extension-version" class="md-nav__link">
+    Genomics Extension version
   </a>
   
 </li>
@@ -656,11 +670,12 @@
 <ul>
 <li>Python: <a href="https://docs.python.org/3/library/sqlite3.html">sqlite3</a></li>
 <li>Java/JVM: <a href="https://github.com/xerial/sqlite-jdbc">sqlite-jdbc</a></li>
+<li>Rust: <a href="https://github.com/rusqlite/rusqlite">rusqlite</a></li>
 <li>C++: <a href="https://github.com/SRombauts/SQLiteCpp">SQLiteCpp</a> (optional, recommended) or directly using...</li>
 <li>C: <a href="https://www.sqlite.org/cintro.html">SQLite C/C++ API</a></li>
 </ul>
 <h2 id="loading-the-extension">Loading the extension</h2>
-<div class="tabbed-set" data-tabs="1:4"><input checked="checked" id="__tabbed_1_1" name="__tabbed_1" type="radio" /><label for="__tabbed_1_1">Python</label><div class="tabbed-content">
+<div class="tabbed-set" data-tabs="1:5"><input checked="checked" id="__tabbed_1_1" name="__tabbed_1" type="radio" /><label for="__tabbed_1_1">Python</label><div class="tabbed-content">
 <div class="highlight"><pre><span></span><code><span class="kn">import</span> <span class="nn">sqlite3</span>
 <span class="kn">import</span> <span class="nn">genomicsqlite</span>
 </code></pre></div>
@@ -672,37 +687,40 @@
 </code></pre></div>
 
 </div>
-<input id="__tabbed_1_3" name="__tabbed_1" type="radio" /><label for="__tabbed_1_3">C++</label><div class="tabbed-content">
-<div class="highlight"><pre><span></span><code><span class="c1">// link program to sqlite3 and genomicsqlite libraries; optionally, SQLiteCpp:</span>
-<span class="c1">//     https://github.com/SRombauts/SQLiteCpp</span>
-<span class="cp">#include</span> <span class="cpf">&lt;sqlite3.h&gt;</span><span class="cp"></span>
+<input id="__tabbed_1_3" name="__tabbed_1" type="radio" /><label for="__tabbed_1_3">Rust</label><div class="tabbed-content">
+<div class="highlight"><pre><span></span><code><span class="k">use</span><span class="w"> </span><span class="n">genomicsqlite</span>::<span class="n">ConnectionMethods</span><span class="p">;</span><span class="w"></span>
+<span class="k">use</span><span class="w"> </span><span class="n">rusqlite</span>::<span class="p">{</span><span class="n">Connection</span><span class="p">,</span><span class="w"> </span><span class="n">OpenFlags</span><span class="p">,</span><span class="w"> </span><span class="n">params</span><span class="p">,</span><span class="w"> </span><span class="n">NO_PARAMS</span><span class="p">};</span><span class="w"></span>
+</code></pre></div>
+
+<p>The <code>genomicsqlite::ConnectionMethods</code> trait makes available GenomicSQLite-specific methods for
+<code>rusqlite::Connection</code> (and <code>rusqlite::Transaction</code>). See <a href="https://docs.rs/genomicsqlite">rustdoc</a>
+for some extra details.</p>
+</div>
+<input id="__tabbed_1_4" name="__tabbed_1" type="radio" /><label for="__tabbed_1_4">C++</label><div class="tabbed-content">
+<div class="highlight"><pre><span></span><code><span class="cp">#include</span> <span class="cpf">&lt;sqlite3.h&gt;</span><span class="cp"></span>
 <span class="cp">#include</span> <span class="cpf">&quot;SQLiteCpp/SQLiteCpp.h&quot; // optional </span><span class="cp"></span>
 <span class="cp">#include</span> <span class="cpf">&quot;genomicsqlite.h&quot;</span><span class="cp"></span>
-
-<span class="c1">// General note: most GenomicSQLite C++ routines are liable to throw.</span>
 </code></pre></div>
 
+<p>Link the program to <code>sqlite3</code> and <code>genomicsqlite</code> libraries; optionally,
+<a href="https://github.com/SRombauts/SQLiteCpp">SQLiteCpp</a>.</p>
+<p>General note: GenomicSQLite C++ routines are liable to throw exceptions.</p>
 </div>
-<input id="__tabbed_1_4" name="__tabbed_1" type="radio" /><label for="__tabbed_1_4">C</label><div class="tabbed-content">
-<div class="highlight"><pre><span></span><code><span class="cm">/* link program to sqlite3 and genomicsqlite libraries */</span>
-<span class="cp">#include</span> <span class="cpf">&lt;sqlite3.h&gt;</span><span class="cp"></span>
+<input id="__tabbed_1_5" name="__tabbed_1" type="radio" /><label for="__tabbed_1_5">C</label><div class="tabbed-content">
+<div class="highlight"><pre><span></span><code><span class="cp">#include</span> <span class="cpf">&lt;sqlite3.h&gt;</span><span class="cp"></span>
 <span class="cp">#include</span> <span class="cpf">&quot;genomicsqlite.h&quot;</span><span class="cp"></span>
-
-<span class="cm">/* General note: all GenomicSQLite C routines returning a char* string use</span>
-<span class="cm"> * the following convention:</span>
-<span class="cm"> * If the operation suceeds then it&#39;s a nonempty, null-terminated string.</span>
-<span class="cm"> * Otherwise it points to a null byte followed immediately by a nonempty,</span>
-<span class="cm"> * null-terminated error message.</span>
-<span class="cm"> * IN EITHER CASE, the caller should free the string with sqlite3_free().</span>
-<span class="cm"> * Null is returned only if malloc failed.</span>
-<span class="cm"> */</span>
 </code></pre></div>
 
+<p>Link the program to <code>sqlite3</code> and <code>genomicsqlite</code> libraries.</p>
+<p>All GenomicSQLite C routines returning a <code>char*</code> string use the following convention. If the
+operation succeeds, then it's a nonempty, null-terminated string. Otherwise, it points to a
+null byte followed immediately by a nonempty, null-terminated error message. <em>In either case,</em>
+the caller must free the string with <code>sqlite3_free()</code>. NULL is returned only if out of memory.</p>
 </div>
 </div>
 <h2 id="opening-a-compressed-database">Opening a compressed database</h2>
 <p><strong>↪ GenomicSQLite Open:</strong> create or open a compressed database, returning a connection object with various settings pre-tuned for large datasets.</p>
-<div class="tabbed-set" data-tabs="2:5"><input checked="checked" id="__tabbed_2_1" name="__tabbed_2" type="radio" /><label for="__tabbed_2_1">Python</label><div class="tabbed-content">
+<div class="tabbed-set" data-tabs="2:6"><input checked="checked" id="__tabbed_2_1" name="__tabbed_2" type="radio" /><label for="__tabbed_2_1">Python</label><div class="tabbed-content">
 <div class="highlight"><pre><span></span><code><span class="n">dbconn</span> <span class="o">=</span> <span class="n">genomicsqlite</span><span class="o">.</span><span class="n">connect</span><span class="p">(</span>
   <span class="n">db_filename</span><span class="p">,</span>
   <span class="n">read_only</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
@@ -725,7 +743,16 @@
 </code></pre></div>
 
 </div>
-<input id="__tabbed_2_3" name="__tabbed_2" type="radio" /><label for="__tabbed_2_3">SQLiteCpp</label><div class="tabbed-content">
+<input id="__tabbed_2_3" name="__tabbed_2" type="radio" /><label for="__tabbed_2_3">Rust</label><div class="tabbed-content">
+<div class="highlight"><pre><span></span><code><span class="kd">let</span><span class="w"> </span><span class="n">dbconn</span>: <span class="nc">Connection</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">genomicsqlite</span>::<span class="n">open</span><span class="p">(</span><span class="w"></span>
+<span class="w">  </span><span class="n">db_filename</span><span class="p">,</span><span class="w"></span>
+<span class="w">  </span><span class="n">OpenFlags</span>::<span class="n">SQLITE_OPEN_CREATE</span><span class="w"> </span><span class="o">|</span><span class="w"> </span><span class="n">OpenFlags</span>::<span class="n">SQLITE_OPEN_READ_WRITE</span><span class="p">,</span><span class="w"></span>
+<span class="w">  </span><span class="o">&amp;</span><span class="n">json</span>::<span class="n">object</span>::<span class="n">Object</span>::<span class="n">new</span><span class="p">()</span><span class="w">  </span><span class="c1">// tuning options</span>
+<span class="p">)</span><span class="o">?</span><span class="p">;</span><span class="w"></span>
+</code></pre></div>
+
+</div>
+<input id="__tabbed_2_4" name="__tabbed_2" type="radio" /><label for="__tabbed_2_4">SQLiteCpp</label><div class="tabbed-content">
 <div class="highlight"><pre><span></span><code><span class="n">std</span><span class="o">::</span><span class="n">unique_ptr</span><span class="o">&lt;</span><span class="n">SQLite</span><span class="o">::</span><span class="n">Database</span><span class="o">&gt;</span> <span class="n">GenomicSQLiteOpen</span><span class="p">(</span>
   <span class="k">const</span> <span class="n">std</span><span class="o">::</span><span class="n">string</span> <span class="o">&amp;</span><span class="n">db_filename</span><span class="p">,</span>
   <span class="kt">int</span> <span class="n">flags</span> <span class="o">=</span> <span class="mi">0</span><span class="p">,</span>
@@ -734,7 +761,7 @@
 </code></pre></div>
 
 </div>
-<input id="__tabbed_2_4" name="__tabbed_2" type="radio" /><label for="__tabbed_2_4">C++</label><div class="tabbed-content">
+<input id="__tabbed_2_5" name="__tabbed_2" type="radio" /><label for="__tabbed_2_5">C++</label><div class="tabbed-content">
 <div class="highlight"><pre><span></span><code><span class="kt">int</span> <span class="nf">GenomicSQLiteOpen</span><span class="p">(</span>
   <span class="k">const</span> <span class="n">std</span><span class="o">::</span><span class="n">string</span> <span class="o">&amp;</span><span class="n">db_filename</span><span class="p">,</span>
   <span class="n">sqlite3</span> <span class="o">**</span><span class="n">ppDb</span><span class="p">,</span>
@@ -745,7 +772,7 @@
 </code></pre></div>
 
 </div>
-<input id="__tabbed_2_5" name="__tabbed_2" type="radio" /><label for="__tabbed_2_5">C</label><div class="tabbed-content">
+<input id="__tabbed_2_6" name="__tabbed_2" type="radio" /><label for="__tabbed_2_6">C</label><div class="tabbed-content">
 <div class="highlight"><pre><span></span><code><span class="kt">int</span> <span class="nf">genomicsqlite_open</span><span class="p">(</span>
   <span class="k">const</span> <span class="kt">char</span> <span class="o">*</span><span class="n">db_filename</span><span class="p">,</span>
   <span class="n">sqlite3</span> <span class="o">**</span><span class="n">ppDb</span><span class="p">,</span>
@@ -808,7 +835,7 @@ The default configuration (inner_page_KiB, outer_page_KiB) = (16,32) balances ra
 </ul>
 <h3 id="create-gri">Create GRI</h3>
 <p><strong>↪ Create Genomic Range Index SQL:</strong> <em>Generate a string</em> containing a series of SQL statements which <em>when executed</em> create a GRI on an existing table. Executing them is left to the caller, perhaps after logging the contents. The statements should be executed within a transaction to succeed or fail atomically.</p>
-<div class="tabbed-set" data-tabs="3:5"><input checked="checked" id="__tabbed_3_1" name="__tabbed_3" type="radio" /><label for="__tabbed_3_1">Python</label><div class="tabbed-content">
+<div class="tabbed-set" data-tabs="3:6"><input checked="checked" id="__tabbed_3_1" name="__tabbed_3" type="radio" /><label for="__tabbed_3_1">Python</label><div class="tabbed-content">
 <div class="highlight"><pre><span></span><code><span class="n">create_gri_sql</span> <span class="o">=</span> <span class="n">genomicsqlite</span><span class="o">.</span><span class="n">create_genomic_range_index_sql</span><span class="p">(</span>
   <span class="n">dbconn</span><span class="p">,</span>
   <span class="s1">&#39;tableName&#39;</span><span class="p">,</span>
@@ -832,7 +859,15 @@ The default configuration (inner_page_KiB, outer_page_KiB) = (16,32) balances ra
 </code></pre></div>
 
 </div>
-<input id="__tabbed_3_3" name="__tabbed_3" type="radio" /><label for="__tabbed_3_3">SQLiteCpp</label><div class="tabbed-content">
+<input id="__tabbed_3_3" name="__tabbed_3" type="radio" /><label for="__tabbed_3_3">Rust</label><div class="tabbed-content">
+<div class="highlight"><pre><span></span><code><span class="kd">let</span><span class="w"> </span><span class="n">gri_sql</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">dbconn</span><span class="w"></span>
+<span class="w">  </span><span class="p">.</span><span class="n">create_genomic_range_index_sql</span><span class="p">(</span><span class="s">&quot;tableName&quot;</span><span class="p">,</span><span class="w"> </span><span class="s">&quot;chromosome&quot;</span><span class="p">,</span><span class="w"></span>
+<span class="w">                                  </span><span class="s">&quot;beginPosition&quot;</span><span class="p">,</span><span class="w"> </span><span class="s">&quot;endPosition&quot;</span><span class="p">)</span><span class="o">?</span><span class="p">;</span><span class="w"></span>
+<span class="n">dbconn</span><span class="p">.</span><span class="n">execute_batch</span><span class="p">(</span><span class="o">&amp;</span><span class="n">gri_sql</span><span class="p">)</span><span class="o">?</span><span class="p">;</span><span class="w"></span>
+</code></pre></div>
+
+</div>
+<input id="__tabbed_3_4" name="__tabbed_3" type="radio" /><label for="__tabbed_3_4">SQLiteCpp</label><div class="tabbed-content">
 <div class="highlight"><pre><span></span><code><span class="n">std</span><span class="o">::</span><span class="n">string</span> <span class="n">CreateGenomicRangeIndexSQL</span><span class="p">(</span>
   <span class="k">const</span> <span class="n">std</span><span class="o">::</span><span class="n">string</span> <span class="o">&amp;</span><span class="n">table</span><span class="p">,</span>
   <span class="k">const</span> <span class="n">std</span><span class="o">::</span><span class="n">string</span> <span class="o">&amp;</span><span class="n">rid</span><span class="p">,</span>
@@ -849,7 +884,7 @@ The default configuration (inner_page_KiB, outer_page_KiB) = (16,32) balances ra
 </code></pre></div>
 
 </div>
-<input id="__tabbed_3_4" name="__tabbed_3" type="radio" /><label for="__tabbed_3_4">C++</label><div class="tabbed-content">
+<input id="__tabbed_3_5" name="__tabbed_3" type="radio" /><label for="__tabbed_3_5">C++</label><div class="tabbed-content">
 <div class="highlight"><pre><span></span><code><span class="n">std</span><span class="o">::</span><span class="n">string</span> <span class="n">CreateGenomicRangeIndexSQL</span><span class="p">(</span>
   <span class="k">const</span> <span class="n">std</span><span class="o">::</span><span class="n">string</span> <span class="o">&amp;</span><span class="n">table</span><span class="p">,</span>
   <span class="k">const</span> <span class="n">std</span><span class="o">::</span><span class="n">string</span> <span class="o">&amp;</span><span class="n">rid</span><span class="p">,</span>
@@ -868,7 +903,7 @@ The default configuration (inner_page_KiB, outer_page_KiB) = (16,32) balances ra
 </code></pre></div>
 
 </div>
-<input id="__tabbed_3_5" name="__tabbed_3" type="radio" /><label for="__tabbed_3_5">C</label><div class="tabbed-content">
+<input id="__tabbed_3_6" name="__tabbed_3" type="radio" /><label for="__tabbed_3_6">C</label><div class="tabbed-content">
 <div class="highlight"><pre><span></span><code><span class="kt">char</span><span class="o">*</span> <span class="nf">create_genomic_range_index_sql</span><span class="p">(</span>
   <span class="k">const</span> <span class="kt">char</span><span class="o">*</span> <span class="n">table</span><span class="p">,</span>
   <span class="k">const</span> <span class="kt">char</span><span class="o">*</span> <span class="n">rid</span><span class="p">,</span>
@@ -981,7 +1016,7 @@ The default configuration (inner_page_KiB, outer_page_KiB) = (16,32) balances ra
 <li><code>gri_refseq_meta_json TEXT DEFAULT '{}'</code> JSON object with arbitrary metadata</li>
 </ol>
 <p><strong>↪ Put Reference Assembly SQL:</strong> <em>Generate a string</em> containing a series of SQL statements which <em>when executed</em> creates <code>_gri_refseq</code> and populates it with information about a reference assembly whose details are bundled into the extension.</p>
-<div class="tabbed-set" data-tabs="4:5"><input checked="checked" id="__tabbed_4_1" name="__tabbed_4" type="radio" /><label for="__tabbed_4_1">Python</label><div class="tabbed-content">
+<div class="tabbed-set" data-tabs="4:6"><input checked="checked" id="__tabbed_4_1" name="__tabbed_4" type="radio" /><label for="__tabbed_4_1">Python</label><div class="tabbed-content">
 <div class="highlight"><pre><span></span><code><span class="n">refseq_sql</span> <span class="o">=</span> <span class="n">genomicsqlite</span><span class="o">.</span><span class="n">put_reference_assembly_sql</span><span class="p">(</span>
   <span class="n">dbconn</span><span class="p">,</span> <span class="s1">&#39;GRCh38_no_alt_analysis_set&#39;</span>
 <span class="p">)</span>
@@ -997,7 +1032,14 @@ The default configuration (inner_page_KiB, outer_page_KiB) = (16,32) balances ra
 </code></pre></div>
 
 </div>
-<input id="__tabbed_4_3" name="__tabbed_4" type="radio" /><label for="__tabbed_4_3">SQLiteCpp</label><div class="tabbed-content">
+<input id="__tabbed_4_3" name="__tabbed_4" type="radio" /><label for="__tabbed_4_3">Rust</label><div class="tabbed-content">
+<div class="highlight"><pre><span></span><code><span class="kd">let</span><span class="w"> </span><span class="n">ref_sql</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">dbconn</span><span class="w"></span>
+<span class="w">  </span><span class="p">.</span><span class="n">put_reference_assembly_sql</span><span class="p">(</span><span class="s">&quot;GRCh38_no_alt_analysis_set&quot;</span><span class="p">)</span><span class="o">?</span><span class="p">;</span><span class="w"></span>
+<span class="n">dbconn</span><span class="p">.</span><span class="n">execute_batch</span><span class="p">(</span><span class="o">&amp;</span><span class="n">ref_sql</span><span class="p">)</span><span class="o">?</span><span class="p">;</span><span class="w"></span>
+</code></pre></div>
+
+</div>
+<input id="__tabbed_4_4" name="__tabbed_4" type="radio" /><label for="__tabbed_4_4">SQLiteCpp</label><div class="tabbed-content">
 <div class="highlight"><pre><span></span><code><span class="n">std</span><span class="o">::</span><span class="n">string</span> <span class="n">PutGenomicReferenceAssemblySQL</span><span class="p">(</span>
   <span class="k">const</span> <span class="n">std</span><span class="o">::</span><span class="n">string</span> <span class="o">&amp;</span><span class="n">assembly</span><span class="p">,</span>
   <span class="k">const</span> <span class="n">std</span><span class="o">::</span><span class="n">string</span> <span class="o">&amp;</span><span class="n">attached_schema</span> <span class="o">=</span> <span class="s">&quot;&quot;</span>
@@ -1008,7 +1050,7 @@ The default configuration (inner_page_KiB, outer_page_KiB) = (16,32) balances ra
 </code></pre></div>
 
 </div>
-<input id="__tabbed_4_4" name="__tabbed_4" type="radio" /><label for="__tabbed_4_4">C++</label><div class="tabbed-content">
+<input id="__tabbed_4_5" name="__tabbed_4" type="radio" /><label for="__tabbed_4_5">C++</label><div class="tabbed-content">
 <div class="highlight"><pre><span></span><code><span class="n">std</span><span class="o">::</span><span class="n">string</span> <span class="n">PutGenomicReferenceAssemblySQL</span><span class="p">(</span>
   <span class="k">const</span> <span class="n">std</span><span class="o">::</span><span class="n">string</span> <span class="o">&amp;</span><span class="n">assembly</span><span class="p">,</span>
   <span class="k">const</span> <span class="n">std</span><span class="o">::</span><span class="n">string</span> <span class="o">&amp;</span><span class="n">attached_schema</span> <span class="o">=</span> <span class="s">&quot;&quot;</span>
@@ -1024,7 +1066,7 @@ The default configuration (inner_page_KiB, outer_page_KiB) = (16,32) balances ra
 </code></pre></div>
 
 </div>
-<input id="__tabbed_4_5" name="__tabbed_4" type="radio" /><label for="__tabbed_4_5">C</label><div class="tabbed-content">
+<input id="__tabbed_4_6" name="__tabbed_4" type="radio" /><label for="__tabbed_4_6">C</label><div class="tabbed-content">
 <div class="highlight"><pre><span></span><code><span class="kt">char</span><span class="o">*</span> <span class="nf">put_genomic_reference_assembly_sql</span><span class="p">(</span>
   <span class="k">const</span> <span class="kt">char</span> <span class="o">*</span><span class="n">assembly</span><span class="p">,</span>
   <span class="k">const</span> <span class="kt">char</span> <span class="o">*</span><span class="n">attached_schema</span>
@@ -1051,7 +1093,7 @@ The default configuration (inner_page_KiB, outer_page_KiB) = (16,32) balances ra
 <li><code>GRCh38_no_alt_analysis_set</code></li>
 </ul>
 <p><strong>↪ Put Reference Sequence SQL:</strong> <em>Generate a string</em> containing a series of SQL statements which <em>when executed</em> creates <code>_gri_refseq</code> (if it doesn't exist) and adds <em>one</em> reference sequence with supplied attributes.</p>
-<div class="tabbed-set" data-tabs="5:5"><input checked="checked" id="__tabbed_5_1" name="__tabbed_5" type="radio" /><label for="__tabbed_5_1">Python</label><div class="tabbed-content">
+<div class="tabbed-set" data-tabs="5:6"><input checked="checked" id="__tabbed_5_1" name="__tabbed_5" type="radio" /><label for="__tabbed_5_1">Python</label><div class="tabbed-content">
 <div class="highlight"><pre><span></span><code><span class="n">refseq_sql</span> <span class="o">=</span> <span class="n">genomicsqlite</span><span class="o">.</span><span class="n">put_reference_sequence_sql</span><span class="p">(</span>
   <span class="n">dbconn</span><span class="p">,</span> <span class="s1">&#39;chr17&#39;</span><span class="p">,</span> <span class="mi">83257441</span>
   <span class="c1"># optional: assembly, refget_id, meta (dict), rid</span>
@@ -1070,7 +1112,21 @@ The default configuration (inner_page_KiB, outer_page_KiB) = (16,32) balances ra
 </code></pre></div>
 
 </div>
-<input id="__tabbed_5_3" name="__tabbed_5" type="radio" /><label for="__tabbed_5_3">SQLiteCpp</label><div class="tabbed-content">
+<input id="__tabbed_5_3" name="__tabbed_5" type="radio" /><label for="__tabbed_5_3">Rust</label><div class="tabbed-content">
+<div class="highlight"><pre><span></span><code><span class="kd">let</span><span class="w"> </span><span class="n">chr17</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">genomicsqlite</span>::<span class="n">RefSeq</span><span class="w"> </span><span class="p">{</span><span class="w"></span>
+<span class="w">  </span><span class="n">rid</span>: <span class="o">-</span><span class="mi">1</span><span class="p">,</span><span class="w">           </span><span class="c1">// -1 = automatic</span>
+<span class="w">  </span><span class="n">name</span>: <span class="s">&quot;chr17&quot;</span><span class="p">,</span><span class="w"></span>
+<span class="w">  </span><span class="n">length</span>: <span class="mi">83257441</span><span class="p">,</span><span class="w"></span>
+<span class="w">  </span><span class="n">assembly</span>: <span class="nc">None</span><span class="p">,</span><span class="w">    </span><span class="c1">// Option&lt;String&gt;</span>
+<span class="w">  </span><span class="n">refget_id</span>: <span class="nc">None</span><span class="p">,</span><span class="w">   </span><span class="c1">// Option&lt;String&gt;</span>
+<span class="w">  </span><span class="n">meta_json</span>: <span class="nc">json</span>::<span class="n">object</span>::<span class="n">Object</span>::<span class="n">new</span><span class="p">(),</span><span class="w">  </span><span class="c1">// meta_json</span>
+<span class="p">};</span><span class="w"></span>
+<span class="kd">let</span><span class="w"> </span><span class="n">ref_sql</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">dbconn</span><span class="p">.</span><span class="n">put_reference_sequence_sql</span><span class="p">(</span><span class="o">&amp;</span><span class="n">chr17</span><span class="p">)</span><span class="o">?</span><span class="p">;</span><span class="w"></span>
+<span class="n">dbconn</span><span class="p">.</span><span class="n">execute_batch</span><span class="p">(</span><span class="o">&amp;</span><span class="n">ref_sql</span><span class="p">)</span><span class="o">?</span><span class="p">;</span><span class="w"></span>
+</code></pre></div>
+
+</div>
+<input id="__tabbed_5_4" name="__tabbed_5" type="radio" /><label for="__tabbed_5_4">SQLiteCpp</label><div class="tabbed-content">
 <div class="highlight"><pre><span></span><code><span class="n">std</span><span class="o">::</span><span class="n">string</span> <span class="n">PutGenomicReferenceSequenceSQL</span><span class="p">(</span>
   <span class="k">const</span> <span class="n">std</span><span class="o">::</span><span class="n">string</span> <span class="o">&amp;</span><span class="n">name</span><span class="p">,</span>
   <span class="n">sqlite3_int64</span> <span class="n">length</span><span class="p">,</span>
@@ -1086,7 +1142,7 @@ The default configuration (inner_page_KiB, outer_page_KiB) = (16,32) balances ra
 </code></pre></div>
 
 </div>
-<input id="__tabbed_5_4" name="__tabbed_5" type="radio" /><label for="__tabbed_5_4">C++</label><div class="tabbed-content">
+<input id="__tabbed_5_5" name="__tabbed_5" type="radio" /><label for="__tabbed_5_5">C++</label><div class="tabbed-content">
 <div class="highlight"><pre><span></span><code><span class="n">std</span><span class="o">::</span><span class="n">string</span> <span class="n">PutGenomicReferenceSequenceSQL</span><span class="p">(</span>
   <span class="k">const</span> <span class="n">std</span><span class="o">::</span><span class="n">string</span> <span class="o">&amp;</span><span class="n">name</span><span class="p">,</span>
   <span class="n">sqlite3_int64</span> <span class="n">length</span><span class="p">,</span>
@@ -1107,7 +1163,7 @@ The default configuration (inner_page_KiB, outer_page_KiB) = (16,32) balances ra
 </code></pre></div>
 
 </div>
-<input id="__tabbed_5_5" name="__tabbed_5" type="radio" /><label for="__tabbed_5_5">C</label><div class="tabbed-content">
+<input id="__tabbed_5_6" name="__tabbed_5" type="radio" /><label for="__tabbed_5_6">C</label><div class="tabbed-content">
 <div class="highlight"><pre><span></span><code><span class="kt">char</span><span class="o">*</span> <span class="nf">put_genomic_reference_sequence_sql</span><span class="p">(</span>
   <span class="k">const</span> <span class="kt">char</span> <span class="o">*</span><span class="n">name</span><span class="p">,</span>
   <span class="n">sqlite3_int64</span> <span class="n">length</span><span class="p">,</span>
@@ -1136,7 +1192,7 @@ The default configuration (inner_page_KiB, outer_page_KiB) = (16,32) balances ra
 </div>
 <p>If the <code>rid</code> argument is omitted or -1 then it will be assigned automatically upon insertion.</p>
 <p><strong>↪ Get Reference Sequences by Rid:</strong> create an in-memory lookup table of the previously-stored reference information, keyed by rid integer. Assumes the stored information is read-only by this point. This table is for the application code's convenience to read tables that use the rid convention. Such uses can be also be served by SQL join on the <code>_gri_refseq</code> table (see Cookbook).</p>
-<div class="tabbed-set" data-tabs="6:5"><input checked="checked" id="__tabbed_6_1" name="__tabbed_6" type="radio" /><label for="__tabbed_6_1">Python</label><div class="tabbed-content">
+<div class="tabbed-set" data-tabs="6:6"><input checked="checked" id="__tabbed_6_1" name="__tabbed_6" type="radio" /><label for="__tabbed_6_1">Python</label><div class="tabbed-content">
 <div class="highlight"><pre><span></span><code><span class="k">class</span> <span class="nc">ReferenceSequence</span><span class="p">(</span><span class="n">NamedTuple</span><span class="p">):</span>
   <span class="n">rid</span><span class="p">:</span> <span class="nb">int</span>
   <span class="n">name</span><span class="p">:</span> <span class="nb">str</span>
@@ -1164,7 +1220,23 @@ The default configuration (inner_page_KiB, outer_page_KiB) = (16,32) balances ra
 </code></pre></div>
 
 </div>
-<input id="__tabbed_6_3" name="__tabbed_6" type="radio" /><label for="__tabbed_6_3">SQLiteCpp</label><div class="tabbed-content">
+<input id="__tabbed_6_3" name="__tabbed_6" type="radio" /><label for="__tabbed_6_3">Rust</label><div class="tabbed-content">
+<div class="highlight"><pre><span></span><code><span class="cm">/*</span>
+<span class="cm">struct RefSeq {</span>
+<span class="cm">    rid: i64,</span>
+<span class="cm">    name: String,</span>
+<span class="cm">    length: i64,</span>
+<span class="cm">    assembly: Option&lt;String&gt;,</span>
+<span class="cm">    refget_id: Option&lt;String&gt;,</span>
+<span class="cm">    meta_json: json::object::Object,</span>
+<span class="cm">}</span>
+<span class="cm">*/</span><span class="w"></span>
+<span class="kd">let</span><span class="w"> </span><span class="n">refseqs</span>: <span class="nc">HashMap</span><span class="o">&lt;</span><span class="kt">i64</span><span class="p">,</span><span class="w"> </span><span class="n">genomicsqlite</span>::<span class="n">RefSeq</span><span class="o">&gt;</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">dbconn</span><span class="w"></span>
+<span class="w">  </span><span class="p">.</span><span class="n">get_reference_sequences_by_rid</span><span class="p">()</span><span class="o">?</span><span class="p">;</span><span class="w"></span>
+</code></pre></div>
+
+</div>
+<input id="__tabbed_6_4" name="__tabbed_6" type="radio" /><label for="__tabbed_6_4">SQLiteCpp</label><div class="tabbed-content">
 <div class="highlight"><pre><span></span><code><span class="k">struct</span> <span class="n">gri_refseq_t</span> <span class="p">{</span>
   <span class="kt">long</span> <span class="kt">long</span> <span class="n">rid</span><span class="p">,</span> <span class="n">length</span><span class="p">;</span>
   <span class="n">std</span><span class="o">::</span><span class="n">string</span> <span class="n">name</span><span class="p">,</span> <span class="n">assembly</span><span class="p">,</span> <span class="n">refget_id</span><span class="p">,</span> <span class="n">meta_json</span><span class="p">;</span>
@@ -1180,7 +1252,7 @@ The default configuration (inner_page_KiB, outer_page_KiB) = (16,32) balances ra
 </code></pre></div>
 
 </div>
-<input id="__tabbed_6_4" name="__tabbed_6" type="radio" /><label for="__tabbed_6_4">C++</label><div class="tabbed-content">
+<input id="__tabbed_6_5" name="__tabbed_6" type="radio" /><label for="__tabbed_6_5">C++</label><div class="tabbed-content">
 <div class="highlight"><pre><span></span><code><span class="k">struct</span> <span class="n">gri_refseq_t</span> <span class="p">{</span>
   <span class="kt">long</span> <span class="kt">long</span> <span class="n">rid</span><span class="p">,</span> <span class="n">length</span><span class="p">;</span>
   <span class="n">std</span><span class="o">::</span><span class="n">string</span> <span class="n">name</span><span class="p">,</span> <span class="n">assembly</span><span class="p">,</span> <span class="n">refget_id</span><span class="p">,</span> <span class="n">meta_json</span><span class="p">;</span>
@@ -1196,7 +1268,7 @@ The default configuration (inner_page_KiB, outer_page_KiB) = (16,32) balances ra
 </code></pre></div>
 
 </div>
-<input id="__tabbed_6_5" name="__tabbed_6" type="radio" /><label for="__tabbed_6_5">C</label><div class="tabbed-content">
+<input id="__tabbed_6_6" name="__tabbed_6" type="radio" /><label for="__tabbed_6_6">C</label><div class="tabbed-content">
 <div class="highlight"><pre><span></span><code><span class="cm">/* Omitted for want of idiomatic map type; pull requests welcome! */</span>
 </code></pre></div>
 
@@ -1204,7 +1276,7 @@ The default configuration (inner_page_KiB, outer_page_KiB) = (16,32) balances ra
 </div>
 <p>The optional <code>assembly</code> argument restricts the retrieved sequences to those with matching <code>gri_assembly</code> value. However, mixing different assemblies in <code>_gri_refseq</code> is not recommended.</p>
 <p><strong>↪ Get Reference Sequences by Name:</strong> create an in-memory lookup table of the previously-stored reference information, keyed by sequence name. Assumes the stored information is read-only by this point. This table is for the application code's convenience to translate name to rid whilst formulating queries or inserting features from a text source.</p>
-<div class="tabbed-set" data-tabs="7:5"><input checked="checked" id="__tabbed_7_1" name="__tabbed_7" type="radio" /><label for="__tabbed_7_1">Python</label><div class="tabbed-content">
+<div class="tabbed-set" data-tabs="7:6"><input checked="checked" id="__tabbed_7_1" name="__tabbed_7" type="radio" /><label for="__tabbed_7_1">Python</label><div class="tabbed-content">
 <div class="highlight"><pre><span></span><code><span class="k">class</span> <span class="nc">ReferenceSequence</span><span class="p">(</span><span class="n">NamedTuple</span><span class="p">):</span>
   <span class="n">rid</span><span class="p">:</span> <span class="nb">int</span>
   <span class="n">name</span><span class="p">:</span> <span class="nb">str</span>
@@ -1232,7 +1304,23 @@ The default configuration (inner_page_KiB, outer_page_KiB) = (16,32) balances ra
 </code></pre></div>
 
 </div>
-<input id="__tabbed_7_3" name="__tabbed_7" type="radio" /><label for="__tabbed_7_3">SQLiteCpp</label><div class="tabbed-content">
+<input id="__tabbed_7_3" name="__tabbed_7" type="radio" /><label for="__tabbed_7_3">Rust</label><div class="tabbed-content">
+<div class="highlight"><pre><span></span><code><span class="cm">/*</span>
+<span class="cm">struct RefSeq {</span>
+<span class="cm">    rid: i64,</span>
+<span class="cm">    name: String,</span>
+<span class="cm">    length: i64,</span>
+<span class="cm">    assembly: Option&lt;String&gt;,</span>
+<span class="cm">    refget_id: Option&lt;String&gt;,</span>
+<span class="cm">    meta_json: json::object::Object,</span>
+<span class="cm">}</span>
+<span class="cm">*/</span><span class="w"></span>
+<span class="kd">let</span><span class="w"> </span><span class="n">refseqs</span>: <span class="nc">HashMap</span><span class="o">&lt;</span><span class="nb">String</span><span class="p">,</span><span class="w"> </span><span class="n">genomicsqlite</span>::<span class="n">RefSeq</span><span class="o">&gt;</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">dbconn</span><span class="w"></span>
+<span class="w">  </span><span class="p">.</span><span class="n">get_reference_sequences_by_name</span><span class="p">()</span><span class="o">?</span><span class="p">;</span><span class="w"></span>
+</code></pre></div>
+
+</div>
+<input id="__tabbed_7_4" name="__tabbed_7" type="radio" /><label for="__tabbed_7_4">SQLiteCpp</label><div class="tabbed-content">
 <div class="highlight"><pre><span></span><code><span class="k">struct</span> <span class="n">gri_refseq_t</span> <span class="p">{</span>
   <span class="kt">long</span> <span class="kt">long</span> <span class="n">rid</span><span class="p">,</span> <span class="n">length</span><span class="p">;</span>
   <span class="n">std</span><span class="o">::</span><span class="n">string</span> <span class="n">name</span><span class="p">,</span> <span class="n">assembly</span><span class="p">,</span> <span class="n">refget_id</span><span class="p">,</span> <span class="n">meta_json</span><span class="p">;</span>
@@ -1248,7 +1336,7 @@ The default configuration (inner_page_KiB, outer_page_KiB) = (16,32) balances ra
 </code></pre></div>
 
 </div>
-<input id="__tabbed_7_4" name="__tabbed_7" type="radio" /><label for="__tabbed_7_4">C++</label><div class="tabbed-content">
+<input id="__tabbed_7_5" name="__tabbed_7" type="radio" /><label for="__tabbed_7_5">C++</label><div class="tabbed-content">
 <div class="highlight"><pre><span></span><code><span class="k">struct</span> <span class="n">gri_refseq_t</span> <span class="p">{</span>
   <span class="kt">long</span> <span class="kt">long</span> <span class="n">rid</span><span class="p">,</span> <span class="n">length</span><span class="p">;</span>
   <span class="n">std</span><span class="o">::</span><span class="n">string</span> <span class="n">name</span><span class="p">,</span> <span class="n">assembly</span><span class="p">,</span> <span class="n">refget_id</span><span class="p">,</span> <span class="n">meta_json</span><span class="p">;</span>
@@ -1264,7 +1352,7 @@ The default configuration (inner_page_KiB, outer_page_KiB) = (16,32) balances ra
 </code></pre></div>
 
 </div>
-<input id="__tabbed_7_5" name="__tabbed_7" type="radio" /><label for="__tabbed_7_5">C</label><div class="tabbed-content">
+<input id="__tabbed_7_6" name="__tabbed_7" type="radio" /><label for="__tabbed_7_6">C</label><div class="tabbed-content">
 <div class="highlight"><pre><span></span><code><span class="cm">/* Omitted for want of idiomatic map type; pull requests welcome! */</span>
 </code></pre></div>
 
@@ -1323,7 +1411,7 @@ Note 1. Make sure <a href="https://www.sqlite.org/tempfiles.html">SQLite is conf
 <h2 id="other-routines">Other routines</h2>
 <h4 id="attach-genomicsqlite-database">Attach GenomicSQLite database</h4>
 <p><strong>↪ GenomicSQLite Attach:</strong> <em>Generate a string</em> containing a series of SQL statements to execute on an existing database connection in order to <a href="https://www.sqlite.org/lang_attach.html">ATTACH</a> a GenomicSQLite database under a given schema name. The main connection may be a plain, uncompressed SQLite3 database, as long as (i) it was opened with the <code>SQLITE_OPEN_URI</code> flag or language equivalent and (ii) the Genomics Extension is loaded in the executing program.</p>
-<div class="tabbed-set" data-tabs="8:5"><input checked="checked" id="__tabbed_8_1" name="__tabbed_8" type="radio" /><label for="__tabbed_8_1">Python</label><div class="tabbed-content">
+<div class="tabbed-set" data-tabs="8:6"><input checked="checked" id="__tabbed_8_1" name="__tabbed_8" type="radio" /><label for="__tabbed_8_1">Python</label><div class="tabbed-content">
 <div class="highlight"><pre><span></span><code><span class="n">dbconn</span> <span class="o">=</span> <span class="n">sqlite3</span><span class="o">.</span><span class="n">connect</span><span class="p">(</span><span class="s1">&#39;any.db&#39;</span><span class="p">,</span> <span class="n">uri</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
 <span class="n">attach_sql</span> <span class="o">=</span> <span class="n">genomicsqlite</span><span class="o">.</span><span class="n">attach_sql</span><span class="p">(</span><span class="n">dbconn</span><span class="p">,</span> <span class="s1">&#39;compressed.db&#39;</span><span class="p">,</span> <span class="s1">&#39;db2&#39;</span><span class="p">)</span>
 <span class="c1"># attach_sql() also takes configuration keyword arguments like</span>
@@ -1345,7 +1433,26 @@ Note 1. Make sure <a href="https://www.sqlite.org/tempfiles.html">SQLite is conf
 </code></pre></div>
 
 </div>
-<input id="__tabbed_8_3" name="__tabbed_8" type="radio" /><label for="__tabbed_8_3">SQLiteCpp</label><div class="tabbed-content">
+<input id="__tabbed_8_3" name="__tabbed_8" type="radio" /><label for="__tabbed_8_3">Rust</label><div class="tabbed-content">
+<div class="highlight"><pre><span></span><code><span class="kd">let</span><span class="w"> </span><span class="n">genomicsqlite_options</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">json</span>::<span class="n">object</span>::<span class="n">Object</span>::<span class="n">new</span><span class="p">();</span><span class="w"></span>
+<span class="c1">// If needed, trigger initial load of Genomics Extension prior to</span>
+<span class="c1">// opening other connections</span>
+<span class="kd">let</span><span class="w"> </span><span class="n">nop</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">genomicsqlite</span>::<span class="n">open</span><span class="p">(</span><span class="w"></span>
+<span class="w">  </span><span class="s">&quot;:memory:&quot;</span><span class="p">,</span><span class="w"></span>
+<span class="w">  </span><span class="n">OpenFlags</span>::<span class="n">SQLITE_OPEN_CREATE</span><span class="w"> </span><span class="o">|</span><span class="w"> </span><span class="n">OpenFlags</span>::<span class="n">SQLITE_OPEN_READ_WRITE</span><span class="p">,</span><span class="w"></span>
+<span class="w">  </span><span class="o">&amp;</span><span class="n">genomicsqlite_options</span><span class="w"></span>
+<span class="p">)</span><span class="o">?</span><span class="p">;</span><span class="w"></span>
+
+<span class="c1">// dbconn: rusqlite::Connection with SQLITE_OPEN_URI</span>
+<span class="kd">let</span><span class="w"> </span><span class="n">attach_sql</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">dbconn</span><span class="w"></span>
+<span class="w">  </span><span class="p">.</span><span class="n">genomicsqlite_attach_sql</span><span class="p">(</span><span class="s">&quot;compressed.db&quot;</span><span class="p">,</span><span class="w"> </span><span class="s">&quot;db2&quot;</span><span class="p">,</span><span class="w"></span>
+<span class="w">                            </span><span class="o">&amp;</span><span class="n">genomicsqlite_options</span><span class="p">)</span><span class="o">?</span><span class="p">;</span><span class="w"></span>
+<span class="n">dbconn</span><span class="p">.</span><span class="n">execute_batch</span><span class="p">(</span><span class="o">&amp;</span><span class="n">attach_sql</span><span class="p">)</span><span class="o">?</span><span class="p">;</span><span class="w"></span>
+<span class="c1">// compressed.db is now attached as db2</span>
+</code></pre></div>
+
+</div>
+<input id="__tabbed_8_4" name="__tabbed_8" type="radio" /><label for="__tabbed_8_4">SQLiteCpp</label><div class="tabbed-content">
 <div class="highlight"><pre><span></span><code><span class="n">std</span><span class="o">::</span><span class="n">string</span> <span class="n">GenomicSQLiteAttachSQL</span><span class="p">(</span>
   <span class="k">const</span> <span class="n">std</span><span class="o">::</span><span class="n">string</span> <span class="o">&amp;</span><span class="n">dbfile</span><span class="p">,</span>
   <span class="k">const</span> <span class="n">std</span><span class="o">::</span><span class="n">string</span> <span class="o">&amp;</span><span class="n">schema_name</span><span class="p">,</span>
@@ -1359,7 +1466,7 @@ Note 1. Make sure <a href="https://www.sqlite.org/tempfiles.html">SQLite is conf
 </code></pre></div>
 
 </div>
-<input id="__tabbed_8_4" name="__tabbed_8" type="radio" /><label for="__tabbed_8_4">C++</label><div class="tabbed-content">
+<input id="__tabbed_8_5" name="__tabbed_8" type="radio" /><label for="__tabbed_8_5">C++</label><div class="tabbed-content">
 <div class="highlight"><pre><span></span><code><span class="n">std</span><span class="o">::</span><span class="n">string</span> <span class="n">GenomicSQLiteAttachSQL</span><span class="p">(</span>
   <span class="k">const</span> <span class="n">std</span><span class="o">::</span><span class="n">string</span> <span class="o">&amp;</span><span class="n">dbfile</span><span class="p">,</span>
   <span class="k">const</span> <span class="n">std</span><span class="o">::</span><span class="n">string</span> <span class="o">&amp;</span><span class="n">schema_name</span><span class="p">,</span>
@@ -1377,7 +1484,7 @@ Note 1. Make sure <a href="https://www.sqlite.org/tempfiles.html">SQLite is conf
 </code></pre></div>
 
 </div>
-<input id="__tabbed_8_5" name="__tabbed_8" type="radio" /><label for="__tabbed_8_5">C</label><div class="tabbed-content">
+<input id="__tabbed_8_6" name="__tabbed_8" type="radio" /><label for="__tabbed_8_6">C</label><div class="tabbed-content">
 <div class="highlight"><pre><span></span><code><span class="kt">char</span><span class="o">*</span> <span class="nf">genomicsqlite_attach_sql</span><span class="p">(</span>
   <span class="k">const</span> <span class="kt">char</span> <span class="o">*</span><span class="n">dbfile</span><span class="p">,</span>
   <span class="k">const</span> <span class="kt">char</span> <span class="o">*</span><span class="n">schema_name</span><span class="p">,</span>
@@ -1404,7 +1511,7 @@ Note 1. Make sure <a href="https://www.sqlite.org/tempfiles.html">SQLite is conf
 <p>❗ The file and schema names are textually pasted into a template SQL script. Take care to prevent SQL injection, if they're in any way determined by external input.</p>
 <h4 id="compress-existing-sqlite3-database">Compress existing SQLite3 database</h4>
 <p><strong>↪ GenomicSQLite Vacuum Into:</strong> <em>Generate a string</em> containing a series of SQL statements to execute on an existing database in order to copy it into a new compressed &amp; <a href="https://www.sqlite.org/lang_vacuum.html">defragmented</a> file. The source database may be a plain, uncompressed SQLite3 database, as long as (i) it was opened with the <code>SQLITE_OPEN_URI</code> flag or language equivalent and (ii) the Genomics Extension is loaded in the executing program.</p>
-<div class="tabbed-set" data-tabs="9:5"><input checked="checked" id="__tabbed_9_1" name="__tabbed_9" type="radio" /><label for="__tabbed_9_1">Python</label><div class="tabbed-content">
+<div class="tabbed-set" data-tabs="9:6"><input checked="checked" id="__tabbed_9_1" name="__tabbed_9" type="radio" /><label for="__tabbed_9_1">Python</label><div class="tabbed-content">
 <div class="highlight"><pre><span></span><code><span class="n">dbconn</span> <span class="o">=</span> <span class="n">sqlite3</span><span class="o">.</span><span class="n">connect</span><span class="p">(</span><span class="s1">&#39;existing.db&#39;</span><span class="p">,</span> <span class="n">uri</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
 <span class="n">vacuum_sql</span> <span class="o">=</span> <span class="n">genomicsqlite</span><span class="o">.</span><span class="n">vacuum_into_sql</span><span class="p">(</span><span class="n">dbconn</span><span class="p">,</span> <span class="s1">&#39;compressed.db&#39;</span><span class="p">)</span>
 <span class="c1"># vacuum_into_sql() also takes configuration keyword arguments like</span>
@@ -1429,7 +1536,30 @@ Note 1. Make sure <a href="https://www.sqlite.org/tempfiles.html">SQLite is conf
 </code></pre></div>
 
 </div>
-<input id="__tabbed_9_3" name="__tabbed_9" type="radio" /><label for="__tabbed_9_3">SQLiteCpp</label><div class="tabbed-content">
+<input id="__tabbed_9_3" name="__tabbed_9" type="radio" /><label for="__tabbed_9_3">Rust</label><div class="tabbed-content">
+<div class="highlight"><pre><span></span><code><span class="kd">let</span><span class="w"> </span><span class="n">genomicsqlite_options</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">json</span>::<span class="n">object</span>::<span class="n">Object</span>::<span class="n">new</span><span class="p">();</span><span class="w"></span>
+<span class="c1">// If needed, trigger initial load of Genomics Extension prior to</span>
+<span class="c1">// opening other connections</span>
+<span class="kd">let</span><span class="w"> </span><span class="n">nop</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">genomicsqlite</span>::<span class="n">open</span><span class="p">(</span><span class="w"></span>
+<span class="w">  </span><span class="s">&quot;:memory:&quot;</span><span class="p">,</span><span class="w"></span>
+<span class="w">  </span><span class="n">OpenFlags</span>::<span class="n">SQLITE_OPEN_CREATE</span><span class="w"> </span><span class="o">|</span><span class="w"> </span><span class="n">OpenFlags</span>::<span class="n">SQLITE_OPEN_READ_WRITE</span><span class="p">,</span><span class="w"></span>
+<span class="w">  </span><span class="o">&amp;</span><span class="n">genomicsqlite_options</span><span class="w"></span>
+<span class="p">)</span><span class="o">?</span><span class="p">;</span><span class="w"></span>
+
+<span class="c1">// dbconn: rusqlite::Connection with SQLITE_OPEN_URI</span>
+<span class="kd">let</span><span class="w"> </span><span class="n">vacuum</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">dbconn</span><span class="w"></span>
+<span class="w">  </span><span class="p">.</span><span class="n">genomicsqlite_vacuum_into_sql</span><span class="p">(</span><span class="s">&quot;compressed.db&quot;</span><span class="p">,</span><span class="w"></span>
+<span class="w">                                 </span><span class="o">&amp;</span><span class="n">genomicsqlite_options</span><span class="p">)</span><span class="o">?</span><span class="p">;</span><span class="w"></span>
+<span class="n">dbconn</span><span class="p">.</span><span class="n">execute_batch</span><span class="p">(</span><span class="o">&amp;</span><span class="n">vacuum_sql</span><span class="p">)</span><span class="o">?</span><span class="p">;</span><span class="w"></span>
+<span class="kd">let</span><span class="w"> </span><span class="n">dbconn2</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">genomicsqlite</span>::<span class="n">open</span><span class="p">(</span><span class="w"></span>
+<span class="w">  </span><span class="s">&quot;compressed.db&quot;</span><span class="p">,</span><span class="w"></span>
+<span class="w">  </span><span class="n">OpenFlags</span>::<span class="n">SQLITE_OPEN_READ_WRITE</span><span class="p">,</span><span class="w"></span>
+<span class="w">  </span><span class="o">&amp;</span><span class="n">genomicsqlite_options</span><span class="w"></span>
+<span class="p">)</span><span class="o">?</span><span class="p">;</span><span class="w"></span>
+</code></pre></div>
+
+</div>
+<input id="__tabbed_9_4" name="__tabbed_9" type="radio" /><label for="__tabbed_9_4">SQLiteCpp</label><div class="tabbed-content">
 <div class="highlight"><pre><span></span><code><span class="n">std</span><span class="o">::</span><span class="n">string</span> <span class="n">GenomicSQLiteVacuumIntoSQL</span><span class="p">(</span>
   <span class="k">const</span> <span class="n">std</span><span class="o">::</span><span class="n">string</span> <span class="o">&amp;</span><span class="n">dest_filename</span><span class="p">,</span>
   <span class="k">const</span> <span class="n">std</span><span class="o">::</span><span class="n">string</span> <span class="o">&amp;</span><span class="n">config_json</span> <span class="o">=</span> <span class="s">&quot;{}&quot;</span>
@@ -1442,7 +1572,7 @@ Note 1. Make sure <a href="https://www.sqlite.org/tempfiles.html">SQLite is conf
 </code></pre></div>
 
 </div>
-<input id="__tabbed_9_4" name="__tabbed_9" type="radio" /><label for="__tabbed_9_4">C++</label><div class="tabbed-content">
+<input id="__tabbed_9_5" name="__tabbed_9" type="radio" /><label for="__tabbed_9_5">C++</label><div class="tabbed-content">
 <div class="highlight"><pre><span></span><code><span class="n">std</span><span class="o">::</span><span class="n">string</span> <span class="n">GenomicSQLiteVacuumIntoSQL</span><span class="p">(</span>
   <span class="k">const</span> <span class="n">std</span><span class="o">::</span><span class="n">string</span> <span class="o">&amp;</span><span class="n">dest_filename</span><span class="p">,</span>
   <span class="k">const</span> <span class="n">std</span><span class="o">::</span><span class="n">string</span> <span class="o">&amp;</span><span class="n">config_json</span> <span class="o">=</span> <span class="s">&quot;{}&quot;</span>
@@ -1459,7 +1589,7 @@ Note 1. Make sure <a href="https://www.sqlite.org/tempfiles.html">SQLite is conf
 </code></pre></div>
 
 </div>
-<input id="__tabbed_9_5" name="__tabbed_9" type="radio" /><label for="__tabbed_9_5">C</label><div class="tabbed-content">
+<input id="__tabbed_9_6" name="__tabbed_9" type="radio" /><label for="__tabbed_9_6">C</label><div class="tabbed-content">
 <div class="highlight"><pre><span></span><code><span class="kt">char</span><span class="o">*</span> <span class="nf">genomicsqlite_vacuum_into_sql</span><span class="p">(</span>
   <span class="k">const</span> <span class="kt">char</span> <span class="o">*</span><span class="n">dest_filename</span><span class="p">,</span>
   <span class="k">const</span> <span class="kt">char</span> <span class="o">*</span><span class="n">config_json</span>
@@ -1482,35 +1612,40 @@ Note 1. Make sure <a href="https://www.sqlite.org/tempfiles.html">SQLite is conf
 
 </div>
 </div>
-<h4 id="genomics-extension-version">Genomics Extension version</h4>
-<p><strong>↪ GenomicSQLite Version</strong></p>
-<div class="tabbed-set" data-tabs="10:5"><input checked="checked" id="__tabbed_10_1" name="__tabbed_10" type="radio" /><label for="__tabbed_10_1">SQL</label><div class="tabbed-content">
-<div class="highlight"><pre><span></span><code><span class="k">SELECT</span> <span class="n">genomicsqlite_version</span><span class="p">()</span>
-</code></pre></div>
-
-</div>
-<input id="__tabbed_10_2" name="__tabbed_10" type="radio" /><label for="__tabbed_10_2">Python</label><div class="tabbed-content">
-<div class="highlight"><pre><span></span><code><span class="n">genomicsqlite</span><span class="o">.</span><span class="n">__version__</span>
-</code></pre></div>
-
-</div>
-<input id="__tabbed_10_3" name="__tabbed_10" type="radio" /><label for="__tabbed_10_3">Java</label><div class="tabbed-content">
-<div class="highlight"><pre><span></span><code><span class="n">String</span> <span class="n">genomicsqliteVersion</span> <span class="o">=</span> <span class="n">GenomicSQLite</span><span class="p">.</span><span class="na">version</span><span class="p">(</span><span class="n">dbconn</span><span class="p">);</span>
-</code></pre></div>
-
-</div>
-<input id="__tabbed_10_4" name="__tabbed_10" type="radio" /><label for="__tabbed_10_4">C++</label><div class="tabbed-content">
-<div class="highlight"><pre><span></span><code><span class="n">std</span><span class="o">::</span><span class="n">string</span> <span class="n">GenomicSQLiteVersion</span><span class="p">();</span>
-</code></pre></div>
-
-</div>
-<input id="__tabbed_10_5" name="__tabbed_10" type="radio" /><label for="__tabbed_10_5">C</label><div class="tabbed-content">
-<div class="highlight"><pre><span></span><code><span class="kt">char</span><span class="o">*</span> <span class="nf">genomicsqlite_version</span><span class="p">();</span>
-<span class="cm">/* result to be sqlite3_free() */</span>
+<h4 id="two-bit-encoding-for-nucleotide-sequences">Two-bit encoding for nucleotide sequences</h4>
+<p>The extension supplies SQL functions to pack a DNA/RNA sequence TEXT value into a smaller BLOB value, using two bits per nucleotide. (Review <a href="https://www.sqlite.org/datatype3.html">SQLite Datatypes</a> on the important differences between TEXT and BLOB values &amp; columns.) Storing a large database of sequences using such BLOBs instead of TEXT can improve application I/O efficiency, with up to 4X more nucleotides cached in the same memory space. It is not, however, expected to greatly shrink the database file on disk, owing to the automatic storage compression.</p>
+<p>The encoding is case-insensitive and considers <code>T</code> and <code>U</code> equivalent.</p>
+<p><strong>↪ Two-bit encoding</strong></p>
+<div class="tabbed-set" data-tabs="10:1"><input checked="checked" id="__tabbed_10_1" name="__tabbed_10" type="radio" /><label for="__tabbed_10_1">SQL</label><div class="tabbed-content">
+<div class="highlight"><pre><span></span><code><span class="k">SELECT</span> <span class="n">nucleotides_twobit</span><span class="p">(</span><span class="s1">&#39;TCAG&#39;</span><span class="p">)</span>
 </code></pre></div>
 
 </div>
 </div>
+<p>Given a TEXT value consisting of characters from the set <code>ACGTUacgtu</code>, compute a two-bit-encoded BLOB value that can later be decoded using <code>twobit_dna()</code> or <code>twobit_rna()</code>. Given any other ASCII TEXT value (including empty), pass it through unchanged as TEXT. Given NULL, return NULL. Any other input is an error.</p>
+<p>Typically used to populate a BLOB column <code>C</code> with <code>INSERT INTO some_table(...,C) VALUES(...,nucleotides_twobit(?))</code>. This works even if some of the sequences contain <code>N</code>s or other characters, in which case those sequences are stored as the original TEXT values. Make sure the column has schema type <code>BLOB</code> to avoid spurious coercions.</p>
+<p><strong>↪ Two-bit decoding</strong></p>
+<div class="tabbed-set" data-tabs="11:1"><input checked="checked" id="__tabbed_11_1" name="__tabbed_11" type="radio" /><label for="__tabbed_11_1">SQL</label><div class="tabbed-content">
+<div class="highlight"><pre><span></span><code><span class="k">SELECT</span> <span class="n">twobit_dna</span><span class="p">(</span><span class="n">nucleotides_twobit</span><span class="p">(</span><span class="s1">&#39;TCAG&#39;</span><span class="p">))</span>
+<span class="k">SELECT</span> <span class="n">twobit_rna</span><span class="p">(</span><span class="n">nucleotides_twobit</span><span class="p">(</span><span class="s1">&#39;UCAG&#39;</span><span class="p">))</span>
+<span class="k">SELECT</span> <span class="n">twobit_dna</span><span class="p">(</span><span class="n">nucleotides_twobit</span><span class="p">(</span><span class="s1">&#39;TCAG&#39;</span><span class="p">),</span><span class="n">Y</span><span class="p">,</span><span class="n">Z</span><span class="p">)</span>
+<span class="k">SELECT</span> <span class="n">twobit_rna</span><span class="p">(</span><span class="n">nucleotides_twobit</span><span class="p">(</span><span class="s1">&#39;UCAG&#39;</span><span class="p">),</span><span class="n">Y</span><span class="p">,</span><span class="n">Z</span><span class="p">)</span>
+</code></pre></div>
+
+</div>
+</div>
+<p>Given a two-bit-encoded BLOB value, decode the nucleotide sequence as uppercased TEXT, with <code>T</code>'s for <code>twobit_dna()</code> and <code>U</code>'s for <code>twobit_rna()</code>. Given a TEXT value, pass it through unchanged. Given NULL, return NULL. Any other first input is an error.</p>
+<p>The optional <code>Y</code> and <code>Z</code> arguments can be used to compute <a href="https://sqlite.org/lang_corefunc.html#substr"><code>substr(twobit_dna(X),Y,Z)</code></a> more efficiently, without decoding the whole sequence. Unfortunately however, <a href="https://sqlite.org/forum/forumpost/756c1a1e48?t=h">SQLite internals</a> make this operation still liable to use time &amp; memory proportional to the full length of X, not Z. If frequent random access into long sequences is needed, then consider splitting them across multiple rows.</p>
+<p>Take care to only use BLOBs originally produced by <code>nucleotides_twobit()</code>, as other BLOBs may decode to garbage nucleotide sequences. If you <code>SELECT twobit_dna(C) FROM some_table</code> on a column with mixed BLOB and TEXT values as suggested above, note that the results actually stored as TEXT preserve their case and T/U letters, unlike decoded BLOBs.</p>
+<p><strong>↪ Two-bit sequence length</strong></p>
+<div class="tabbed-set" data-tabs="12:1"><input checked="checked" id="__tabbed_12_1" name="__tabbed_12" type="radio" /><label for="__tabbed_12_1">SQL</label><div class="tabbed-content">
+<div class="highlight"><pre><span></span><code><span class="k">SELECT</span> <span class="n">twobit_length</span><span class="p">(</span><span class="n">dna_twobit</span><span class="p">(</span><span class="s1">&#39;TCAG&#39;</span><span class="p">))</span>
+</code></pre></div>
+
+</div>
+</div>
+<p>Given a two-bit-encoded BLOB value, return the length of the <em>decoded</em> sequence (without actually decoding it). This is <em>not</em> equal to <code>4*length(BLOB)</code> due to padding.</p>
+<p>Given a TEXT value, return its byte length. Given NULL, return NULL. Any other input is an error.</p>
 <h4 id="json-functions">JSON functions</h4>
 <p>The Genomics Extension bundles the SQLite developers' <a href="https://www.sqlite.org/json1.html">JSON1 extension</a> and enables it automatically. The following conventions are recommended,</p>
 <ol>
@@ -1518,6 +1653,40 @@ Note 1. Make sure <a href="https://www.sqlite.org/tempfiles.html">SQLite is conf
 <li>JSON array columns should be named *_jsarray with type <code>TEXT DEFAULT '[]'</code>.</li>
 </ol>
 <p>The JSON1 functions can be used with <a href="https://sqlite.org/gencol.html">generated columns</a> to effectively enable indices on JSON-embedded fields.</p>
+<h4 id="genomics-extension-version">Genomics Extension version</h4>
+<p><strong>↪ GenomicSQLite Version</strong></p>
+<div class="tabbed-set" data-tabs="13:6"><input checked="checked" id="__tabbed_13_1" name="__tabbed_13" type="radio" /><label for="__tabbed_13_1">SQL</label><div class="tabbed-content">
+<div class="highlight"><pre><span></span><code><span class="k">SELECT</span> <span class="n">genomicsqlite_version</span><span class="p">()</span>
+</code></pre></div>
+
+</div>
+<input id="__tabbed_13_2" name="__tabbed_13" type="radio" /><label for="__tabbed_13_2">Python</label><div class="tabbed-content">
+<div class="highlight"><pre><span></span><code><span class="n">genomicsqlite</span><span class="o">.</span><span class="n">__version__</span>
+</code></pre></div>
+
+</div>
+<input id="__tabbed_13_3" name="__tabbed_13" type="radio" /><label for="__tabbed_13_3">Java</label><div class="tabbed-content">
+<div class="highlight"><pre><span></span><code><span class="n">String</span> <span class="n">genomicsqliteVersion</span> <span class="o">=</span> <span class="n">GenomicSQLite</span><span class="p">.</span><span class="na">version</span><span class="p">(</span><span class="n">dbconn</span><span class="p">);</span>
+</code></pre></div>
+
+</div>
+<input id="__tabbed_13_4" name="__tabbed_13" type="radio" /><label for="__tabbed_13_4">Rust</label><div class="tabbed-content">
+<div class="highlight"><pre><span></span><code><span class="kd">let</span><span class="w"> </span><span class="n">v</span>: <span class="nb">String</span> <span class="o">=</span><span class="w"> </span><span class="n">dbconn</span><span class="p">.</span><span class="n">genomicsqlite_version</span><span class="p">();</span><span class="w"></span>
+</code></pre></div>
+
+</div>
+<input id="__tabbed_13_5" name="__tabbed_13" type="radio" /><label for="__tabbed_13_5">C++</label><div class="tabbed-content">
+<div class="highlight"><pre><span></span><code><span class="n">std</span><span class="o">::</span><span class="n">string</span> <span class="n">GenomicSQLiteVersion</span><span class="p">();</span>
+</code></pre></div>
+
+</div>
+<input id="__tabbed_13_6" name="__tabbed_13" type="radio" /><label for="__tabbed_13_6">C</label><div class="tabbed-content">
+<div class="highlight"><pre><span></span><code><span class="kt">char</span><span class="o">*</span> <span class="nf">genomicsqlite_version</span><span class="p">();</span>
+<span class="cm">/* result to be sqlite3_free() */</span>
+</code></pre></div>
+
+</div>
+</div>
 <h2 id="genomicsqlite-interactive-shell">genomicsqlite interactive shell</h2>
 <p>The Python package includes a <code>genomicsqlite</code> script that starts the <a href="https://sqlite.org/cli.html"><code>sqlite3</code> interactive shell</a> with the Genomics Extension enabled. Simply invoke,</p>
 <div class="highlight"><pre><span></span><code>$ genomicsqlite /path/to/compressed.db [-readonly]
