@@ -1,0 +1,10 @@
+[package]
+name = "cargo_smoke_test"
+version = "0.0.1"
+authors = ["Mike Lin <dna@mlin.net>"]
+edition = "2018"
+
+[dependencies]
+genomicsqlite = "{{GENOMICSQLITE_VERSION}}"
+rusqlite = "^0.24"
+json = "^0"
