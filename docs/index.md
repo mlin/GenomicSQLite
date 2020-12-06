@@ -22,11 +22,10 @@ Our **[Colab notebook](https://colab.research.google.com/drive/1OlHPOcRQBhDmEnS1
 
 **To use the Genomics Extension you might first need to upgrade SQLite itself.** The host program must link [SQLite version 3.31.0 (2020-01-22)](https://www.sqlite.org/releaselog/3_31_0.html) or newer. In your shell, `sqlite3 --version` displays the version installed with your OS, which is probably what your programs use; if in doubt, cause a program to report the result of `SELECT sqlite_version()`.
 
-If this is too old, then upgrade the system/environment SQLite3 library if possible & applicable. Otherwise, modify your program's linking step or runtime environment to cause it to use an up-to-date version, for example by setting rpath or LD_LIBRARY_PATH/DYLD_LIBRARY_PATH to the location of an up-to-date shared library file. Resources:
+If this is too old, then upgrade SQLite3 using your preferred binary package manager (e.g. apt, yum, conda, brew), if possible. Otherwise, modify your program's linking step or runtime environment to cause it to use an up-to-date version, for example by setting rpath or LD_LIBRARY_PATH to the location of an up-to-date shared library file. Resources:
 
 * [How To Compile SQLite](https://www.sqlite.org/howtocompile.html)
 * [DreamHost Knowledge Base - Installing a custom version of SQLite3](https://help.dreamhost.com/hc/en-us/articles/360028047592-Installing-a-custom-version-of-SQLite3)
-* [Ubuntu PPA](https://launchpad.net/~dqlite/+archive/ubuntu/stable) with `sqlite3`
 * [Rpmfind: libsqlite3](https://rpmfind.net/linux/rpm2html/search.php?query=libsqlite3&submit=Search+...&system=&arch=)
 * [Sqlite :: Anaconda Cloud](https://anaconda.org/anaconda/sqlite)
 * Homebrew [formula/sqlite](https://formulae.brew.sh/formula/sqlite), [formula-linux/sqlite](https://formulae.brew.sh/formula-linux/sqlite)

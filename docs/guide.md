@@ -963,7 +963,7 @@ But this plan strongly depends on the contiguity assumption.
     )?;
 
     // dbconn: rusqlite::Connection with SQLITE_OPEN_URI
-    let vacuum = dbconn
+    let vacuum_sql = dbconn
       .genomicsqlite_vacuum_into_sql("compressed.db",
                                      &genomicsqlite_options)?;
     dbconn.execute_batch(&vacuum_sql)?;
@@ -1041,7 +1041,7 @@ The encoding is case-insensitive and considers `T` and `U` equivalent.
 
 Given a TEXT value consisting of characters from the set `ACGTUacgtu`, compute a two-bit-encoded BLOB value that can later be decoded using `twobit_dna()` or `twobit_rna()`. Given any other ASCII TEXT value (including empty), pass it through unchanged as TEXT. Given NULL, return NULL. Any other input is an error.
 
-Typically used to populate a BLOB column `C` with `INSERT INTO some_table(...,C) VALUES(...,nucleotides_twobit(?))`. This works even if some of the sequences contain `N`s or other characters, in which case those sequences are stored as the original TEXT values. Make sure the column has schema type `BLOB` to avoid spurious coercions.
+Typically used to populate a BLOB column `C` with `INSERT INTO some_table(...,C) VALUES(...,nucleotides_twobit(?))`. This works even if some of the sequences contain `N`s or other characters, in which case those sequences are stored as the original TEXT values. Make sure the column has schema type `BLOB` to avoid spurious coercions, and by convention, the column should be named *_twobit.
 
 **↪ Two-bit decoding**
 
@@ -1057,7 +1057,7 @@ Given a two-bit-encoded BLOB value, decode the nucleotide sequence as uppercased
 
 The optional `Y` and `Z` arguments can be used to compute [`substr(twobit_dna(X),Y,Z)`](https://sqlite.org/lang_corefunc.html#substr) more efficiently, without decoding the whole sequence. Unfortunately however, [SQLite internals](https://sqlite.org/forum/forumpost/756c1a1e48?t=h) make this operation still liable to use time & memory proportional to the full length of X, not Z. If frequent random access into long sequences is needed, then consider splitting them across multiple rows.
 
-Take care to only use BLOBs originally produced by `nucleotides_twobit()`, as other BLOBs may decode to garbage nucleotide sequences. If you `SELECT twobit_dna(C) FROM some_table` on a column with mixed BLOB and TEXT values as suggested above, note that the results actually stored as TEXT preserve their case and T/U letters, unlike decoded BLOBs.
+Take care to only use BLOBs originally produced by `nucleotides_twobit()`, as other BLOBs may decode to spurious nucleotide sequences. If you `SELECT twobit_dna(C) FROM some_table` on a column with mixed BLOB and TEXT values as suggested above, note that the results actually stored as TEXT preserve their case and T/U letters, unlike decoded BLOBs.
 
 **↪ Two-bit sequence length**
 
@@ -1072,12 +1072,7 @@ Given a TEXT value, return its byte length. Given NULL, return NULL. Any other i
 
 #### JSON functions
 
-The Genomics Extension bundles the SQLite developers' [JSON1 extension](https://www.sqlite.org/json1.html) and enables it automatically. The following conventions are recommended,
-
-1. JSON object columns should be named *_json with type `TEXT DEFAULT '{}'`.
-2. JSON array columns should be named *_jsarray with type `TEXT DEFAULT '[]'`.
-
-The JSON1 functions can be used with [generated columns](https://sqlite.org/gencol.html) to effectively enable indices on JSON-embedded fields.
+The Genomics Extension bundles the SQLite developers' [JSON1 extension](https://www.sqlite.org/json1.html) and enables it automatically. By convention, JSON object columns should be named *_json and JSON array columns should be named *_jsarray. The JSON1 functions can be used with [generated columns](https://sqlite.org/gencol.html) to effectively allow indexing of JSON-embedded fields.
 
 #### Genomics Extension version
 
