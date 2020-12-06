@@ -169,7 +169,7 @@ pub struct RefSeq {
     pub meta_json: Object,
 }
 
-/// Methods for GenomicSQLite [rusqlite::Connection]s; see [Programming Guide](https://mlin.github.io/GenomicSQLite/guide/#tuning-options)
+/// Methods for GenomicSQLite [rusqlite::Connection]s; see [Programming Guide](https://mlin.github.io/GenomicSQLite/guide/)
 /// for each method's semantics. The methods can also be invoked on an open
 /// [rusqlite::Transaction], via its implicit `Deref<Target=Connection>`.
 pub trait ConnectionMethods {
@@ -255,7 +255,7 @@ impl ConnectionMethods for Connection {
     ) -> Result<String> {
         query1str(
             self,
-            "SELECT genomicsqlite_version(?,?,?)",
+            "SELECT genomicsqlite_attach_sql(?,?,?)",
             params![path.as_ref().to_str(), schema_name, config.dump()],
         )
     }
