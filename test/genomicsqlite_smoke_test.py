@@ -59,11 +59,13 @@ def main():
         for k in env_keys:
             print(f"  {k}={os.environ[k]}")
 
-    print("sqlite3: ", end="")
+    print("sqlite3: v", end="")
     import sqlite3
 
     conn = sqlite3.connect(":memory:")
     print(next(conn.execute("SELECT sqlite_version()"))[0])
+    sqlite_opts = list(row[0] for row in conn.execute("PRAGMA compile_options"))
+    print(f"  {' '.join(sqlite_opts)}")
 
     print("genomicsqlite: ", end="")
     try:
