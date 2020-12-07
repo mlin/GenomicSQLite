@@ -1,18 +1,18 @@
-import genomicsqlite
 import sqlite3
 import pytest
+import genomicsqlite
 
 
 def test_parse_genomic_range():
     con = genomicsqlite.connect(":memory:")
-    q = "SELECT parse_genomic_range(?,?)"
+    query = "SELECT parse_genomic_range(?,?)"
     for (txt, chrom, begin_pos, end_pos) in [
         ("chr1:2,345-06,789", "chr1", 2344, 6789),
         ("π:1-9,223,372,036,854,775,799", "π", 0, 9223372036854775799),
     ]:
-        assert next(con.execute(q, (txt, 1)))[0] == chrom
-        assert next(con.execute(q, (txt, 2)))[0] == begin_pos
-        assert next(con.execute(q, (txt, 3)))[0] == end_pos
+        assert next(con.execute(query, (txt, 1)))[0] == chrom
+        assert next(con.execute(query, (txt, 2)))[0] == begin_pos
+        assert next(con.execute(query, (txt, 3)))[0] == end_pos
 
     for txt in [
         "",
