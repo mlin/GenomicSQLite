@@ -372,6 +372,7 @@
 <ul>
 <li>genomic range indexing for overlap queries &amp; joins</li>
 <li>streaming storage compression using multithreaded <a href="https://facebook.github.io/zstd/">Zstandard</a></li>
+<li>in-SQL utility functions, e.g. parsing "chr1:2,345-6,789"</li>
 <li>pre-tuned settings for "big data"</li>
 </ul>
 <p>This October 2020 poster discusses the context and long-run ambitions:</p>
@@ -380,11 +381,10 @@
 <p><strong>USE AT YOUR OWN RISK:</strong> The extension makes fundamental changes to the database storage layer. While designed to preserve ACID transaction safety, it's young and unlikely to have zero bugs. This project is not associated with the SQLite developers.</p>
 <h2 id="sqlite-3310-required">SQLite &ge; 3.31.0 required</h2>
 <p><strong>To use the Genomics Extension you might first need to upgrade SQLite itself.</strong> The host program must link <a href="https://www.sqlite.org/releaselog/3_31_0.html">SQLite version 3.31.0 (2020-01-22)</a> or newer. In your shell, <code>sqlite3 --version</code> displays the version installed with your OS, which is probably what your programs use; if in doubt, cause a program to report the result of <code>SELECT sqlite_version()</code>.</p>
-<p>If this is too old, then upgrade the system/environment SQLite3 library if possible &amp; applicable. Otherwise, modify your program's linking step or runtime environment to cause it to use an up-to-date version, for example by setting rpath or LD_LIBRARY_PATH/DYLD_LIBRARY_PATH to the location of an up-to-date shared library file. Resources:</p>
+<p>If this is too old, then upgrade SQLite3 using your preferred binary package manager (e.g. apt, yum, conda, brew), if possible. Otherwise, modify your program's linking step or runtime environment to cause it to use an up-to-date version, for example by setting rpath or LD_LIBRARY_PATH to the location of an up-to-date shared library file. Resources:</p>
 <ul>
 <li><a href="https://www.sqlite.org/howtocompile.html">How To Compile SQLite</a></li>
 <li><a href="https://help.dreamhost.com/hc/en-us/articles/360028047592-Installing-a-custom-version-of-SQLite3">DreamHost Knowledge Base - Installing a custom version of SQLite3</a></li>
-<li><a href="https://launchpad.net/~dqlite/+archive/ubuntu/stable">Ubuntu PPA</a> with <code>sqlite3</code></li>
 <li><a href="https://rpmfind.net/linux/rpm2html/search.php?query=libsqlite3&amp;submit=Search+...&amp;system=&amp;arch=">Rpmfind: libsqlite3</a></li>
 <li><a href="https://anaconda.org/anaconda/sqlite">Sqlite :: Anaconda Cloud</a></li>
 <li>Homebrew <a href="https://formulae.brew.sh/formula/sqlite">formula/sqlite</a>, <a href="https://formulae.brew.sh/formula-linux/sqlite">formula-linux/sqlite</a></li>
