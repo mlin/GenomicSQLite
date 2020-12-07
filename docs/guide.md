@@ -1026,13 +1026,24 @@ But this plan strongly depends on the contiguity assumption.
     /* genomicsqlite_open("compressed.db", ...); */
     ```
 
+#### Parse genomic range string
+
+The SQL function `parse_genomic_range(txt, part)` processes a string such as "chr1:2,345-6,789" into any of its three parts (chromosome name, begin position, and end position).
+
+=== "SQL"
+    ``` sql
+    SELECT parse_genomic_range('chr1:2,345-6,789', 1)  -- 'chr1'
+    SELECT parse_genomic_range('chr1:2,345-6,789', 2)  -- 2344
+    SELECT parse_genomic_range('chr1:2,345-6,789', 3)  -- 6789
+    ```
+
+Important: [the begin position returned is one less than the text number](https://genome.ucsc.edu/FAQ/FAQtracks#tracks1), while the end position is equal to the text number.
+
 #### Two-bit encoding for nucleotide sequences
 
 The extension supplies SQL functions to pack a DNA/RNA sequence TEXT value into a smaller BLOB value, using two bits per nucleotide. (Review [SQLite Datatypes](https://www.sqlite.org/datatype3.html) on the important differences between TEXT and BLOB values & columns.) Storing a large database of sequences using such BLOBs instead of TEXT can improve application I/O efficiency, with up to 4X more nucleotides cached in the same memory space. It is not, however, expected to greatly shrink the database file on disk, owing to the automatic storage compression.
 
 The encoding is case-insensitive and considers `T` and `U` equivalent.
-
-**↪ Two-bit encoding**
 
 === "SQL"
     ``` sql
@@ -1042,8 +1053,6 @@ The encoding is case-insensitive and considers `T` and `U` equivalent.
 Given a TEXT value consisting of characters from the set `ACGTUacgtu`, compute a two-bit-encoded BLOB value that can later be decoded using `twobit_dna()` or `twobit_rna()`. Given any other ASCII TEXT value (including empty), pass it through unchanged as TEXT. Given NULL, return NULL. Any other input is an error.
 
 Typically used to populate a BLOB column `C` with `INSERT INTO some_table(...,C) VALUES(...,nucleotides_twobit(?))`. This works even if some of the sequences contain `N`s or other characters, in which case those sequences are stored as the original TEXT values. Make sure the column has schema type `BLOB` to avoid spurious coercions, and by convention, the column should be named *_twobit.
-
-**↪ Two-bit decoding**
 
 === "SQL"
     ``` sql
@@ -1075,8 +1084,6 @@ Given a TEXT value, return its byte length. Given NULL, return NULL. Any other i
 The Genomics Extension bundles the SQLite developers' [JSON1 extension](https://www.sqlite.org/json1.html) and enables it automatically. By convention, JSON object columns should be named *_json and JSON array columns should be named *_jsarray. The JSON1 functions can be used with [generated columns](https://sqlite.org/gencol.html) to effectively allow indexing of JSON-embedded fields.
 
 #### Genomics Extension version
-
-**↪ GenomicSQLite Version**
 
 === "SQL"
     ``` sql

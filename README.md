@@ -6,6 +6,7 @@ This [SQLite3 loadable extension](https://www.sqlite.org/loadext.html) adds feat
 
 * genomic range indexing for overlap queries & joins
 * streaming storage compression (also available [standalone](https://github.com/mlin/sqlite_zstd_vfs))
+* in-SQL utility functions, e.g. compact nucleotide sequence encoding, genomic range parsing
 * pre-tuned settings for "big data"
 
 This October 2020 poster discusses the context and long-run ambitions:
