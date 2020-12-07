@@ -8,7 +8,7 @@ This [SQLite3 loadable extension](https://www.sqlite.org/loadext.html) supports 
 
 * genomic range indexing for overlap queries & joins
 * streaming storage compression using multithreaded [Zstandard](https://facebook.github.io/zstd/)
-* in-SQL utility functions, e.g. compact nucleotide sequence encoding, genomic range parsing
+* in-SQL utility functions, e.g. parsing "chr1:2,345-6,789"
 * pre-tuned settings for "big data"
 
 This October 2020 poster discusses the context and long-run ambitions:
