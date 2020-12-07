@@ -1433,6 +1433,79 @@ static void sqlfn_twobit_rna(sqlite3_context *ctx, int argc, sqlite3_value **arg
 }
 
 /**************************************************************************************************
+ * parse_genomic_range()
+ **************************************************************************************************/
+
+static uint64_t parse_genomic_range_pos(const string &txt, size_t ofs1, size_t ofs2) {
+    assert(ofs1 < ofs2);
+    assert(ofs2 <= txt.size());
+    uint64_t ans = 0;
+    for (size_t i = ofs1; i < ofs2; ++i) {
+        auto c = txt[i];
+        if (c >= '0' && c <= '9') {
+            if (ans > 922337203685477579ULL) { // (2**63-10)//10
+                throw std::runtime_error("parse_genomic_range() position overflow in `" + txt +
+                                         "`");
+            }
+            ans *= 10;
+            ans += c - '0';
+        } else if (c == ',') {
+            continue;
+        } else {
+            throw std::runtime_error("parse_genomic_range() can't read `" + txt + "`");
+        }
+    }
+    return ans;
+}
+
+static std::tuple<string, uint64_t, uint64_t> parse_genomic_range(const string &txt) {
+    auto p1 = txt.find(':');
+    auto p2 = txt.find('-');
+    if (p1 == string::npos || p2 == string::npos || p1 < 1 || p2 < p1 + 2 || p2 >= txt.size() - 1) {
+        throw std::runtime_error("parse_genomic_range(): can't read `" + txt + "`");
+    }
+    string chrom = txt.substr(0, p1);
+    for (size_t i = 0; i < chrom.size(); ++i) {
+        if (std::isspace(chrom[i])) {
+            throw std::runtime_error(
+                "parse_genomic_range(): invalid sequence/chromosome name in `" + txt + "`");
+        }
+    }
+    auto begin_pos = parse_genomic_range_pos(txt, p1 + 1, p2),
+         end_pos = parse_genomic_range_pos(txt, p2 + 1, txt.size());
+    if (begin_pos < 1 || begin_pos > end_pos) {
+        throw std::runtime_error("parse_genomic_range(): invalid one-based positions in `" + txt +
+                                 "`");
+    }
+    return std::make_tuple(chrom, begin_pos - 1, end_pos);
+}
+
+static void sqlfn_parse_genomic_range(sqlite3_context *ctx, int argc, sqlite3_value **argv) {
+    string txt;
+    sqlite3_int64 which_part;
+    ARG_TEXT(txt, 0);
+    ARG(which_part, 1, SQLITE_INTEGER, int64);
+
+    try {
+        auto t = parse_genomic_range(txt);
+        auto &chrom = get<0>(t);
+        switch (which_part) {
+        case 1:
+            return sqlite3_result_text(ctx, chrom.c_str(), chrom.size(), SQLITE_TRANSIENT);
+        case 2:
+            return sqlite3_result_int64(ctx, get<1>(t));
+        case 3:
+            return sqlite3_result_int64(ctx, get<2>(t));
+        default:
+            throw std::runtime_error(
+                "parse_genomic_range(): expected part 1, 2, or 3 (parameter 2)");
+        }
+    } catch (std::exception &exn) {
+        sqlite3_result_error(ctx, exn.what(), -1);
+    }
+}
+
+/**************************************************************************************************
  * SQLite loadable extension initialization
  **************************************************************************************************/
 
@@ -1479,7 +1552,8 @@ static int register_genomicsqlite_functions(sqlite3 *db, const char **pzErrMsg,
                  {FPNM(twobit_dna), 3, SQLITE_DETERMINISTIC},
                  {FPNM(twobit_rna), 1, SQLITE_DETERMINISTIC},
                  {FPNM(twobit_rna), 2, SQLITE_DETERMINISTIC},
-                 {FPNM(twobit_rna), 3, SQLITE_DETERMINISTIC}};
+                 {FPNM(twobit_rna), 3, SQLITE_DETERMINISTIC},
+                 {FPNM(parse_genomic_range), 2, SQLITE_DETERMINISTIC}};
 
     int rc;
     for (int i = 0; i < sizeof(fntab) / sizeof(fntab[0]); ++i) {
