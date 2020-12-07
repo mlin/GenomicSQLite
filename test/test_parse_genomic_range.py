@@ -31,7 +31,7 @@ def test_parse_genomic_range():
         "chr1:1-9,223,372,036,854,775,800",
     ]:
         with pytest.raises(sqlite3.OperationalError):
-            con.execute(q, (txt, 1))
+            con.execute(query, (txt, 1))
 
     with pytest.raises(sqlite3.OperationalError):
-        con.execute(q, ("chr1:2-3", 0))
+        con.execute(query, ("chr1:2-3", 0))
