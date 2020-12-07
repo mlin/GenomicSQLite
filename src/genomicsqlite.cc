@@ -1433,7 +1433,7 @@ static void sqlfn_twobit_rna(sqlite3_context *ctx, int argc, sqlite3_value **arg
 }
 
 /**************************************************************************************************
- * parse_genomic_range()
+ * parse_genomic_range_*()
  **************************************************************************************************/
 
 static uint64_t parse_genomic_range_pos(const string &txt, size_t ofs1, size_t ofs2) {
@@ -1444,7 +1444,7 @@ static uint64_t parse_genomic_range_pos(const string &txt, size_t ofs1, size_t o
         auto c = txt[i];
         if (c >= '0' && c <= '9') {
             if (ans > 922337203685477579ULL) { // (2**63-10)//10
-                throw std::runtime_error("parse_genomic_range() position overflow in `" + txt +
+                throw std::runtime_error("parse_genomic_range(): position overflow in `" + txt +
                                          "`");
             }
             ans *= 10;
@@ -1452,7 +1452,7 @@ static uint64_t parse_genomic_range_pos(const string &txt, size_t ofs1, size_t o
         } else if (c == ',') {
             continue;
         } else {
-            throw std::runtime_error("parse_genomic_range() can't read `" + txt + "`");
+            throw std::runtime_error("parse_genomic_range(): can't read `" + txt + "`");
         }
     }
     return ans;
@@ -1480,26 +1480,36 @@ static std::tuple<string, uint64_t, uint64_t> parse_genomic_range(const string &
     return std::make_tuple(chrom, begin_pos - 1, end_pos);
 }
 
-static void sqlfn_parse_genomic_range(sqlite3_context *ctx, int argc, sqlite3_value **argv) {
+static void sqlfn_parse_genomic_range_sequence(sqlite3_context *ctx, int argc,
+                                               sqlite3_value **argv) {
     string txt;
-    sqlite3_int64 which_part;
     ARG_TEXT(txt, 0);
-    ARG(which_part, 1, SQLITE_INTEGER, int64);
-
     try {
         auto t = parse_genomic_range(txt);
         auto &chrom = get<0>(t);
-        switch (which_part) {
-        case 1:
-            return sqlite3_result_text(ctx, chrom.c_str(), chrom.size(), SQLITE_TRANSIENT);
-        case 2:
-            return sqlite3_result_int64(ctx, get<1>(t));
-        case 3:
-            return sqlite3_result_int64(ctx, get<2>(t));
-        default:
-            throw std::runtime_error(
-                "parse_genomic_range(): expected part 1, 2, or 3 (parameter 2)");
-        }
+        return sqlite3_result_text(ctx, chrom.c_str(), chrom.size(), SQLITE_TRANSIENT);
+    } catch (std::exception &exn) {
+        sqlite3_result_error(ctx, exn.what(), -1);
+    }
+}
+
+static void sqlfn_parse_genomic_range_begin(sqlite3_context *ctx, int argc, sqlite3_value **argv) {
+    string txt;
+    ARG_TEXT(txt, 0);
+    try {
+        auto t = parse_genomic_range(txt);
+        return sqlite3_result_int64(ctx, get<1>(t));
+    } catch (std::exception &exn) {
+        sqlite3_result_error(ctx, exn.what(), -1);
+    }
+}
+
+static void sqlfn_parse_genomic_range_end(sqlite3_context *ctx, int argc, sqlite3_value **argv) {
+    string txt;
+    ARG_TEXT(txt, 0);
+    try {
+        auto t = parse_genomic_range(txt);
+        return sqlite3_result_int64(ctx, get<2>(t));
     } catch (std::exception &exn) {
         sqlite3_result_error(ctx, exn.what(), -1);
     }
@@ -1553,7 +1563,9 @@ static int register_genomicsqlite_functions(sqlite3 *db, const char **pzErrMsg,
                  {FPNM(twobit_rna), 1, SQLITE_DETERMINISTIC},
                  {FPNM(twobit_rna), 2, SQLITE_DETERMINISTIC},
                  {FPNM(twobit_rna), 3, SQLITE_DETERMINISTIC},
-                 {FPNM(parse_genomic_range), 2, SQLITE_DETERMINISTIC}};
+                 {FPNM(parse_genomic_range_sequence), 1, SQLITE_DETERMINISTIC},
+                 {FPNM(parse_genomic_range_begin), 1, SQLITE_DETERMINISTIC},
+                 {FPNM(parse_genomic_range_end), 1, SQLITE_DETERMINISTIC}};
 
     int rc;
     for (int i = 0; i < sizeof(fntab) / sizeof(fntab[0]); ++i) {

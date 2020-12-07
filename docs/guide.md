@@ -1028,22 +1028,26 @@ But this plan strongly depends on the contiguity assumption.
 
 #### Parse genomic range string
 
-The SQL function `parse_genomic_range(txt, part)` processes a string such as "chr1:2,345-6,789" into any of its three parts (chromosome name, begin position, and end position).
+These SQL functions process a string like "chr1:2,345-6,789" into its three parts (sequence/chromosome name, begin position, and end position).
 
 === "SQL"
     ``` sql
-    SELECT parse_genomic_range('chr1:2,345-6,789', 1)  -- 'chr1'
-    SELECT parse_genomic_range('chr1:2,345-6,789', 2)  -- 2344
-    SELECT parse_genomic_range('chr1:2,345-6,789', 3)  -- 6789
+    SELECT parse_genomic_range_sequence('chr1:2,345-6,789', 1)  -- 'chr1'
+    SELECT parse_genomic_range_begin('chr1:2,345-6,789', 2)     -- 2344 (!)
+    SELECT parse_genomic_range_end('chr1:2,345-6,789', 3)       -- 6789
     ```
 
-Important: [the begin position returned is one less than the text number](https://genome.ucsc.edu/FAQ/FAQtracks#tracks1), while the end position is equal to the text number.
+<small>
+❗ [The begin position returned is one less than the text number](https://genome.ucsc.edu/FAQ/FAQtracks#tracks1), while the end position is equal to the text number.
+</small>
 
 #### Two-bit encoding for nucleotide sequences
 
 The extension supplies SQL functions to pack a DNA/RNA sequence TEXT value into a smaller BLOB value, using two bits per nucleotide. (Review [SQLite Datatypes](https://www.sqlite.org/datatype3.html) on the important differences between TEXT and BLOB values & columns.) Storing a large database of sequences using such BLOBs instead of TEXT can improve application I/O efficiency, with up to 4X more nucleotides cached in the same memory space. It is not, however, expected to greatly shrink the database file on disk, owing to the automatic storage compression.
 
 The encoding is case-insensitive and considers `T` and `U` equivalent.
+
+*Encoding:*
 
 === "SQL"
     ``` sql
@@ -1052,7 +1056,15 @@ The encoding is case-insensitive and considers `T` and `U` equivalent.
 
 Given a TEXT value consisting of characters from the set `ACGTUacgtu`, compute a two-bit-encoded BLOB value that can later be decoded using `twobit_dna()` or `twobit_rna()`. Given any other ASCII TEXT value (including empty), pass it through unchanged as TEXT. Given NULL, return NULL. Any other input is an error.
 
-Typically used to populate a BLOB column `C` with `INSERT INTO some_table(...,C) VALUES(...,nucleotides_twobit(?))`. This works even if some of the sequences contain `N`s or other characters, in which case those sequences are stored as the original TEXT values. Make sure the column has schema type `BLOB` to avoid spurious coercions, and by convention, the column should be named *_twobit.
+Typically used to populate a BLOB column `C` with e.g.
+
+```sql
+INSERT INTO some_table(...,C) VALUES(...,nucleotides_twobit(?))
+```
+
+This works even if some of the sequences contain `N`s or other characters, in which case those sequences are stored as the original TEXT values. Make sure the column has schema type `BLOB` to avoid spurious coercions, and by convention, the column should be named *_twobit.
+
+*Decoding:*
 
 === "SQL"
     ``` sql
@@ -1064,11 +1076,11 @@ Typically used to populate a BLOB column `C` with `INSERT INTO some_table(...,C)
 
 Given a two-bit-encoded BLOB value, decode the nucleotide sequence as uppercased TEXT, with `T`'s for `twobit_dna()` and `U`'s for `twobit_rna()`. Given a TEXT value, pass it through unchanged. Given NULL, return NULL. Any other first input is an error.
 
-The optional `Y` and `Z` arguments can be used to compute [`substr(twobit_dna(X),Y,Z)`](https://sqlite.org/lang_corefunc.html#substr) more efficiently, without decoding the whole sequence. Unfortunately however, [SQLite internals](https://sqlite.org/forum/forumpost/756c1a1e48?t=h) make this operation still liable to use time & memory proportional to the full length of X, not Z. If frequent random access into long sequences is needed, then consider splitting them across multiple rows.
+The optional `Y` and `Z` arguments can be used to compute [`substr(twobit_dna(X),Y,Z)`](https://sqlite.org/lang_corefunc.html#substr) more efficiently, without decoding the whole sequence. <small>Unfortunately however, [SQLite internals](https://sqlite.org/forum/forumpost/756c1a1e48?t=h) make this operation still liable to use time & memory proportional to the full length of X, not Z. If frequent random access into long sequences is needed, then consider splitting them across multiple rows.</small>
 
 Take care to only use BLOBs originally produced by `nucleotides_twobit()`, as other BLOBs may decode to spurious nucleotide sequences. If you `SELECT twobit_dna(C) FROM some_table` on a column with mixed BLOB and TEXT values as suggested above, note that the results actually stored as TEXT preserve their case and T/U letters, unlike decoded BLOBs.
 
-**↪ Two-bit sequence length**
+*Length:*
 
 === "SQL"
     ``` sql
