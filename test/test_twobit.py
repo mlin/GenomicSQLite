@@ -1,5 +1,7 @@
 import random
 import math
+import sqlite3
+import pytest
 import genomicsqlite
 
 
@@ -98,3 +100,21 @@ def test_twobit_column():
         ("bar",),
         ("GATTACA",),
     ]
+
+
+def test_dna_revcomp():
+    con = genomicsqlite.connect(":memory:")
+
+    assert next(con.execute("SELECT dna_revcomp('AGCTagct')"))[0] == "agctAGCT"
+    assert next(con.execute("SELECT dna_revcomp('gATtaCa')"))[0] == "tGtaATc"
+    assert next(con.execute("SELECT dna_revcomp('')"))[0] == ""
+    assert next(con.execute("SELECT dna_revcomp(NULL)"))[0] is None
+
+    with pytest.raises(sqlite3.OperationalError):
+        con.execute("SELECT dna_revcomp('GATTACAb')")
+
+    with pytest.raises(sqlite3.OperationalError):
+        con.execute("SELECT dna_revcomp('GATTACA ')")
+
+    with pytest.raises(sqlite3.OperationalError):
+        con.execute("SELECT dna_revcomp(42)")

@@ -116,6 +116,14 @@ size_t twobit_length(const void *data, size_t sz);
 void twobit_dna(const void *data, size_t sz, size_t ofs, size_t len, char *out);
 void twobit_rna(const void *data, size_t sz, size_t ofs, size_t len, char *out);
 
+/* Reverse-complement DNA sequence. The out buffer must be preallocated len+1 bytes (a null
+ * terminator will be affixed).
+ * Returns:
+ *       0: success
+ *      -1: encountered non-DNA character
+ */
+int dna_revcomp(const char *dna, size_t len, char *out);
+
 /*
  * C++ bindings: are liable to throw exceptions except where marked noexcept
  */
@@ -173,4 +181,7 @@ GetGenomicReferenceSequencesByRid(sqlite3 *dbconn, const std::string &assembly =
 std::map<std::string, gri_refseq_t>
 GetGenomicReferenceSequencesByName(sqlite3 *dbconn, const std::string &assembly = "",
                                    const std::string &attached_schema = "");
+
+/* implementation underlying parse_genomic_range_{sequence,begin,end} */
+std::tuple<std::string, uint64_t, uint64_t> parse_genomic_range(const std::string &txt);
 #endif

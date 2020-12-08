@@ -1148,7 +1148,7 @@ extern "C" int nucleotides_twobit(const char *seq, size_t len, void *out) {
             return -2;
         }
         assert(c_i >= 0 && c_i < 128);
-        const unsigned char crumb = dna_crumb_table[c_i];
+        const unsigned char crumb = dna_crumb_table[(unsigned char)c_i];
         if (crumb > 3) {
             return -1;
         }
@@ -1432,6 +1432,68 @@ static void sqlfn_twobit_rna(sqlite3_context *ctx, int argc, sqlite3_value **arg
     twobit_nucleotides(ctx, argc, argv, true);
 }
 
+/*
+complement = [0xFF for i in range(256)]
+for l,r in (
+    ('A','T'), ('C','G'), ('G','C'), ('T','A'),
+    ('a','t'), ('c','g'), ('g','c'), ('t','a'),
+):
+    complement[ord(l)] = r
+
+print(complement)
+*/
+const unsigned char dna_complement_table[] = {
+    0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF,
+    0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF,
+    0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF,
+    0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF,
+    0xFF, 'T',  0xFF, 'G',  0xFF, 0xFF, 0xFF, 'C',  0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF,
+    0xFF, 0xFF, 0xFF, 0xFF, 'A',  0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF,
+    0xFF, 't',  0xFF, 'g',  0xFF, 0xFF, 0xFF, 'c',  0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF,
+    0xFF, 0xFF, 0xFF, 0xFF, 'a',  0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF,
+    0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF,
+    0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF,
+    0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF,
+    0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF,
+    0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF,
+    0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF,
+    0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF,
+    0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF};
+
+extern "C" int dna_revcomp(const char *dna, size_t len, char *out) {
+    for (; len; --len, ++out)
+        if ((*out = dna_complement_table[(unsigned char)dna[len - 1]]) == 0xFF)
+            return -1;
+    *out = 0;
+    return 0;
+}
+
+static void sqlfn_dna_revcomp(sqlite3_context *ctx, int argc, sqlite3_value **argv) {
+    assert(argc == 1);
+    const char *seq = nullptr;
+    ARG_TEXT_OPTIONAL(seq, 0);
+    if (!seq) {
+        return sqlite3_value_type(argv[0]) == SQLITE_NULL ? sqlite3_result_null(ctx)
+                                                          : sqlite3_result_error_nomem(ctx);
+    }
+
+    auto seqlen = sqlite3_value_bytes(argv[0]);
+    assert(seqlen >= 0);
+    if (seqlen <= 0) {
+        return sqlite3_result_value(ctx, argv[0]);
+    }
+
+    try {
+        std::unique_ptr<char[]> buf(new char[seqlen + 1]);
+        if (dna_revcomp(seq, seqlen, buf.get()) < 0) {
+            return sqlite3_result_error(ctx, "non-DNA input to dna_revcomp()", -1);
+        }
+        return sqlite3_result_text(ctx, buf.get(), seqlen, SQLITE_TRANSIENT);
+    } catch (std::bad_alloc &) {
+        return sqlite3_result_error_nomem(ctx);
+    }
+}
+
 /**************************************************************************************************
  * parse_genomic_range_*()
  **************************************************************************************************/
@@ -1458,7 +1520,7 @@ static uint64_t parse_genomic_range_pos(const string &txt, size_t ofs1, size_t o
     return ans;
 }
 
-static std::tuple<string, uint64_t, uint64_t> parse_genomic_range(const string &txt) {
+std::tuple<string, uint64_t, uint64_t> parse_genomic_range(const string &txt) {
     auto p1 = txt.find(':');
     auto p2 = txt.find('-');
     if (p1 == string::npos || p2 == string::npos || p1 < 1 || p2 < p1 + 2 || p2 >= txt.size() - 1) {
@@ -1482,10 +1544,14 @@ static std::tuple<string, uint64_t, uint64_t> parse_genomic_range(const string &
 
 static void sqlfn_parse_genomic_range_sequence(sqlite3_context *ctx, int argc,
                                                sqlite3_value **argv) {
-    string txt;
-    ARG_TEXT(txt, 0);
+    const char *txt = nullptr;
+    ARG_TEXT_OPTIONAL(txt, 0);
+    if (!txt) {
+        return sqlite3_value_type(argv[0]) == SQLITE_NULL ? sqlite3_result_null(ctx)
+                                                          : sqlite3_result_error_nomem(ctx);
+    }
     try {
-        auto t = parse_genomic_range(txt);
+        auto t = parse_genomic_range(string(txt, sqlite3_value_bytes(argv[0])));
         auto &chrom = get<0>(t);
         return sqlite3_result_text(ctx, chrom.c_str(), chrom.size(), SQLITE_TRANSIENT);
     } catch (std::exception &exn) {
@@ -1494,10 +1560,14 @@ static void sqlfn_parse_genomic_range_sequence(sqlite3_context *ctx, int argc,
 }
 
 static void sqlfn_parse_genomic_range_begin(sqlite3_context *ctx, int argc, sqlite3_value **argv) {
-    string txt;
-    ARG_TEXT(txt, 0);
+    const char *txt = nullptr;
+    ARG_TEXT_OPTIONAL(txt, 0);
+    if (!txt) {
+        return sqlite3_value_type(argv[0]) == SQLITE_NULL ? sqlite3_result_null(ctx)
+                                                          : sqlite3_result_error_nomem(ctx);
+    }
     try {
-        auto t = parse_genomic_range(txt);
+        auto t = parse_genomic_range(string(txt, sqlite3_value_bytes(argv[0])));
         return sqlite3_result_int64(ctx, get<1>(t));
     } catch (std::exception &exn) {
         sqlite3_result_error(ctx, exn.what(), -1);
@@ -1505,10 +1575,14 @@ static void sqlfn_parse_genomic_range_begin(sqlite3_context *ctx, int argc, sqli
 }
 
 static void sqlfn_parse_genomic_range_end(sqlite3_context *ctx, int argc, sqlite3_value **argv) {
-    string txt;
-    ARG_TEXT(txt, 0);
+    const char *txt = nullptr;
+    ARG_TEXT_OPTIONAL(txt, 0);
+    if (!txt) {
+        return sqlite3_value_type(argv[0]) == SQLITE_NULL ? sqlite3_result_null(ctx)
+                                                          : sqlite3_result_error_nomem(ctx);
+    }
     try {
-        auto t = parse_genomic_range(txt);
+        auto t = parse_genomic_range(string(txt, sqlite3_value_bytes(argv[0])));
         return sqlite3_result_int64(ctx, get<2>(t));
     } catch (std::exception &exn) {
         sqlite3_result_error(ctx, exn.what(), -1);
@@ -1563,6 +1637,7 @@ static int register_genomicsqlite_functions(sqlite3 *db, const char **pzErrMsg,
                  {FPNM(twobit_rna), 1, SQLITE_DETERMINISTIC},
                  {FPNM(twobit_rna), 2, SQLITE_DETERMINISTIC},
                  {FPNM(twobit_rna), 3, SQLITE_DETERMINISTIC},
+                 {FPNM(dna_revcomp), 1, SQLITE_DETERMINISTIC},
                  {FPNM(parse_genomic_range_sequence), 1, SQLITE_DETERMINISTIC},
                  {FPNM(parse_genomic_range_begin), 1, SQLITE_DETERMINISTIC},
                  {FPNM(parse_genomic_range_end), 1, SQLITE_DETERMINISTIC}};

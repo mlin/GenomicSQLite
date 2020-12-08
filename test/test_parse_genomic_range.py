@@ -38,3 +38,5 @@ def test_parse_genomic_range():
         with pytest.raises(sqlite3.OperationalError):
             con.execute("SELECT parse_genomic_range_end(?)", (txt,))
         assert "parse_genomic_range():" in str(exc.value)
+
+    assert next(con.execute("SELECT parse_genomic_range_end(NULL)"))[0] is None

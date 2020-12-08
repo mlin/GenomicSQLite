@@ -1026,9 +1026,20 @@ But this plan strongly depends on the contiguity assumption.
     /* genomicsqlite_open("compressed.db", ...); */
     ```
 
-#### Parse genomic range string
+#### DNA reverse complement
 
-These SQL functions process a string like "chr1:2,345-6,789" into its three parts (sequence/chromosome name, begin position, and end position).
+Reverse-complements a DNA text value (containing only characters from the set `AGCTagct`), preserving original case.
+
+=== "SQL"
+    ``` sql
+    SELECT dna_revcomp('AGCTagct')  -- 'agctAGCT'
+    ```
+
+Given NULL, returns NULL. Any other input is an error.
+
+#### Parse genomic range text
+
+These SQL functions process a text value like `'chr1:2,345-6,789'` into its three parts (sequence/chromosome name, begin position, and end position).
 
 === "SQL"
     ``` sql
@@ -1037,9 +1048,9 @@ These SQL functions process a string like "chr1:2,345-6,789" into its three part
     SELECT parse_genomic_range_end('chr1:2,345-6,789', 3)       -- 6789
     ```
 
-<small>
-❗ [The begin position returned is one less than the text number](https://genome.ucsc.edu/FAQ/FAQtracks#tracks1), while the end position is equal to the text number.
-</small>
+❗ Since such text ranges are conventionally one-based and closed, `parse_genomic_range_begin()` effectively converts them to zero-based and half-open by [returning one less than the text begin position](https://genome.ucsc.edu/FAQ/FAQtracks#tracks1).
+
+Given NULL, each function returns NULL. An error is raised if the text value can't be parsed, or for any other input type.
 
 #### Two-bit encoding for nucleotide sequences
 
