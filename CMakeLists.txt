@@ -36,7 +36,7 @@ execute_process(COMMAND git describe --tags --always --dirty
                 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -DGIT_REVISION=\"\\\"${GIT_REVISION}\\\"\"")
 
 include_directories(${CMAKE_CURRENT_SOURCE_DIR}/include)
-add_library(genomicsqlite SHARED src/genomicsqlite.cc include/genomicsqlite.h src/json1.c src/hardcoded_refseq.hpp)
+add_library(genomicsqlite SHARED src/genomicsqlite.cc include/genomicsqlite.h src/json1.c src/uint.c src/hardcoded_refseq.hpp)
 if(CMAKE_SYSTEM_NAME STREQUAL "Darwin")
     find_library(LIBZSTD_A NAMES libzstd.a REQUIRED)
     target_link_libraries(genomicsqlite PRIVATE SQLiteCpp ${LIBZSTD_A})

@@ -1594,6 +1594,7 @@ static void sqlfn_parse_genomic_range_end(sqlite3_context *ctx, int argc, sqlite
  **************************************************************************************************/
 
 extern "C" int genomicsqliteJson1Register(sqlite3 *db);
+extern "C" int genomicsqlite_uint_init(sqlite3 *db);
 
 static int register_genomicsqlite_functions(sqlite3 *db, const char **pzErrMsg,
                                             const sqlite3_api_routines *pApi) {
@@ -1671,13 +1672,19 @@ static int register_genomicsqlite_functions(sqlite3 *db, const char **pzErrMsg,
         }
         return rc;
     }
-    // genomicsqliteJson1Register() may return SQLITE_BUSY if JSON1 (possibly another version
-    // thereof) is already loaded, and the extension is being loaded by SELECT load_extension().
-    // That is tolerable.
+    // other extensions may return SQLITE_BUSY if another version is already loaded; that is
+    // tolerable.
     rc = genomicsqliteJson1Register(db);
     if (rc != SQLITE_OK && rc != SQLITE_BUSY) {
         if (pzErrMsg) {
             *pzErrMsg = sqlite3_mprintf("Genomics Extension failed to register JSON1");
+        }
+        return rc;
+    }
+    rc = genomicsqlite_uint_init(db);
+    if (rc != SQLITE_OK && rc != SQLITE_BUSY) {
+        if (pzErrMsg) {
+            *pzErrMsg = sqlite3_mprintf("Genomics Extension failed to register UINT collation");
         }
         return rc;
     }

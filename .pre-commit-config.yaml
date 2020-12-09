@@ -5,7 +5,7 @@ repos:
     name: clang-format
     language: system
     files: \.(c|cc|cxx|cpp|h|hpp|hxx)$
-    exclude: json1\.c
+    exclude: (json1|uint)\.c
     verbose: true
     entry: clang-format
     args: [-i,'-style={IndentWidth: 4, ColumnLimit: 100, BreakStringLiterals: false, ReflowComments: false}']

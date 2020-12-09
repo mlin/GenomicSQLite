@@ -184,7 +184,7 @@ Range positions are considered [**zero-based & half-open**](http://www.cs.utexas
 The extension provides routines to populate a small `_gri_refseq` table describing the genomic reference sequences, which other tables can reference by integer ID ("rid") instead of storing a column with textual sequence names like 'chr10'. This convention is not required, as the GRI can index either chromosome name or rid columns, but reasons to observe it include:
 
 * Integers are more compact and faster to look up.
-* Results sort properly with `ORDER BY rid` instead of considering e.g. `'chr10'` < `'chr2'` lexicographically.
+* Results sort properly with `ORDER BY rid` instead of considering e.g. `'chr10'` < `'chr2'` lexicographically. (See also the UINT collating sequence, below)
 * A table with chromosome names can be reconstructed easily by joining with `_gri_refseq`.
 
 ### Create GRI
@@ -1102,9 +1102,11 @@ Given a two-bit-encoded BLOB value, return the length of the *decoded* sequence 
 
 Given a TEXT value, return its byte length. Given NULL, return NULL. Any other input is an error.
 
-#### JSON functions
+#### JSON1 and UINT extensions
 
-The Genomics Extension bundles the SQLite developers' [JSON1 extension](https://www.sqlite.org/json1.html) and enables it automatically. By convention, JSON object columns should be named *_json and JSON array columns should be named *_jsarray. The JSON1 functions can be used with [generated columns](https://sqlite.org/gencol.html) to effectively allow indexing of JSON-embedded fields.
+The Genomics Extension bundles the SQLite developers' [JSON1 extension](https://www.sqlite.org/json1.html) and enables it automatically. By convention, JSON object columns should be named \*_json and JSON array columns should be named \*_jsarray. The JSON1 functions can be used with [generated columns](https://sqlite.org/gencol.html) to effectively allow indexing of JSON-embedded fields.
+
+The [UINT collating sequence](https://www.sqlite.org/uintcseq.html) is also bundled. This can be useful to make e.g. `ORDER BY chromosome COLLATE UINT` put 'chr2' before 'chr10'.
 
 #### Genomics Extension version
 
