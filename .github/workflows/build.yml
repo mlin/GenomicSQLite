@@ -16,6 +16,7 @@ jobs:
         fetch-depth: 0
     - name: deps
       run: |
+        sudo apt-get -qq update
         sudo apt-get install -y clang-format cppcheck python3-pip
         sudo pip3 install --system pre-commit $PIP_DEPS black flake8 pylint
     - name: pre-commit
@@ -45,6 +46,7 @@ jobs:
         fetch-depth: 0
     - name: deps
       run: |
+        sudo apt-get -qq update
         sudo apt-get install -y $APT_DEPS
         sudo pip3 install --system $PIP_DEPS
     - name: rust toolchain
@@ -65,6 +67,7 @@ jobs:
         fetch-depth: 0
     - name: build loaders
       run: |
+        sudo apt-get -qq update
         sudo apt-get install -y $APT_DEPS
         sudo pip3 install --system $PIP_DEPS
         cmake -DCMAKE_BUILD_TYPE=Release -B build . && cmake --build build -j $(nproc)
