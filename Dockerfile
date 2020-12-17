@@ -5,7 +5,7 @@ FROM ubuntu:16.04
 
 ARG CMAKE_VERSION=3.17.3
 ARG SQLITE_VERSION=3310000
-ARG ZSTD_VERSION=1.4.5
+ARG ZSTD_VERSION=1.4.7
 ARG CPU_ARCH=haswell
 
 ENV CFLAGS="-march=${CPU_ARCH} -O3"
@@ -29,7 +29,7 @@ RUN ln -s /usr/local/lib/libsqlite3.so.0 /usr/local/lib/libsqlite3.so
 
 # Zstandard -- hacked with -fPIC for use with ZSTD_WHOLE_ARCHIVE
 WORKDIR /work
-RUN wget -nv -O - https://github.com/facebook/zstd/releases/download/v${ZSTD_VERSION}/zstd-${ZSTD_VERSION}.tar.gz | tar zx
+RUN wget -nv -O - https://github.com/facebook/zstd/archive/v${ZSTD_VERSION}/v${ZSTD_VERSION}.tar.gz | tar zx
 WORKDIR /work/zstd-${ZSTD_VERSION}
 RUN CFLAGS="${CFLAGS} -fPIC" make install -j $(nproc)
 
