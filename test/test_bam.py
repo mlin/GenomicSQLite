@@ -16,6 +16,19 @@ def sam_into_sqlite(infilename, outfilename, *options):
         check=True,
     )
     print(outfilename)
+    # test CLI
+    cmd = (
+        "python3",
+        os.path.join(HERE, "../bindings/python/genomicsqlite/__init__.py"),
+        outfilename,
+        "-readonly",
+        "SELECT * from sqlite_master",
+    )
+    print(" ".join(cmd))
+    subprocess.run(
+        cmd,
+        check=True,
+    )
 
 
 def test_bam(tmp_path):

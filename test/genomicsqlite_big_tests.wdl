@@ -42,7 +42,7 @@ task build {
 
         apt-get -qq update
         DEBIAN_FRONTEND=noninteractive apt-get -qq install -y \
-            zip pigz wget build-essential git-core \
+            zip pigz wget build-essential git-core sqlite3 \
             cmake libsqlite3-dev libzstd-dev \
             python3-pip maven cargo \
             libhts-dev samtools tabix

@@ -84,21 +84,24 @@ class ConfigParser {
             throw SQLite::Exception("GenomicSQLite::ConfigParser()::sqlite3_open_v2()", rc);
         }
 
-        // merge config_json into defaults
-        if ((rc = sqlite3_prepare_v2(db_, "SELECT json_patch(?,?)", -1, &patch_, nullptr)) !=
-            SQLITE_OK)
-            throw SQLite::Exception(db_, rc);
-        if ((rc = sqlite3_bind_text(patch_, 1, GenomicSQLiteDefaultConfigJSON().c_str(), -1,
-                                    SQLITE_TRANSIENT)) != SQLITE_OK)
-            throw SQLite::Exception(db_, rc);
-        if ((rc = sqlite3_bind_text(patch_, 2, config_json.c_str(), -1, SQLITE_TRANSIENT)) !=
-            SQLITE_OK)
-            throw SQLite::Exception(db_, rc);
-        const char *merged_config_json = nullptr;
-        if ((rc = sqlite3_step(patch_)) != SQLITE_ROW ||
-            !(merged_config_json = (const char *)sqlite3_column_text(patch_, 0)) ||
-            merged_config_json[0] != '{') {
-            throw SQLite::Exception("error parsing config JSON", rc);
+        string default_json = GenomicSQLiteDefaultConfigJSON();
+        const char *merged_config_json = default_json.c_str();
+        if (config_json.size() > 2) { // "{}"
+            // merge config_json into defaults
+            if ((rc = sqlite3_prepare_v2(db_, "SELECT json_patch(?,?)", -1, &patch_, nullptr)) !=
+                SQLITE_OK)
+                throw SQLite::Exception(db_, rc);
+            if ((rc = sqlite3_bind_text(patch_, 1, default_json.c_str(), -1, SQLITE_TRANSIENT)) !=
+                SQLITE_OK)
+                throw SQLite::Exception(db_, rc);
+            if ((rc = sqlite3_bind_text(patch_, 2, config_json.c_str(), -1, SQLITE_TRANSIENT)) !=
+                SQLITE_OK)
+                throw SQLite::Exception(db_, rc);
+            if ((rc = sqlite3_step(patch_)) != SQLITE_ROW ||
+                !(merged_config_json = (const char *)sqlite3_column_text(patch_, 0)) ||
+                merged_config_json[0] != '{') {
+                throw SQLite::Exception("error parsing config JSON", rc);
+            }
         }
 
         if ((rc = sqlite3_prepare_v2(db_, "SELECT json_extract(?,?)", -1, &extract_, nullptr)) !=
