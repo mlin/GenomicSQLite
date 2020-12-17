@@ -29,7 +29,7 @@ RUN ln -s /usr/local/lib/libsqlite3.so.0 /usr/local/lib/libsqlite3.so
 
 # Zstandard -- hacked with -fPIC for use with ZSTD_WHOLE_ARCHIVE
 WORKDIR /work
-RUN wget -nv -O - https://github.com/facebook/zstd/archive/v${ZSTD_VERSION}/v${ZSTD_VERSION}.tar.gz | tar zx
+RUN wget -nv -O - https://github.com/facebook/zstd/releases/download/v${ZSTD_VERSION}/zstd-${ZSTD_VERSION}.tar.gz | tar zx
 WORKDIR /work/zstd-${ZSTD_VERSION}
 RUN CFLAGS="${CFLAGS} -fPIC" make install -j $(nproc)
 
