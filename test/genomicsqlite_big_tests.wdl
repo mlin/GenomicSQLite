@@ -4,6 +4,7 @@ version 1.0
 workflow genomicsqlite_big_tests {
     input {
         String git_revision = "main"
+        File? libgenomicsqlite_so
 
         File reads = "https://s3.amazonaws.com/1000genomes/1000G_2504_high_coverage/data/ERR3239334/NA12878.final.cram" # !FileCoercion
         File variants = "gs://brain-genomics-public/research/cohort/1KGP/cohort_gatk/CCDG_13607_B01_GRM_WGS_2019-02-19_chr21.recalibrated_variants.vcf.gz" # !FileCoercion
@@ -17,7 +18,7 @@ workflow genomicsqlite_big_tests {
     call test_sam {
         input:
         reads = reads,
-        libgenomicsqlite_so = build.libgenomicsqlite_so,
+        libgenomicsqlite_so = select_first([libgenomicsqlite_so, build.libgenomicsqlite_so]),
         genomicsqlite_py = build.genomicsqlite_py,
         sam_into_sqlite = build.sam_into_sqlite
     }
@@ -25,7 +26,7 @@ workflow genomicsqlite_big_tests {
     call test_vcf {
         input:
         variants = variants,
-        libgenomicsqlite_so = build.libgenomicsqlite_so,
+        libgenomicsqlite_so = select_first([libgenomicsqlite_so, build.libgenomicsqlite_so]),
         genomicsqlite_py = build.genomicsqlite_py,
         vcf_into_sqlite = build.vcf_into_sqlite
     }
@@ -41,7 +42,10 @@ task build {
 
         apt-get -qq update
         DEBIAN_FRONTEND=noninteractive apt-get -qq install -y \
-            zip pigz wget build-essential git-core cmake libsqlite3-dev libzstd-dev libhts-dev python3-pip samtools tabix
+            zip pigz wget build-essential git-core \
+            cmake libsqlite3-dev libzstd-dev \
+            python3-pip maven cargo \
+            libhts-dev samtools tabix
         pip3 install pytest pytest-xdist
 
         # build libgenomicsqlite.so and loader executables
@@ -96,6 +100,7 @@ task test_sam {
 
         cp ~{sam_into_sqlite} /usr/local/bin/sam_into_sqlite
         chmod +x /usr/local/bin/sam_into_sqlite
+        ldd -r /usr/local/bin/sam_into_sqlite
 
         reads_file='~{reads}'
         if [[ $reads_file == *.cram ]]; then
@@ -168,6 +173,7 @@ task test_vcf {
 
         cp ~{vcf_into_sqlite} /usr/local/bin/vcf_into_sqlite
         chmod +x /usr/local/bin/vcf_into_sqlite
+        ldd -r /usr/local/bin/vcf_into_sqlite
 
         # load database
         time vcf_into_sqlite --inner-page-KiB 64 --outer-page-KiB 2 --genotypes-without-rowid "~{variants}" "~{dbname}"
