@@ -262,6 +262,8 @@ string GenomicSQLiteTuningSQL(const string &config_json, const string &schema = 
         pragmas[schema_prefix + "auto_vacuum"] = "FULL";
         pragmas[schema_prefix + "locking_mode"] = "EXCLUSIVE";
     } else {
+        // txn rollback after a crash is handled by zstd_vfs's "outer" database, so we can set
+        // the following to avoid writing redundant journals, without loss of safety.
         pragmas[schema_prefix + "journal_mode"] = "MEMORY";
     }
     ostringstream out;
