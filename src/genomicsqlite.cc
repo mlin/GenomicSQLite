@@ -121,7 +121,7 @@ class ConfigParser {
         }
     }
 
-    string getString(const char *path, const char *default_string = nullptr) {
+    string GetString(const char *path, const char *default_string = nullptr) {
         int rc;
         if ((rc = sqlite3_reset(extract_)) != SQLITE_OK)
             throw SQLite::Exception(db_, rc);
@@ -133,10 +133,10 @@ class ConfigParser {
             return default_string;
         if (sqlite3_column_type(extract_, 0) != SQLITE_TEXT)
             throw SQLite::Exception(string("expected text for config ") + path, SQLITE_MISMATCH);
-        return string((const char *)sqlite3_column_text(extract_, 0));
+        return (const char *)sqlite3_column_text(extract_, 0);
     }
 
-    int getInt(const char *path) {
+    int GetInt(const char *path) {
         int rc;
         if ((rc = sqlite3_reset(extract_)) != SQLITE_OK)
             throw SQLite::Exception(db_, rc);
@@ -149,7 +149,7 @@ class ConfigParser {
         return sqlite3_column_int(extract_, 0);
     }
 
-    bool getBool(const char *path) { return getInt(path) != 0; }
+    bool GetBool(const char *path) { return GetInt(path) != 0; }
 };
 
 extern "C" char *genomicsqlite_default_config_json() { C_WRAPPER(GenomicSQLiteDefaultConfigJSON()) }
@@ -160,26 +160,26 @@ static void sqlfn_genomicsqlite_default_config_json(sqlite3_context *ctx, int ar
 
 string GenomicSQLiteURI(const string &dbfile, const string &config_json = "") {
     ConfigParser cfg(config_json);
-    string mode = cfg.getString("$.mode", "");
-    int threads = cfg.getInt("$.threads");
 
     ostringstream uri;
     uri << "file:" << dbfile << "?vfs=zstd"; // TODO: URI-encode dbfile
+    string mode = cfg.GetString("$.mode", "");
     if (!mode.empty()) {
         uri << "&mode=" << mode;
     }
-    uri << "&threads=" << to_string(threads);
-    uri << "&outer_page_size=" << to_string(cfg.getInt("$.outer_page_KiB") * 1024);
+    uri << "&outer_page_size=" << to_string(cfg.GetInt("$.outer_page_KiB") * 1024);
     uri << "&outer_cache_size=-65536"; // enlarge to hold index b-tree pages for large db's
-    uri << "&level=" << to_string(cfg.getInt("$.zstd_level"));
-    if (threads > 1 && cfg.getInt("$.inner_page_KiB") < 16 && !cfg.getBool("$.force_prefetch")) {
+    uri << "&level=" << to_string(cfg.GetInt("$.zstd_level"));
+    int threads = cfg.GetInt("$.threads");
+    uri << "&threads=" << to_string(threads);
+    if (threads > 1 && cfg.GetInt("$.inner_page_KiB") < 16 && !cfg.GetBool("$.force_prefetch")) {
         // prefetch is usually counterproductive if inner_page_KiB < 16
         uri << "&noprefetch=1";
     }
-    if (cfg.getBool("$.immutable")) {
+    if (cfg.GetBool("$.immutable")) {
         uri << "&immutable=1";
     }
-    if (cfg.getBool("$.unsafe_load")) {
+    if (cfg.GetBool("$.unsafe_load")) {
         uri << "&nolock=1&outer_unsafe";
     }
     return uri.str();
@@ -249,14 +249,14 @@ string GenomicSQLiteTuningSQL(const string &config_json, const string &schema = 
         schema_prefix = schema + ".";
     }
     map<string, string> pragmas;
-    pragmas[schema_prefix + "cache_size"] = to_string(-1024 * cfg.getInt("$.page_cache_MiB"));
+    pragmas[schema_prefix + "cache_size"] = to_string(-1024 * cfg.GetInt("$.page_cache_MiB"));
     pragmas[schema_prefix + "max_page_count"] = "2147483646";
     if (schema_prefix.empty()) {
-        int threads = cfg.getInt("$.threads");
+        int threads = cfg.GetInt("$.threads");
         pragmas["threads"] =
             to_string(threads >= 0 ? threads : std::min(8, (int)thread::hardware_concurrency()));
     }
-    if (cfg.getBool("$.unsafe_load")) {
+    if (cfg.GetBool("$.unsafe_load")) {
         pragmas[schema_prefix + "journal_mode"] = "OFF";
         pragmas[schema_prefix + "synchronous"] = "OFF";
         pragmas[schema_prefix + "auto_vacuum"] = "FULL";
@@ -267,7 +267,7 @@ string GenomicSQLiteTuningSQL(const string &config_json, const string &schema = 
     ostringstream out;
     // must go first:
     out << "PRAGMA " << schema_prefix
-        << "page_size=" << to_string(cfg.getInt("$.inner_page_KiB") * 1024);
+        << "page_size=" << to_string(cfg.GetInt("$.inner_page_KiB") * 1024);
     for (const auto &p : pragmas) {
         out << "; PRAGMA " << p.first << "=" << p.second;
     }
@@ -407,7 +407,7 @@ string GenomicSQLiteVacuumIntoSQL(const string &destfile, const string &config_j
 
     ConfigParser cfg(config_json);
     ostringstream ans;
-    ans << "PRAGMA page_size = " << (cfg.getInt("$.inner_page_KiB") * 1024)
+    ans << "PRAGMA page_size = " << (cfg.GetInt("$.inner_page_KiB") * 1024)
         << ";\nPRAGMA auto_vacuum = FULL"
         << ";\nVACUUM INTO " << sqlquote(desturi);
     return ans.str();
