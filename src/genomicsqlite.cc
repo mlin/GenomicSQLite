@@ -79,7 +79,7 @@ class ConfigParser {
   public:
     ConfigParser(const string &config_json) {
         int rc;
-        if ((rc = sqlite3_open_v2(":memory", &db_, SQLITE_OPEN_CREATE | SQLITE_OPEN_READWRITE,
+        if ((rc = sqlite3_open_v2(":memory:", &db_, SQLITE_OPEN_CREATE | SQLITE_OPEN_READWRITE,
                                   nullptr)) != SQLITE_OK) {
             throw SQLite::Exception("GenomicSQLite::ConfigParser()::sqlite3_open_v2()", rc);
         }
