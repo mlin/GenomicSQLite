@@ -70,22 +70,87 @@ std::string GenomicSQLiteDefaultConfigJSON() {
 })";
 }
 
-static unique_ptr<SQLite::Statement> ConfigExtractor(SQLite::Database &tmpdb,
-                                                     const string &config_json) {
-    string merged_json = GenomicSQLiteDefaultConfigJSON();
-    if (config_json.size() > 2) { // "{}"
-        SQLite::Statement patch(tmpdb, "SELECT json_patch(?,?)");
-        patch.bind(1, merged_json);
-        patch.bind(2, config_json);
-        if (!patch.executeStep() || patch.getColumnCount() != 1 || !patch.getColumn(0).isText())
-            throw std::runtime_error("error processing config JSON");
-        merged_json = patch.getColumn(0).getText();
+// Helper for extracting options from JSON configuration. Uses JSON1 for parsing.
+// Don't use SQLiteCpp in case it uses a different SQLite library without JSON1.
+class ConfigParser {
+    sqlite3 *db_ = nullptr;
+    sqlite3_stmt *patch_ = nullptr, *extract_ = nullptr;
+
+  public:
+    ConfigParser(const string &config_json) {
+        int rc;
+        if ((rc = sqlite3_open_v2(":memory:", &db_, SQLITE_OPEN_CREATE | SQLITE_OPEN_READWRITE,
+                                  nullptr)) != SQLITE_OK) {
+            throw SQLite::Exception("GenomicSQLite::ConfigParser()::sqlite3_open_v2()", rc);
+        }
+
+        // merge config_json into defaults
+        if ((rc = sqlite3_prepare_v2(db_, "SELECT json_patch(?,?)", -1, &patch_, nullptr)) !=
+            SQLITE_OK)
+            throw SQLite::Exception(db_, rc);
+        if ((rc = sqlite3_bind_text(patch_, 1, GenomicSQLiteDefaultConfigJSON().c_str(), -1,
+                                    SQLITE_TRANSIENT)) != SQLITE_OK)
+            throw SQLite::Exception(db_, rc);
+        if ((rc = sqlite3_bind_text(patch_, 2, config_json.c_str(), -1, SQLITE_TRANSIENT)) !=
+            SQLITE_OK)
+            throw SQLite::Exception(db_, rc);
+        const char *merged_config_json = nullptr;
+        if ((rc = sqlite3_step(patch_)) != SQLITE_ROW ||
+            !(merged_config_json = (const char *)sqlite3_column_text(patch_, 0)) ||
+            merged_config_json[0] != '{') {
+            throw SQLite::Exception("error parsing config JSON", rc);
+        }
+
+        if ((rc = sqlite3_prepare_v2(db_, "SELECT json_extract(?,?)", -1, &extract_, nullptr)) !=
+            SQLITE_OK)
+            throw SQLite::Exception(db_, rc);
+        if ((rc = sqlite3_bind_text(extract_, 1, merged_config_json, -1, SQLITE_TRANSIENT)) !=
+            SQLITE_OK)
+            throw SQLite::Exception(db_, rc);
     }
 
-    unique_ptr<SQLite::Statement> ans(new SQLite::Statement(tmpdb, "SELECT json_extract(?,?)"));
-    ans->bind(1, merged_json);
-    return ans;
-}
+    virtual ~ConfigParser() {
+        if (extract_) {
+            sqlite3_finalize(extract_);
+        }
+        if (patch_) {
+            sqlite3_finalize(patch_);
+        }
+        if (db_) {
+            sqlite3_close_v2(db_);
+        }
+    }
+
+    string GetString(const char *path, const char *default_string = nullptr) {
+        int rc;
+        if ((rc = sqlite3_reset(extract_)) != SQLITE_OK)
+            throw SQLite::Exception(db_, rc);
+        if ((rc = sqlite3_bind_text(extract_, 2, path, -1, SQLITE_TRANSIENT)) != SQLITE_OK)
+            throw SQLite::Exception(db_, rc);
+        if (sqlite3_step(extract_) != SQLITE_ROW)
+            throw SQLite::Exception(string("error parsing config ") + path, SQLITE_EMPTY);
+        if (sqlite3_column_type(extract_, 0) == SQLITE_NULL && default_string)
+            return default_string;
+        if (sqlite3_column_type(extract_, 0) != SQLITE_TEXT)
+            throw SQLite::Exception(string("expected text for config ") + path, SQLITE_MISMATCH);
+        return (const char *)sqlite3_column_text(extract_, 0);
+    }
+
+    int GetInt(const char *path) {
+        int rc;
+        if ((rc = sqlite3_reset(extract_)) != SQLITE_OK)
+            throw SQLite::Exception(db_, rc);
+        if ((rc = sqlite3_bind_text(extract_, 2, path, -1, SQLITE_TRANSIENT)) != SQLITE_OK)
+            throw SQLite::Exception(db_, rc);
+        if (sqlite3_step(extract_) != SQLITE_ROW)
+            throw SQLite::Exception(string("error parsing config ") + path, SQLITE_EMPTY);
+        if (sqlite3_column_type(extract_, 0) != SQLITE_INTEGER)
+            throw SQLite::Exception(string("expected integer for config ") + path, SQLITE_MISMATCH);
+        return sqlite3_column_int(extract_, 0);
+    }
+
+    bool GetBool(const char *path) { return GetInt(path) != 0; }
+};
 
 extern "C" char *genomicsqlite_default_config_json() { C_WRAPPER(GenomicSQLiteDefaultConfigJSON()) }
 
@@ -94,84 +159,27 @@ static void sqlfn_genomicsqlite_default_config_json(sqlite3_context *ctx, int ar
     SQL_WRAPPER(GenomicSQLiteDefaultConfigJSON())}
 
 string GenomicSQLiteURI(const string &dbfile, const string &config_json = "") {
-    SQLite::Database tmpdb(":memory:", SQLITE_OPEN_CREATE | SQLITE_OPEN_READWRITE);
-    auto extract = ConfigExtractor(tmpdb, config_json);
-
-    extract->bind(2, "$.mode");
-    if (!extract->executeStep() || extract->getColumnCount() != 1)
-        throw std::runtime_error("error processing config JSON $.mode");
-    string mode;
-    if (extract->getColumn(0).isText()) {
-        mode = extract->getColumn(0).getText();
-    }
-    extract->reset();
-
-    extract->bind(2, "$.immutable");
-    if (!extract->executeStep() || extract->getColumnCount() != 1 ||
-        !extract->getColumn(0).isInteger())
-        throw std::runtime_error("error processing config JSON $.immutable");
-    bool immutable = extract->getColumn(0).getInt() != 0;
-    extract->reset();
-
-    extract->bind(2, "$.unsafe_load");
-    if (!extract->executeStep() || extract->getColumnCount() != 1 ||
-        !extract->getColumn(0).isInteger())
-        throw std::runtime_error("error processing config JSON $.unsafe_load");
-    bool unsafe_load = extract->getColumn(0).getInt() != 0;
-    extract->reset();
-
-    extract->bind(2, "$.threads");
-    if (!extract->executeStep() || extract->getColumnCount() != 1 ||
-        !extract->getColumn(0).isInteger())
-        throw std::runtime_error("error processing config JSON $.threads");
-    int threads = extract->getColumn(0).getInt();
-    extract->reset();
-
-    extract->bind(2, "$.force_prefetch");
-    if (!extract->executeStep() || extract->getColumnCount() != 1 ||
-        !extract->getColumn(0).isInteger())
-        throw std::runtime_error("error processing config JSON $.force_prefetch");
-    bool force_prefetch = extract->getColumn(0).getInt() != 0;
-    extract->reset();
-
-    extract->bind(2, "$.inner_page_KiB");
-    if (!extract->executeStep() || extract->getColumnCount() != 1 ||
-        !extract->getColumn(0).isInteger())
-        throw std::runtime_error("error processing config JSON $.inner_page_KiB");
-    int inner_page_KiB = extract->getColumn(0).getInt();
-    extract->reset();
-
-    extract->bind(2, "$.outer_page_KiB");
-    if (!extract->executeStep() || extract->getColumnCount() != 1 ||
-        !extract->getColumn(0).isInteger())
-        throw std::runtime_error("error processing config JSON $.outer_page_KiB");
-    int outer_page_KiB = extract->getColumn(0).getInt();
-    extract->reset();
-
-    extract->bind(2, "$.zstd_level");
-    if (!extract->executeStep() || extract->getColumnCount() != 1 ||
-        !extract->getColumn(0).isInteger())
-        throw std::runtime_error("error processing config JSON $.zstd_level");
-    int zstd_level = extract->getColumn(0).getInt();
-    extract->reset();
+    ConfigParser cfg(config_json);
 
     ostringstream uri;
     uri << "file:" << dbfile << "?vfs=zstd"; // TODO: URI-encode dbfile
+    string mode = cfg.GetString("$.mode", "");
     if (!mode.empty()) {
         uri << "&mode=" << mode;
     }
-    uri << "&threads=" << to_string(threads);
-    uri << "&outer_page_size=" << to_string(outer_page_KiB * 1024);
+    uri << "&outer_page_size=" << to_string(cfg.GetInt("$.outer_page_KiB") * 1024);
     uri << "&outer_cache_size=-65536"; // enlarge to hold index b-tree pages for large db's
-    uri << "&level=" << to_string(zstd_level);
-    if (threads > 1 && inner_page_KiB < 16 && !force_prefetch) {
+    uri << "&level=" << to_string(cfg.GetInt("$.zstd_level"));
+    int threads = cfg.GetInt("$.threads");
+    uri << "&threads=" << to_string(threads);
+    if (threads > 1 && cfg.GetInt("$.inner_page_KiB") < 16 && !cfg.GetBool("$.force_prefetch")) {
         // prefetch is usually counterproductive if inner_page_KiB < 16
         uri << "&noprefetch=1";
     }
-    if (immutable) {
+    if (cfg.GetBool("$.immutable")) {
         uri << "&immutable=1";
     }
-    if (unsafe_load) {
+    if (cfg.GetBool("$.unsafe_load")) {
         uri << "&nolock=1&outer_unsafe";
     }
     return uri.str();
@@ -234,59 +242,34 @@ static void sqlfn_genomicsqlite_uri(sqlite3_context *ctx, int argc, sqlite3_valu
 }
 
 string GenomicSQLiteTuningSQL(const string &config_json, const string &schema = "") {
-    SQLite::Database tmpdb(":memory:", SQLITE_OPEN_CREATE | SQLITE_OPEN_READWRITE);
-    auto extract = ConfigExtractor(tmpdb, config_json);
-
-    extract->bind(2, "$.unsafe_load");
-    if (!extract->executeStep() || extract->getColumnCount() != 1 ||
-        !extract->getColumn(0).isInteger())
-        throw std::runtime_error("error processing config JSON $.unsafe_load");
-    bool unsafe_load = extract->getColumn(0).getInt() != 0;
-    extract->reset();
-
-    extract->bind(2, "$.page_cache_MiB");
-    if (!extract->executeStep() || extract->getColumnCount() != 1 ||
-        !extract->getColumn(0).isInteger())
-        throw std::runtime_error("error processing config JSON $.page_cache_MiB");
-    auto page_cache_MiB = extract->getColumn(0).getInt64();
-    extract->reset();
-
-    extract->bind(2, "$.threads");
-    if (!extract->executeStep() || extract->getColumnCount() != 1 ||
-        !extract->getColumn(0).isInteger())
-        throw std::runtime_error("error processing config JSON $.threads");
-    int threads = extract->getColumn(0).getInt();
-    extract->reset();
-
-    extract->bind(2, "$.inner_page_KiB");
-    if (!extract->executeStep() || extract->getColumnCount() != 1 ||
-        !extract->getColumn(0).isInteger())
-        throw std::runtime_error("error processing config JSON $.inner_page_KiB");
-    int inner_page_KiB = extract->getColumn(0).getInt();
-    extract->reset();
+    ConfigParser cfg(config_json);
 
     string schema_prefix;
     if (!schema.empty()) {
         schema_prefix = schema + ".";
     }
     map<string, string> pragmas;
-    pragmas[schema_prefix + "cache_size"] = to_string(-1024 * page_cache_MiB);
+    pragmas[schema_prefix + "cache_size"] = to_string(-1024 * cfg.GetInt("$.page_cache_MiB"));
     pragmas[schema_prefix + "max_page_count"] = "2147483646";
     if (schema_prefix.empty()) {
+        int threads = cfg.GetInt("$.threads");
         pragmas["threads"] =
             to_string(threads >= 0 ? threads : std::min(8, (int)thread::hardware_concurrency()));
     }
-    if (unsafe_load) {
+    if (cfg.GetBool("$.unsafe_load")) {
         pragmas[schema_prefix + "journal_mode"] = "OFF";
         pragmas[schema_prefix + "synchronous"] = "OFF";
         pragmas[schema_prefix + "auto_vacuum"] = "FULL";
         pragmas[schema_prefix + "locking_mode"] = "EXCLUSIVE";
     } else {
+        // txn rollback after a crash is handled by zstd_vfs's "outer" database, so we can set
+        // the following to avoid writing redundant journals, without loss of safety.
         pragmas[schema_prefix + "journal_mode"] = "MEMORY";
     }
     ostringstream out;
     // must go first:
-    out << "PRAGMA " << schema_prefix << "page_size=" << to_string(inner_page_KiB * 1024);
+    out << "PRAGMA " << schema_prefix
+        << "page_size=" << to_string(cfg.GetInt("$.inner_page_KiB") * 1024);
     for (const auto &p : pragmas) {
         out << "; PRAGMA " << p.first << "=" << p.second;
     }
@@ -309,8 +292,12 @@ static void ensure_ext_loaded() {
     // for C/C++ GenomicSQLiteOpen
     static bool ext_loaded = false;
     if (!ext_loaded) {
+        const char *libgenomicsqlite = getenv("LIBGENOMICSQLITE");
+        if (!libgenomicsqlite || !libgenomicsqlite[0]) {
+            libgenomicsqlite = "libgenomicsqlite";
+        }
         SQLite::Database db(":memory:", SQLite::OPEN_READWRITE | SQLite::OPEN_CREATE);
-        db.loadExtension("libgenomicsqlite", nullptr);
+        db.loadExtension(libgenomicsqlite, nullptr);
         ext_loaded = true;
     }
 }
@@ -418,18 +405,12 @@ static void sqlfn_genomicsqlite_attach_sql(sqlite3_context *ctx, int argc, sqlit
 }
 
 string GenomicSQLiteVacuumIntoSQL(const string &destfile, const string &config_json) {
-    SQLite::Database tmpdb(":memory:", SQLITE_OPEN_CREATE | SQLITE_OPEN_READWRITE);
-    auto extract = ConfigExtractor(tmpdb, config_json);
-    extract->bind(2, "$.inner_page_KiB");
-    if (!extract->executeStep() || extract->getColumnCount() != 1 ||
-        !extract->getColumn(0).isInteger())
-        throw std::runtime_error("error processing config JSON $.inner_page_KiB");
-    int inner_page_KiB = extract->getColumn(0).getInt();
-
     string desturi = GenomicSQLiteURI(destfile, config_json) + "&outer_unsafe=true";
 
+    ConfigParser cfg(config_json);
     ostringstream ans;
-    ans << "PRAGMA page_size = " << (inner_page_KiB * 1024) << ";\nPRAGMA auto_vacuum = FULL"
+    ans << "PRAGMA page_size = " << (cfg.GetInt("$.inner_page_KiB") * 1024)
+        << ";\nPRAGMA auto_vacuum = FULL"
         << ";\nVACUUM INTO " << sqlquote(desturi);
     return ans.str();
 }
@@ -1650,8 +1631,8 @@ static int register_genomicsqlite_functions(sqlite3 *db, const char **pzErrMsg,
                                        nullptr, fntab[i].fp, nullptr, nullptr, nullptr);
         if (rc != SQLITE_OK) {
             if (pzErrMsg) {
-                *pzErrMsg =
-                    sqlite3_mprintf("Genomics Extension failed to register %s", fntab[i].fn);
+                *pzErrMsg = sqlite3_mprintf("Genomics Extension %s failed to register %s",
+                                            GIT_REVISION, fntab[i].fn);
             }
             return rc;
         }
@@ -1659,16 +1640,17 @@ static int register_genomicsqlite_functions(sqlite3 *db, const char **pzErrMsg,
     rc = RegisterSQLiteVirtualTable<GenomicRangeIndexLevelsTVF>(db, "genomic_range_index_levels");
     if (rc != SQLITE_OK) {
         if (pzErrMsg) {
-            *pzErrMsg =
-                sqlite3_mprintf("Genomics Extension failed to register genomic_range_index_levels");
+            *pzErrMsg = sqlite3_mprintf(
+                "Genomics Extension %s failed to register genomic_range_index_levels",
+                GIT_REVISION);
         }
         return rc;
     }
     rc = RegisterSQLiteVirtualTable<GenomicRangeRowidsTVF>(db, "genomic_range_rowids");
     if (rc != SQLITE_OK) {
         if (pzErrMsg) {
-            *pzErrMsg =
-                sqlite3_mprintf("Genomics Extension failed to register genomic_range_rowids");
+            *pzErrMsg = sqlite3_mprintf(
+                "Genomics Extension %s failed to register genomic_range_rowids", GIT_REVISION);
         }
         return rc;
     }
@@ -1677,14 +1659,16 @@ static int register_genomicsqlite_functions(sqlite3 *db, const char **pzErrMsg,
     rc = genomicsqliteJson1Register(db);
     if (rc != SQLITE_OK && rc != SQLITE_BUSY) {
         if (pzErrMsg) {
-            *pzErrMsg = sqlite3_mprintf("Genomics Extension failed to register JSON1");
+            *pzErrMsg =
+                sqlite3_mprintf("Genomics Extension %s failed to register JSON1", GIT_REVISION);
         }
         return rc;
     }
     rc = genomicsqlite_uint_init(db);
     if (rc != SQLITE_OK && rc != SQLITE_BUSY) {
         if (pzErrMsg) {
-            *pzErrMsg = sqlite3_mprintf("Genomics Extension failed to register UINT collation");
+            *pzErrMsg = sqlite3_mprintf("Genomics Extension %s failed to register UINT collation",
+                                        GIT_REVISION);
         }
         return rc;
     }
@@ -1710,10 +1694,33 @@ extern "C" int sqlite3_genomicsqlite_init(sqlite3 *db, char **pzErrMsg,
         return SQLITE_ERROR;
     }
 
+    /* disabled b/c JDBC bindings "legitimately" entail two different dynamically-linked sqlite libs!
+    // Check that SQLiteCpp is using the same SQLite library that's loading us. This may not be the
+    // case when different versions of SQLite are linked into the running process, one static and
+    // one dynamic.
+    string static_version(pApi->libversion()), dynamic_version("UNKNOWN");
+    {
+        SQLite::Database tmpdb(":memory:", SQLITE_OPEN_CREATE | SQLITE_OPEN_READWRITE);
+        SQLite::Statement query(tmpdb, "SELECT sqlite_version()");
+        if (query.executeStep() && query.getColumnCount() == 1) {
+            dynamic_version = query.getColumn(0).getText("UNKNOWN");
+        }
+    }
+    if (static_version != dynamic_version) {
+        if (pzErrMsg) {
+            *pzErrMsg = sqlite3_mprintf(
+                "Two distinct versions of SQLite (%s & %s) detected by Genomics Extension %s. Eliminate static linking of SQLite from the main executable.",
+                static_version.c_str(), dynamic_version.c_str(), GIT_REVISION);
+        }
+        return SQLITE_ERROR;
+    }
+    */
+
     int rc = (new ZstdVFS())->Register("zstd");
     if (rc != SQLITE_OK) {
         if (pzErrMsg) {
-            *pzErrMsg = sqlite3_mprintf("Genomics Extension failed initializing zstd_vfs");
+            *pzErrMsg =
+                sqlite3_mprintf("Genomics Extension %s failed initializing zstd_vfs", GIT_REVISION);
         }
         return rc;
     }
@@ -1723,7 +1730,8 @@ extern "C" int sqlite3_genomicsqlite_init(sqlite3 *db, char **pzErrMsg,
     rc = sqlite3_auto_extension((void (*)(void))register_genomicsqlite_functions);
     if (rc != SQLITE_OK) {
         if (pzErrMsg) {
-            *pzErrMsg = sqlite3_mprintf("Genomics Extension failed sqlite3_auto_extension");
+            *pzErrMsg = sqlite3_mprintf("Genomics Extension %s failed sqlite3_auto_extension",
+                                        GIT_REVISION);
         }
         return rc;
     }
