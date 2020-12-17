@@ -363,8 +363,15 @@
 </li>
         
           <li class="md-nav__item">
-  <a href="#parse-genomic-range-string" class="md-nav__link">
-    Parse genomic range string
+  <a href="#dna-reverse-complement" class="md-nav__link">
+    DNA reverse complement
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#parse-genomic-range-text" class="md-nav__link">
+    Parse genomic range text
   </a>
   
 </li>
@@ -377,8 +384,8 @@
 </li>
         
           <li class="md-nav__item">
-  <a href="#json-functions" class="md-nav__link">
-    JSON functions
+  <a href="#json1-and-uint-extensions" class="md-nav__link">
+    JSON1 and UINT extensions
   </a>
   
 </li>
@@ -624,8 +631,15 @@
 </li>
         
           <li class="md-nav__item">
-  <a href="#parse-genomic-range-string" class="md-nav__link">
-    Parse genomic range string
+  <a href="#dna-reverse-complement" class="md-nav__link">
+    DNA reverse complement
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#parse-genomic-range-text" class="md-nav__link">
+    Parse genomic range text
   </a>
   
 </li>
@@ -638,8 +652,8 @@
 </li>
         
           <li class="md-nav__item">
-  <a href="#json-functions" class="md-nav__link">
-    JSON functions
+  <a href="#json1-and-uint-extensions" class="md-nav__link">
+    JSON1 and UINT extensions
   </a>
   
 </li>
@@ -844,7 +858,7 @@ The default configuration (inner_page_KiB, outer_page_KiB) = (16,32) balances ra
 <p>The extension provides routines to populate a small <code>_gri_refseq</code> table describing the genomic reference sequences, which other tables can reference by integer ID ("rid") instead of storing a column with textual sequence names like 'chr10'. This convention is not required, as the GRI can index either chromosome name or rid columns, but reasons to observe it include:</p>
 <ul>
 <li>Integers are more compact and faster to look up.</li>
-<li>Results sort properly with <code>ORDER BY rid</code> instead of considering e.g. <code>'chr10'</code> &lt; <code>'chr2'</code> lexicographically.</li>
+<li>Results sort properly with <code>ORDER BY rid</code> instead of considering e.g. <code>'chr10'</code> &lt; <code>'chr2'</code> lexicographically. (See also the UINT collating sequence, below)</li>
 <li>A table with chromosome names can be reconstructed easily by joining with <code>_gri_refseq</code>.</li>
 </ul>
 <h3 id="create-gri">Create GRI</h3>
@@ -1626,9 +1640,18 @@ Note 1. Make sure <a href="https://www.sqlite.org/tempfiles.html">SQLite is conf
 
 </div>
 </div>
-<h4 id="parse-genomic-range-string">Parse genomic range string</h4>
-<p>These SQL functions process a string like "chr1:2,345-6,789" into its three parts (sequence/chromosome name, begin position, and end position).</p>
+<h4 id="dna-reverse-complement">DNA reverse complement</h4>
+<p>Reverse-complements a DNA text value (containing only characters from the set <code>AGCTagct</code>), preserving original case.</p>
 <div class="tabbed-set" data-tabs="10:1"><input checked="checked" id="__tabbed_10_1" name="__tabbed_10" type="radio" /><label for="__tabbed_10_1">SQL</label><div class="tabbed-content">
+<div class="highlight"><pre><span></span><code><span class="k">SELECT</span> <span class="n">dna_revcomp</span><span class="p">(</span><span class="s1">&#39;AGCTagct&#39;</span><span class="p">)</span>  <span class="c1">-- &#39;agctAGCT&#39;</span>
+</code></pre></div>
+
+</div>
+</div>
+<p>Given NULL, returns NULL. Any other input is an error.</p>
+<h4 id="parse-genomic-range-text">Parse genomic range text</h4>
+<p>These SQL functions process a text value like <code>'chr1:2,345-6,789'</code> into its three parts (sequence/chromosome name, begin position, and end position).</p>
+<div class="tabbed-set" data-tabs="11:1"><input checked="checked" id="__tabbed_11_1" name="__tabbed_11" type="radio" /><label for="__tabbed_11_1">SQL</label><div class="tabbed-content">
 <div class="highlight"><pre><span></span><code><span class="k">SELECT</span> <span class="n">parse_genomic_range_sequence</span><span class="p">(</span><span class="s1">&#39;chr1:2,345-6,789&#39;</span><span class="p">,</span> <span class="mi">1</span><span class="p">)</span>  <span class="c1">-- &#39;chr1&#39;</span>
 <span class="k">SELECT</span> <span class="n">parse_genomic_range_begin</span><span class="p">(</span><span class="s1">&#39;chr1:2,345-6,789&#39;</span><span class="p">,</span> <span class="mi">2</span><span class="p">)</span>     <span class="c1">-- 2344 (!)</span>
 <span class="k">SELECT</span> <span class="n">parse_genomic_range_end</span><span class="p">(</span><span class="s1">&#39;chr1:2,345-6,789&#39;</span><span class="p">,</span> <span class="mi">3</span><span class="p">)</span>       <span class="c1">-- 6789</span>
@@ -1636,14 +1659,13 @@ Note 1. Make sure <a href="https://www.sqlite.org/tempfiles.html">SQLite is conf
 
 </div>
 </div>
-<p><small>
-❗ <a href="https://genome.ucsc.edu/FAQ/FAQtracks#tracks1">The begin position returned is one less than the text number</a>, while the end position is equal to the text number.
-</small></p>
+<p>❗ Since such text ranges are conventionally one-based and closed, <code>parse_genomic_range_begin()</code> effectively converts them to zero-based and half-open by <a href="https://genome.ucsc.edu/FAQ/FAQtracks#tracks1">returning one less than the text begin position</a>.</p>
+<p>Given NULL, each function returns NULL. An error is raised if the text value can't be parsed, or for any other input type.</p>
 <h4 id="two-bit-encoding-for-nucleotide-sequences">Two-bit encoding for nucleotide sequences</h4>
 <p>The extension supplies SQL functions to pack a DNA/RNA sequence TEXT value into a smaller BLOB value, using two bits per nucleotide. (Review <a href="https://www.sqlite.org/datatype3.html">SQLite Datatypes</a> on the important differences between TEXT and BLOB values &amp; columns.) Storing a large database of sequences using such BLOBs instead of TEXT can improve application I/O efficiency, with up to 4X more nucleotides cached in the same memory space. It is not, however, expected to greatly shrink the database file on disk, owing to the automatic storage compression.</p>
 <p>The encoding is case-insensitive and considers <code>T</code> and <code>U</code> equivalent.</p>
 <p><em>Encoding:</em></p>
-<div class="tabbed-set" data-tabs="11:1"><input checked="checked" id="__tabbed_11_1" name="__tabbed_11" type="radio" /><label for="__tabbed_11_1">SQL</label><div class="tabbed-content">
+<div class="tabbed-set" data-tabs="12:1"><input checked="checked" id="__tabbed_12_1" name="__tabbed_12" type="radio" /><label for="__tabbed_12_1">SQL</label><div class="tabbed-content">
 <div class="highlight"><pre><span></span><code><span class="k">SELECT</span> <span class="n">nucleotides_twobit</span><span class="p">(</span><span class="s1">&#39;TCAG&#39;</span><span class="p">)</span>
 </code></pre></div>
 
@@ -1656,7 +1678,7 @@ Note 1. Make sure <a href="https://www.sqlite.org/tempfiles.html">SQLite is conf
 
 <p>This works even if some of the sequences contain <code>N</code>s or other characters, in which case those sequences are stored as the original TEXT values. Make sure the column has schema type <code>BLOB</code> to avoid spurious coercions, and by convention, the column should be named *_twobit.</p>
 <p><em>Decoding:</em></p>
-<div class="tabbed-set" data-tabs="12:1"><input checked="checked" id="__tabbed_12_1" name="__tabbed_12" type="radio" /><label for="__tabbed_12_1">SQL</label><div class="tabbed-content">
+<div class="tabbed-set" data-tabs="13:1"><input checked="checked" id="__tabbed_13_1" name="__tabbed_13" type="radio" /><label for="__tabbed_13_1">SQL</label><div class="tabbed-content">
 <div class="highlight"><pre><span></span><code><span class="k">SELECT</span> <span class="n">twobit_dna</span><span class="p">(</span><span class="n">nucleotides_twobit</span><span class="p">(</span><span class="s1">&#39;TCAG&#39;</span><span class="p">))</span>
 <span class="k">SELECT</span> <span class="n">twobit_rna</span><span class="p">(</span><span class="n">nucleotides_twobit</span><span class="p">(</span><span class="s1">&#39;UCAG&#39;</span><span class="p">))</span>
 <span class="k">SELECT</span> <span class="n">twobit_dna</span><span class="p">(</span><span class="n">nucleotides_twobit</span><span class="p">(</span><span class="s1">&#39;TCAG&#39;</span><span class="p">),</span><span class="n">Y</span><span class="p">,</span><span class="n">Z</span><span class="p">)</span>
@@ -1669,7 +1691,7 @@ Note 1. Make sure <a href="https://www.sqlite.org/tempfiles.html">SQLite is conf
 <p>The optional <code>Y</code> and <code>Z</code> arguments can be used to compute <a href="https://sqlite.org/lang_corefunc.html#substr"><code>substr(twobit_dna(X),Y,Z)</code></a> more efficiently, without decoding the whole sequence. <small>Unfortunately however, <a href="https://sqlite.org/forum/forumpost/756c1a1e48?t=h">SQLite internals</a> make this operation still liable to use time &amp; memory proportional to the full length of X, not Z. If frequent random access into long sequences is needed, then consider splitting them across multiple rows.</small></p>
 <p>Take care to only use BLOBs originally produced by <code>nucleotides_twobit()</code>, as other BLOBs may decode to spurious nucleotide sequences. If you <code>SELECT twobit_dna(C) FROM some_table</code> on a column with mixed BLOB and TEXT values as suggested above, note that the results actually stored as TEXT preserve their case and T/U letters, unlike decoded BLOBs.</p>
 <p><em>Length:</em></p>
-<div class="tabbed-set" data-tabs="13:1"><input checked="checked" id="__tabbed_13_1" name="__tabbed_13" type="radio" /><label for="__tabbed_13_1">SQL</label><div class="tabbed-content">
+<div class="tabbed-set" data-tabs="14:1"><input checked="checked" id="__tabbed_14_1" name="__tabbed_14" type="radio" /><label for="__tabbed_14_1">SQL</label><div class="tabbed-content">
 <div class="highlight"><pre><span></span><code><span class="k">SELECT</span> <span class="n">twobit_length</span><span class="p">(</span><span class="n">dna_twobit</span><span class="p">(</span><span class="s1">&#39;TCAG&#39;</span><span class="p">))</span>
 </code></pre></div>
 
@@ -1677,35 +1699,36 @@ Note 1. Make sure <a href="https://www.sqlite.org/tempfiles.html">SQLite is conf
 </div>
 <p>Given a two-bit-encoded BLOB value, return the length of the <em>decoded</em> sequence (without actually decoding it). This is <em>not</em> equal to <code>4*length(BLOB)</code> due to padding.</p>
 <p>Given a TEXT value, return its byte length. Given NULL, return NULL. Any other input is an error.</p>
-<h4 id="json-functions">JSON functions</h4>
-<p>The Genomics Extension bundles the SQLite developers' <a href="https://www.sqlite.org/json1.html">JSON1 extension</a> and enables it automatically. By convention, JSON object columns should be named <em>_json and JSON array columns should be named </em>_jsarray. The JSON1 functions can be used with <a href="https://sqlite.org/gencol.html">generated columns</a> to effectively allow indexing of JSON-embedded fields.</p>
+<h4 id="json1-and-uint-extensions">JSON1 and UINT extensions</h4>
+<p>The Genomics Extension bundles the SQLite developers' <a href="https://www.sqlite.org/json1.html">JSON1 extension</a> and enables it automatically. By convention, JSON object columns should be named *_json and JSON array columns should be named *_jsarray. The JSON1 functions can be used with <a href="https://sqlite.org/gencol.html">generated columns</a> to effectively allow indexing of JSON-embedded fields.</p>
+<p>The <a href="https://www.sqlite.org/uintcseq.html">UINT collating sequence</a> is also bundled. This can be useful to make e.g. <code>ORDER BY chromosome COLLATE UINT</code> put 'chr2' before 'chr10'.</p>
 <h4 id="genomics-extension-version">Genomics Extension version</h4>
-<div class="tabbed-set" data-tabs="14:6"><input checked="checked" id="__tabbed_14_1" name="__tabbed_14" type="radio" /><label for="__tabbed_14_1">SQL</label><div class="tabbed-content">
+<div class="tabbed-set" data-tabs="15:6"><input checked="checked" id="__tabbed_15_1" name="__tabbed_15" type="radio" /><label for="__tabbed_15_1">SQL</label><div class="tabbed-content">
 <div class="highlight"><pre><span></span><code><span class="k">SELECT</span> <span class="n">genomicsqlite_version</span><span class="p">()</span>
 </code></pre></div>
 
 </div>
-<input id="__tabbed_14_2" name="__tabbed_14" type="radio" /><label for="__tabbed_14_2">Python</label><div class="tabbed-content">
+<input id="__tabbed_15_2" name="__tabbed_15" type="radio" /><label for="__tabbed_15_2">Python</label><div class="tabbed-content">
 <div class="highlight"><pre><span></span><code><span class="n">genomicsqlite</span><span class="o">.</span><span class="n">__version__</span>
 </code></pre></div>
 
 </div>
-<input id="__tabbed_14_3" name="__tabbed_14" type="radio" /><label for="__tabbed_14_3">Java</label><div class="tabbed-content">
+<input id="__tabbed_15_3" name="__tabbed_15" type="radio" /><label for="__tabbed_15_3">Java</label><div class="tabbed-content">
 <div class="highlight"><pre><span></span><code><span class="n">String</span> <span class="n">genomicsqliteVersion</span> <span class="o">=</span> <span class="n">GenomicSQLite</span><span class="p">.</span><span class="na">version</span><span class="p">(</span><span class="n">dbconn</span><span class="p">);</span>
 </code></pre></div>
 
 </div>
-<input id="__tabbed_14_4" name="__tabbed_14" type="radio" /><label for="__tabbed_14_4">Rust</label><div class="tabbed-content">
+<input id="__tabbed_15_4" name="__tabbed_15" type="radio" /><label for="__tabbed_15_4">Rust</label><div class="tabbed-content">
 <div class="highlight"><pre><span></span><code><span class="kd">let</span><span class="w"> </span><span class="n">v</span>: <span class="nb">String</span> <span class="o">=</span><span class="w"> </span><span class="n">dbconn</span><span class="p">.</span><span class="n">genomicsqlite_version</span><span class="p">();</span><span class="w"></span>
 </code></pre></div>
 
 </div>
-<input id="__tabbed_14_5" name="__tabbed_14" type="radio" /><label for="__tabbed_14_5">C++</label><div class="tabbed-content">
+<input id="__tabbed_15_5" name="__tabbed_15" type="radio" /><label for="__tabbed_15_5">C++</label><div class="tabbed-content">
 <div class="highlight"><pre><span></span><code><span class="n">std</span><span class="o">::</span><span class="n">string</span> <span class="n">GenomicSQLiteVersion</span><span class="p">();</span>
 </code></pre></div>
 
 </div>
-<input id="__tabbed_14_6" name="__tabbed_14" type="radio" /><label for="__tabbed_14_6">C</label><div class="tabbed-content">
+<input id="__tabbed_15_6" name="__tabbed_15" type="radio" /><label for="__tabbed_15_6">C</label><div class="tabbed-content">
 <div class="highlight"><pre><span></span><code><span class="kt">char</span><span class="o">*</span> <span class="nf">genomicsqlite_version</span><span class="p">();</span>
 <span class="cm">/* result to be sqlite3_free() */</span>
 </code></pre></div>
