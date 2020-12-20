@@ -47,3 +47,4 @@ WORKDIR /work/GenomicSQLite
 RUN rm -rf build && cmake -DCMAKE_BUILD_TYPE=Release -DZSTD_WHOLE_ARCHIVE=true -B build . && cmake --build build --target genomicsqlite -j $(nproc)
 RUN ldd -v -r build/libgenomicsqlite.so
 RUN sqlite3 -cmd '.load build/libgenomicsqlite.so' :memory: 'select genomicsqlite_version()'
+RUN sha256sum build/libgenomicsqlite.so

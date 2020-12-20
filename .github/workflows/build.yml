@@ -80,6 +80,8 @@ jobs:
         docker run genomicsqlite ldd -v -r build/libgenomicsqlite.so
         echo "----"
         ldd -v -r build/libgenomicsqlite.so
+        echo "----"
+        sha256sum build/libgenomicsqlite.so
     - name: rust toolchain
       uses: actions-rs/toolchain@v1
       with:
@@ -134,7 +136,9 @@ jobs:
               -B build .
         cmake --build build -j 4
     - name: otool
-      run: otool -L build/libgenomicsqlite.dylib
+      run: |
+        otool -L build/libgenomicsqlite.dylib
+        sha256sum build/libgenomicsqlite.dylib
     - name: ctest
       run: |
         cd build
@@ -182,6 +186,9 @@ jobs:
       run: |
         cp libgenomicsqlite.so libgenomicsqlite.dylib bindings/jdbc/genomicsqlite-jdbc/src/main/resources/
         mvn deploy -Drevision=${{ env.GIT_REVISION }} -B -f bindings/jdbc/genomicsqlite-jdbc/pom.xml
+        sha256sum *genomicsqlite* bindings/jdbc/genomicsqlite-jdbc/target/genomicsqlite*.jar
+    - name: digests
+      run: sha256sum bindings/jdbc/genomicsqlite-jdbc/target/genomicsqlite*.jar
     - uses: actions/upload-artifact@v2
       with:
         name: genomicsqlite-jdbc-${{ env.GIT_REVISION }}
