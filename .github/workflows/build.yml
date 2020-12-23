@@ -3,7 +3,7 @@ on: [push, pull_request]
 
 env:
   APT_DEPS: libzstd-dev samtools tabix libhts-dev pigz python3-pip
-  BREW_DEPS: python@3.8 sqlite zstd samtools pigz
+  BREW_DEPS: python@3.8 sqlite zstd samtools pigz coreutils
   PIP_DEPS: pytest pytest-xdist
 
 jobs:
@@ -110,6 +110,7 @@ jobs:
         fetch-depth: 0
     - name: dependencies
       run: |
+        rm -f /usr/local/bin/2to3  # https://github.com/pypa/pipenv/issues/3831
         brew update
         brew upgrade
         brew install $BREW_DEPS
@@ -186,9 +187,8 @@ jobs:
       run: |
         cp libgenomicsqlite.so libgenomicsqlite.dylib bindings/jdbc/genomicsqlite-jdbc/src/main/resources/
         mvn deploy -Drevision=${{ env.GIT_REVISION }} -B -f bindings/jdbc/genomicsqlite-jdbc/pom.xml
-        sha256sum *genomicsqlite* bindings/jdbc/genomicsqlite-jdbc/target/genomicsqlite*.jar
     - name: digests
-      run: sha256sum bindings/jdbc/genomicsqlite-jdbc/target/genomicsqlite*.jar
+      run: sha256sum *genomicsqlite* bindings/jdbc/genomicsqlite-jdbc/target/genomicsqlite*.jar
     - uses: actions/upload-artifact@v2
       with:
         name: genomicsqlite-jdbc-${{ env.GIT_REVISION }}
