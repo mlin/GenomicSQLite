@@ -1043,9 +1043,9 @@ These SQL functions process a text value like `'chr1:2,345-6,789'` into its thre
 
 === "SQL"
     ``` sql
-    SELECT parse_genomic_range_sequence('chr1:2,345-6,789', 1)  -- 'chr1'
-    SELECT parse_genomic_range_begin('chr1:2,345-6,789', 2)     -- 2344 (!)
-    SELECT parse_genomic_range_end('chr1:2,345-6,789', 3)       -- 6789
+    SELECT parse_genomic_range_sequence('chr1:2,345-6,789')  -- 'chr1'
+    SELECT parse_genomic_range_begin('chr1:2,345-6,789')     -- 2344 (!)
+    SELECT parse_genomic_range_end('chr1:2,345-6,789')       -- 6789
     ```
 
 ❗ Since such text ranges are conventionally one-based and closed, `parse_genomic_range_begin()` effectively converts them to zero-based and half-open by [returning one less than the text begin position](https://genome.ucsc.edu/FAQ/FAQtracks#tracks1).
