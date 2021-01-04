@@ -1652,9 +1652,9 @@ Note 1. Make sure <a href="https://www.sqlite.org/tempfiles.html">SQLite is conf
 <h4 id="parse-genomic-range-text">Parse genomic range text</h4>
 <p>These SQL functions process a text value like <code>'chr1:2,345-6,789'</code> into its three parts (sequence/chromosome name, begin position, and end position).</p>
 <div class="tabbed-set" data-tabs="11:1"><input checked="checked" id="__tabbed_11_1" name="__tabbed_11" type="radio" /><label for="__tabbed_11_1">SQL</label><div class="tabbed-content">
-<div class="highlight"><pre><span></span><code><span class="k">SELECT</span> <span class="n">parse_genomic_range_sequence</span><span class="p">(</span><span class="s1">&#39;chr1:2,345-6,789&#39;</span><span class="p">,</span> <span class="mi">1</span><span class="p">)</span>  <span class="c1">-- &#39;chr1&#39;</span>
-<span class="k">SELECT</span> <span class="n">parse_genomic_range_begin</span><span class="p">(</span><span class="s1">&#39;chr1:2,345-6,789&#39;</span><span class="p">,</span> <span class="mi">2</span><span class="p">)</span>     <span class="c1">-- 2344 (!)</span>
-<span class="k">SELECT</span> <span class="n">parse_genomic_range_end</span><span class="p">(</span><span class="s1">&#39;chr1:2,345-6,789&#39;</span><span class="p">,</span> <span class="mi">3</span><span class="p">)</span>       <span class="c1">-- 6789</span>
+<div class="highlight"><pre><span></span><code><span class="k">SELECT</span> <span class="n">parse_genomic_range_sequence</span><span class="p">(</span><span class="s1">&#39;chr1:2,345-6,789&#39;</span><span class="p">)</span>  <span class="c1">-- &#39;chr1&#39;</span>
+<span class="k">SELECT</span> <span class="n">parse_genomic_range_begin</span><span class="p">(</span><span class="s1">&#39;chr1:2,345-6,789&#39;</span><span class="p">)</span>     <span class="c1">-- 2344 (!)</span>
+<span class="k">SELECT</span> <span class="n">parse_genomic_range_end</span><span class="p">(</span><span class="s1">&#39;chr1:2,345-6,789&#39;</span><span class="p">)</span>       <span class="c1">-- 6789</span>
 </code></pre></div>
 
 </div>
