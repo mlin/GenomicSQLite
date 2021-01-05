@@ -5,6 +5,7 @@ env:
   APT_DEPS: libzstd-dev samtools tabix libhts-dev pigz python3-pip
   BREW_DEPS: python@3.8 sqlite zstd samtools pigz coreutils
   PIP_DEPS: pytest pytest-xdist
+  SQLITE_VERSION: 3340000
 
 jobs:
 
@@ -59,7 +60,7 @@ jobs:
     - name: test
       run: env -C build ctest -V
 
-  linux-so:
+  linux-x86-64-so:
     runs-on: ubuntu-20.04
     steps:
     - uses: actions/checkout@v2
@@ -70,18 +71,25 @@ jobs:
         sudo apt-get -qq update
         sudo apt-get install -y $APT_DEPS
         sudo pip3 install --system $PIP_DEPS
-        cmake -DCMAKE_BUILD_TYPE=Release -B build . && cmake --build build -j $(nproc)
+        cmake -DCMAKE_BUILD_TYPE=Release -DCMAKE_CXX_FLAGS='-D_GLIBCXX_USE_CXX11_ABI=0' -B build . && cmake --build build -j $(nproc)
         rm build/libgenomicsqlite.so
         sudo apt-get remove -y libzstd-dev  # should be linked into libgenomicsqlite.so
     - name: build portable .so in docker
-      run: docker build -t genomicsqlite . && docker run -v $(pwd):/mnt --rm genomicsqlite cp build/libgenomicsqlite.so /mnt/build/
-    - name: ldd
+      run: docker build --build-arg "SQLITE_VERSION=${SQLITE_VERSION}" -t genomicsqlite . && docker run -v $(pwd):/mnt --rm genomicsqlite cp /usr/local/lib/{libgenomicsqlite.so,libsqlite3.so.0} /mnt/build/
+    - name: symbols & digests
       run: |
-        docker run genomicsqlite ldd -v -r build/libgenomicsqlite.so
+        readelf -d build/libgenomicsqlite.so
+        ldd -r build/libgenomicsqlite.so
         echo "----"
-        ldd -v -r build/libgenomicsqlite.so
+        echo "libgenomicsqlite.so GLIBC version requirements:"
+        objdump -t build/libgenomicsqlite.so | grep -o 'GLIBC_.*' | sort -Vr | head -n1
+        objdump -t build/libgenomicsqlite.so | grep -o 'GLIBCXX_.*' | sort -Vr | head -n1
+        echo "libsqlite3.so.0 GLIBC version requirements:"
+        objdump -t build/libsqlite3.so.0 | grep -o 'GLIBC_.*' | sort -Vr | head -n1
         echo "----"
-        sha256sum build/libgenomicsqlite.so
+        sha256sum build/libgenomicsqlite.so build/libsqlite3.so.0
+        sudo cp build/libsqlite3.so.0 /usr/local/lib
+        sudo ldconfig
     - name: rust toolchain
       uses: actions-rs/toolchain@v1
       with:
@@ -96,13 +104,17 @@ jobs:
         bindings/rust/cargo test --release
         bindings/rust/cargo package --list | grep libgenomicsqlite.so
     - name: prepare artifacts
-      run: cp build/libgenomicsqlite.so include/genomicsqlite.h .
+      run: cp build/{libgenomicsqlite.so,libsqlite3.so.0} .
     - uses: actions/upload-artifact@v2
       with:
         name: libgenomicsqlite.so
         path: libgenomicsqlite.so
+    - uses: actions/upload-artifact@v2
+      with:
+        name: libsqlite3.so.0
+        path: libsqlite3.so.0
 
-  macOS-dylib:
+  macOS-x86-64-dylib:
     runs-on: macOS-10.15
     steps:
     - uses: actions/checkout@v2
@@ -111,9 +123,10 @@ jobs:
     - name: dependencies
       run: |
         rm -f /usr/local/bin/2to3  # https://github.com/pypa/pipenv/issues/3831
-        brew update
-        brew upgrade
-        brew install $BREW_DEPS
+        brew update || (sleep 2; brew update)
+        for dep in $BREW_DEPS ; do
+          brew install $dep || brew upgrade $dep
+        done
         /usr/local/bin/pip3 install $PIP_DEPS
     - name: rust toolchain
       uses: actions-rs/toolchain@v1
@@ -136,7 +149,7 @@ jobs:
               -DCMAKE_PREFIX_PATH=$(brew --prefix)/opt/sqlite \
               -B build .
         cmake --build build -j 4
-    - name: otool
+    - name: symbols & digests
       run: |
         otool -L build/libgenomicsqlite.dylib
         sha256sum build/libgenomicsqlite.dylib
@@ -160,13 +173,17 @@ jobs:
 
   artifacts:
     runs-on: ubuntu-20.04
-    needs: [linux-so, macOS-dylib]
+    needs: [linux-x86-64-so, macOS-x86-64-dylib]
     steps:
     - uses: actions/checkout@v2
     - name: fetch libgenomicsqlite.so
       uses: actions/download-artifact@v2
       with:
         name: libgenomicsqlite.so
+    - name: fetch libsqlite3.so.0
+      uses: actions/download-artifact@v2
+      with:
+        name: libsqlite3.so.0
     - name: fetch libgenomicsqlite.dylib
       uses: actions/download-artifact@v2
       with:
@@ -188,7 +205,7 @@ jobs:
         cp libgenomicsqlite.so libgenomicsqlite.dylib bindings/jdbc/genomicsqlite-jdbc/src/main/resources/
         mvn deploy -Drevision=${{ env.GIT_REVISION }} -B -f bindings/jdbc/genomicsqlite-jdbc/pom.xml
     - name: digests
-      run: sha256sum *genomicsqlite* bindings/jdbc/genomicsqlite-jdbc/target/genomicsqlite*.jar
+      run: sha256sum *genomicsqlite* bindings/jdbc/genomicsqlite-jdbc/target/genomicsqlite*.jar libsqlite3.so.0
     - uses: actions/upload-artifact@v2
       with:
         name: genomicsqlite-jdbc-${{ env.GIT_REVISION }}

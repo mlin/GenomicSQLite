@@ -42,6 +42,13 @@ The Genomics Extension integrates with your programming language's existing SQLi
     Link the program to `sqlite3` and `genomicsqlite` libraries; optionally,
     [SQLiteCpp](https://github.com/SRombauts/SQLiteCpp).
 
+    GNU/Linux: to link the prebuilt `libgenomicsqlite.so` distributed from our GitHub Releases, you
+    may have to compile your source with `CXXFLAGS=-D_GLIBCXX_USE_CXX11_ABI=0`. This is because the
+    library is built against an old libstdc++ version to improve runtime compatibility. The
+    function of this flag is explained in the libstdc++ docs on
+    [Dual ABI](https://gcc.gnu.org/onlinedocs/libstdc++/manual/using_dual_abi.html). If you build
+    `libgenomicsqlite.so` from source, then the flag will not be needed.
+
     General note: GenomicSQLite C++ routines are liable to throw exceptions.
 
 === "C"
