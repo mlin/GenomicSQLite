@@ -70,7 +70,7 @@ jobs:
         sudo apt-get -qq update
         sudo apt-get install -y $APT_DEPS
         sudo pip3 install --system $PIP_DEPS
-        cmake -DCMAKE_BUILD_TYPE=Release -B build . && cmake --build build -j $(nproc)
+        cmake -DCMAKE_BUILD_TYPE=Release -DCMAKE_CXX_FLAGS=--with-default-libstdcxx-abi=0 -B build . && cmake --build build -j $(nproc)
         rm build/libgenomicsqlite.so
         sudo apt-get remove -y libzstd-dev  # should be linked into libgenomicsqlite.so
     - name: build portable .so in docker

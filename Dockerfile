@@ -31,8 +31,8 @@ ENV SQLITE_CFLAGS="\
         -DSQLITE_ENABLE_SESSION \
 "
 
-RUN yum install -y wget unzip rsync git centos-release-scl
-RUN yum install -y devtoolset-8-gcc devtoolset-8-gcc-c++ devtoolset-8-make
+RUN yum install -y -q wget unzip rsync git centos-release-scl
+RUN yum install -y -q devtoolset-8-gcc devtoolset-8-gcc-c++ devtoolset-8-make
 
 RUN mkdir -p /work/GenomicSQLite
 
@@ -101,7 +101,7 @@ RUN ./genomicsqlite_capi_smoke_test
         # ^ we didn't need LD_LIBRARY_PATH even though the .so's aren't at their linktime locations
 
 ###################################################################################################
-# Ditto in ubuntu 16.04...
+# Run-up in ubuntu 16.04
 
 FROM ubuntu:16.04
 
