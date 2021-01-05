@@ -100,6 +100,23 @@ RUN mv lib/{libgenomicsqlite.so,libsqlite3.so.0} . && rm -rf lib
 RUN ./genomicsqlite_capi_smoke_test
         # ^ we didn't need LD_LIBRARY_PATH even though the .so's aren't at their linktime locations
 
+# test rust bindings too
+FROM centos:7
+
+RUN yum install -y -q gcc git
+ADD https://sh.rustup.rs /usr/local/bin/rustup-init.sh
+RUN chmod +x /usr/local/bin/rustup-init.sh && rustup-init.sh -y
+ENV PATH=${PATH}:/root/.cargo/bin
+
+RUN mkdir -p /work/lib
+WORKDIR /work
+COPY --from=builder /usr/local/lib/libsqlite3.so.0 ./lib/
+RUN ln -s libsqlite3.so.0 lib/libsqlite3.so
+ADD ./.git ./.git
+ADD ./bindings/rust ./rust
+COPY --from=builder /work/GenomicSQLite/build/libgenomicsqlite.so ./rust/
+RUN LD_LIBRARY_PATH=$(pwd)/lib LIBRARY_PATH=$(pwd)/lib rust/cargo test --release
+
 ###################################################################################################
 # Run-up in ubuntu 16.04
 

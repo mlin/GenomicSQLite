@@ -75,7 +75,7 @@ jobs:
         sudo apt-get remove -y libzstd-dev  # should be linked into libgenomicsqlite.so
     - name: build portable .so in docker
       run: docker build -t genomicsqlite . && docker run -v $(pwd):/mnt --rm genomicsqlite cp /usr/local/lib/{libgenomicsqlite.so,libsqlite3.so.0} /mnt/build/
-    - name: ldd
+    - name: symbols & digests
       run: |
         readelf -d build/libgenomicsqlite.so
         ldd -v -r build/libgenomicsqlite.so
@@ -114,7 +114,6 @@ jobs:
       run: |
         rm -f /usr/local/bin/2to3  # https://github.com/pypa/pipenv/issues/3831
         brew update
-        brew upgrade
         brew install $BREW_DEPS
         /usr/local/bin/pip3 install $PIP_DEPS
     - name: rust toolchain
@@ -138,7 +137,7 @@ jobs:
               -DCMAKE_PREFIX_PATH=$(brew --prefix)/opt/sqlite \
               -B build .
         cmake --build build -j 4
-    - name: otool
+    - name: symbols & digests
       run: |
         otool -L build/libgenomicsqlite.dylib
         sha256sum build/libgenomicsqlite.dylib
