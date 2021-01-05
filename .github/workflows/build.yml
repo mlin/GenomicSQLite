@@ -74,14 +74,12 @@ jobs:
         rm build/libgenomicsqlite.so
         sudo apt-get remove -y libzstd-dev  # should be linked into libgenomicsqlite.so
     - name: build portable .so in docker
-      run: docker build -t genomicsqlite . && docker run -v $(pwd):/mnt --rm genomicsqlite cp build/libgenomicsqlite.so /mnt/build/
+      run: docker build -t genomicsqlite . && docker run -v $(pwd):/mnt --rm genomicsqlite cp /usr/local/lib/{libgenomicsqlite.so,libsqlite3.so.0} /mnt/build/
     - name: ldd
       run: |
-        docker run genomicsqlite ldd -v -r build/libgenomicsqlite.so
-        echo "----"
+        readelf -d build/libgenomicsqlite.so
         ldd -v -r build/libgenomicsqlite.so
-        echo "----"
-        sha256sum build/libgenomicsqlite.so
+        sha256sum build/libgenomicsqlite.so build/libsqlite3.so.0
     - name: rust toolchain
       uses: actions-rs/toolchain@v1
       with:
@@ -96,11 +94,15 @@ jobs:
         bindings/rust/cargo test --release
         bindings/rust/cargo package --list | grep libgenomicsqlite.so
     - name: prepare artifacts
-      run: cp build/libgenomicsqlite.so include/genomicsqlite.h .
+      run: cp build/{libgenomicsqlite.so,libsqlite3.so.0} .
     - uses: actions/upload-artifact@v2
       with:
         name: libgenomicsqlite.so
         path: libgenomicsqlite.so
+    - uses: actions/upload-artifact@v2
+      with:
+        name: libsqlite3.so.0
+        path: libsqlite3.so.0
 
   macOS-dylib:
     runs-on: macOS-10.15
@@ -167,6 +169,10 @@ jobs:
       uses: actions/download-artifact@v2
       with:
         name: libgenomicsqlite.so
+    - name: fetch libsqlite3.so.0
+      uses: actions/download-artifact@v2
+      with:
+        name: libsqlite3.so.0
     - name: fetch libgenomicsqlite.dylib
       uses: actions/download-artifact@v2
       with:
@@ -183,6 +189,7 @@ jobs:
           genomicsqlite.h
           libgenomicsqlite.so
           libgenomicsqlite.dylib
+          libsqlite3.so.0
     - name: build jar
       run: |
         cp libgenomicsqlite.so libgenomicsqlite.dylib bindings/jdbc/genomicsqlite-jdbc/src/main/resources/
