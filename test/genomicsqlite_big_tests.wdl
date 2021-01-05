@@ -1,4 +1,4 @@
-version 1.0
+version development
 # Tests GenomicSQLite loaders, queries, & misc ops on some full-size datasets
 
 workflow genomicsqlite_big_tests {
@@ -40,14 +40,6 @@ task build {
     command <<<
         set -euxo pipefail
 
-        apt-get -qq update
-        DEBIAN_FRONTEND=noninteractive apt-get -qq install -y \
-            zip pigz wget build-essential git-core sqlite3 \
-            cmake libsqlite3-dev libzstd-dev \
-            python3-pip maven cargo \
-            libhts-dev samtools tabix
-        pip3 install pytest pytest-xdist
-
         # build libgenomicsqlite.so and loader executables
         git clone --recursive https://github.com/mlin/GenomicSQLite.git
         cd GenomicSQLite
@@ -70,9 +62,19 @@ task build {
         File vcf_into_sqlite = "GenomicSQLite/build/loaders/vcf_into_sqlite"
     }
 
+    Array[String] apt_deps = [
+        "zip", "pigz", "wget", "build-essential", "git-core", "sqlite3", "cmake", "libsqlite3-dev",
+        "libzstd-dev", "python3-pip", "maven", "cargo", "libhts-dev", "samtools", "tabix"
+    ]
+    Array[String] pip_deps = ["pytest", "pytest-xdist"]
+
     runtime {
-        docker: "ubuntu:20.04"
         cpu: 8
+        inlineDockerfile: [
+            "FROM ubuntu:20.04",
+            "RUN apt-get -qq update && DEBIAN_FRONTEND=noninteractive apt-get install -qq -y ~{sep(' ', apt_deps)}",
+            "pip3 install ~{sep(' ', pip_deps)}"
+        ]
     }
 }
 
@@ -91,12 +93,11 @@ task test_sam {
     command <<<
         set -euxo pipefail
         TMPDIR=${TMPDIR:-/tmp}
-        apt-get -qq update
-        DEBIAN_FRONTEND=noninteractive apt-get -qq install -y sqlite3 samtools tabix libzstd1 pigz wget
 
         cp ~{genomicsqlite_py} /usr/lib/python3.8/genomicsqlite.py
         cp ~{libgenomicsqlite_so} /usr/local/lib/libgenomicsqlite.so
-        ldconfig 
+        ldconfig
+        sha256sum /usr/local/lib/libgenomicsqlite.so
 
         cp ~{sam_into_sqlite} /usr/local/bin/sam_into_sqlite
         chmod +x /usr/local/bin/sam_into_sqlite
@@ -145,9 +146,14 @@ task test_sam {
         Int reads_original_size = round(size(reads))
     }
 
+    Array[String] apt_deps = ["sqlite3", "samtools", "tabix", "libzstd1", "pigz", "wget"]
+
     runtime {
-        docker: "ubuntu:20.04"
         cpu: 8
+        inlineDockerfile: [
+            "FROM ubuntu:20.04",
+            "RUN apt-get -qq update && DEBIAN_FRONTEND=noninteractive apt-get install -qq -y ~{sep(' ', apt_deps)}"
+        ]
     }
 }
 
@@ -164,12 +170,11 @@ task test_vcf {
 
     command <<<
         set -euxo pipefail
-        apt-get -qq update
-        DEBIAN_FRONTEND=noninteractive apt-get -qq install -y sqlite3 samtools tabix libzstd1
 
         cp ~{genomicsqlite_py} /usr/lib/python3.8/genomicsqlite.py
         cp ~{libgenomicsqlite_so} /usr/local/lib/libgenomicsqlite.so
-        ldconfig 
+        ldconfig
+        sha256sum /usr/local/lib/libgenomicsqlite.so
 
         cp ~{vcf_into_sqlite} /usr/local/bin/vcf_into_sqlite
         chmod +x /usr/local/bin/vcf_into_sqlite
@@ -201,8 +206,13 @@ task test_vcf {
         Int variants_original_size = round(size(variants))
     }
 
+    Array[String] apt_deps = ["sqlite3", "samtools", "tabix", "libzstd1", "pigz", "wget"]
+
     runtime {
-        docker: "ubuntu:20.04"
         cpu: 8
+        inlineDockerfile: [
+            "FROM ubuntu:20.04",
+            "RUN apt-get -qq update && DEBIAN_FRONTEND=noninteractive apt-get install -qq -y ~{sep(' ', apt_deps)}"
+        ]
     }
 }
