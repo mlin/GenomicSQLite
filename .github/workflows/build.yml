@@ -3,7 +3,7 @@ on: [push, pull_request]
 
 env:
   APT_DEPS: libzstd-dev samtools tabix libhts-dev pigz python3-pip
-  BREW_DEPS: sqlite zstd samtools pigz coreutils
+  BREW_DEPS: python@3.8 sqlite zstd samtools pigz coreutils
   PIP_DEPS: pytest pytest-xdist
 
 jobs:
@@ -114,7 +114,9 @@ jobs:
       run: |
         rm -f /usr/local/bin/2to3  # https://github.com/pypa/pipenv/issues/3831
         brew update
-        brew install $BREW_DEPS
+        for dep in $BREW_DEPS ; do
+          brew install $dep || brew upgrade $dep
+        done
         /usr/local/bin/pip3 install $PIP_DEPS
     - name: rust toolchain
       uses: actions-rs/toolchain@v1
