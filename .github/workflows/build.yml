@@ -75,7 +75,7 @@ jobs:
         rm build/libgenomicsqlite.so
         sudo apt-get remove -y libzstd-dev  # should be linked into libgenomicsqlite.so
     - name: build portable .so in docker
-      run: docker build --build-arg "SQLITE_VERSION=${SQLITE_VERSION}"" -t genomicsqlite . && docker run -v $(pwd):/mnt --rm genomicsqlite cp /usr/local/lib/{libgenomicsqlite.so,libsqlite3.so.0} /mnt/build/
+      run: docker build --build-arg "SQLITE_VERSION=${SQLITE_VERSION}" -t genomicsqlite . && docker run -v $(pwd):/mnt --rm genomicsqlite cp /usr/local/lib/{libgenomicsqlite.so,libsqlite3.so.0} /mnt/build/
     - name: symbols & digests
       run: |
         readelf -d build/libgenomicsqlite.so
