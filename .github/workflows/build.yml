@@ -5,6 +5,7 @@ env:
   APT_DEPS: libzstd-dev samtools tabix libhts-dev pigz python3-pip
   BREW_DEPS: python@3.8 sqlite zstd samtools pigz coreutils
   PIP_DEPS: pytest pytest-xdist
+  SQLITE_VERSION: 3310000
 
 jobs:
 
@@ -59,7 +60,7 @@ jobs:
     - name: test
       run: env -C build ctest -V
 
-  linux-so:
+  linux-amd64-so:
     runs-on: ubuntu-20.04
     steps:
     - uses: actions/checkout@v2
@@ -74,7 +75,7 @@ jobs:
         rm build/libgenomicsqlite.so
         sudo apt-get remove -y libzstd-dev  # should be linked into libgenomicsqlite.so
     - name: build portable .so in docker
-      run: docker build -t genomicsqlite . && docker run -v $(pwd):/mnt --rm genomicsqlite cp /usr/local/lib/{libgenomicsqlite.so,libsqlite3.so.0} /mnt/build/
+      run: docker build --build-arg "SQLITE_VERSION=${SQLITE_VERSION}"" -t genomicsqlite . && docker run -v $(pwd):/mnt --rm genomicsqlite cp /usr/local/lib/{libgenomicsqlite.so,libsqlite3.so.0} /mnt/build/
     - name: symbols & digests
       run: |
         readelf -d build/libgenomicsqlite.so
@@ -197,7 +198,10 @@ jobs:
           genomicsqlite.h
           libgenomicsqlite.so
           libgenomicsqlite.dylib
-          libsqlite3.so.0
+    - uses: actions/upload-artifact@v2
+      with:
+        name: sqlite-${{ env. SQLITE_VERSION }}-linux-amd64-so
+        path: libsqlite3.so.0
     - name: build jar
       run: |
         cp libgenomicsqlite.so libgenomicsqlite.dylib bindings/jdbc/genomicsqlite-jdbc/src/main/resources/
