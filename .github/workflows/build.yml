@@ -60,7 +60,7 @@ jobs:
     - name: test
       run: env -C build ctest -V
 
-  linux-amd64-so:
+  linux-x86-64-so:
     runs-on: ubuntu-20.04
     steps:
     - uses: actions/checkout@v2
@@ -112,7 +112,7 @@ jobs:
         name: libsqlite3.so.0
         path: libsqlite3.so.0
 
-  macOS-dylib:
+  macOS-x86-64-dylib:
     runs-on: macOS-10.15
     steps:
     - uses: actions/checkout@v2
@@ -171,7 +171,7 @@ jobs:
 
   artifacts:
     runs-on: ubuntu-20.04
-    needs: [linux-so, macOS-dylib]
+    needs: [linux-x86-64-so, macOS-x86-64-dylib]
     steps:
     - uses: actions/checkout@v2
     - name: fetch libgenomicsqlite.so
@@ -200,7 +200,7 @@ jobs:
           libgenomicsqlite.dylib
     - uses: actions/upload-artifact@v2
       with:
-        name: sqlite-${{ env. SQLITE_VERSION }}-linux-amd64-so
+        name: sqlite-${{ env. SQLITE_VERSION }}-linux-x86-64-so
         path: libsqlite3.so.0
     - name: build jar
       run: |
