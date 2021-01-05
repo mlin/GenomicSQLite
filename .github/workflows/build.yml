@@ -200,10 +200,6 @@ jobs:
           genomicsqlite.h
           libgenomicsqlite.so
           libgenomicsqlite.dylib
-    - uses: actions/upload-artifact@v2
-      with:
-        name: sqlite-${{ env. SQLITE_VERSION }}-linux-x86-64-so
-        path: libsqlite3.so.0
     - name: build jar
       run: |
         cp libgenomicsqlite.so libgenomicsqlite.dylib bindings/jdbc/genomicsqlite-jdbc/src/main/resources/
