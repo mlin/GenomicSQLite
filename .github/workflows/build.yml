@@ -113,7 +113,7 @@ jobs:
     - name: dependencies
       run: |
         rm -f /usr/local/bin/2to3  # https://github.com/pypa/pipenv/issues/3831
-        brew update
+        brew update || (sleep 2; brew update)
         for dep in $BREW_DEPS ; do
           brew install $dep || brew upgrade $dep
         done
