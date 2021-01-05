@@ -52,7 +52,7 @@ task build {
         git clone --recursive https://github.com/mlin/GenomicSQLite.git
         cd GenomicSQLite
         git checkout ~{git_revision}
-        cmake -DCMAKE_BUILD_TYPE=Release -B build .
+        cmake -DCMAKE_BUILD_TYPE=Release -DCMAKE_CXX_FLAGS='-D_GLIBCXX_USE_CXX11_ABI=0' -B build .
         cmake --build build -j 8
         cp bindings/python/genomicsqlite/__init__.py genomicsqlite.py
 
