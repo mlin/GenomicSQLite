@@ -5,7 +5,7 @@ env:
   APT_DEPS: libzstd-dev samtools tabix libhts-dev pigz python3-pip
   BREW_DEPS: python@3.8 sqlite zstd samtools pigz coreutils
   PIP_DEPS: pytest pytest-xdist
-  SQLITE_VERSION: 3310000
+  SQLITE_VERSION: 3340000
 
 jobs:
 
