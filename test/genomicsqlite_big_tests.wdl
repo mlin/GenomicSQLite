@@ -97,7 +97,7 @@ task test_sam {
         cp ~{genomicsqlite_py} /usr/lib/python3.8/genomicsqlite.py
         cp ~{libgenomicsqlite_so} /usr/local/lib/libgenomicsqlite.so
         ldconfig
-        sha256sum /usr/local/lib/libgenomicsqlite.so
+        >&2 sha256sum /usr/local/lib/libgenomicsqlite.so
 
         cp ~{sam_into_sqlite} /usr/local/bin/sam_into_sqlite
         chmod +x /usr/local/bin/sam_into_sqlite
@@ -174,7 +174,7 @@ task test_vcf {
         cp ~{genomicsqlite_py} /usr/lib/python3.8/genomicsqlite.py
         cp ~{libgenomicsqlite_so} /usr/local/lib/libgenomicsqlite.so
         ldconfig
-        sha256sum /usr/local/lib/libgenomicsqlite.so
+        >&2 sha256sum /usr/local/lib/libgenomicsqlite.so
 
         cp ~{vcf_into_sqlite} /usr/local/bin/vcf_into_sqlite
         chmod +x /usr/local/bin/vcf_into_sqlite
