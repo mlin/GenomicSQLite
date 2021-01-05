@@ -81,10 +81,10 @@ jobs:
         readelf -d build/libgenomicsqlite.so
         ldd -r build/libgenomicsqlite.so
         echo "----"
-        echo -n "libgenomicsqlite.so GLIBC version requirements:"
+        echo "libgenomicsqlite.so GLIBC version requirements:"
         objdump -t build/libgenomicsqlite.so | grep -o 'GLIBC_.*' | sort -Vr | head -n1
         objdump -t build/libgenomicsqlite.so | grep -o 'GLIBCXX_.*' | sort -Vr | head -n1
-        echo -n "libsqlite3.so.0 GLIBC version requirements:"
+        echo "libsqlite3.so.0 GLIBC version requirements:"
         objdump -t build/libsqlite3.so.0 | grep -o 'GLIBC_.*' | sort -Vr | head -n1
         echo "----"
         sha256sum build/libgenomicsqlite.so build/libsqlite3.so.0
