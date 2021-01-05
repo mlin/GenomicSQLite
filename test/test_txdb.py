@@ -129,8 +129,8 @@ def test_txdbquery(genomicsqlite_txdb):
     # repeat with TVFs
     exon_cds_counts = """
         SELECT exon._rowid_ AS exon_id, COUNT(cds._rowid_) AS contained_cds
-        FROM genomic_range_index_levels("cds"), exon LEFT JOIN cds
-            ON cds._rowid_ IN genomic_range_rowids("cds", exon_chrom, exon_start, exon_end, _gri_ceiling, _gri_floor)
+        FROM genomic_range_index_levels('cds'), exon LEFT JOIN cds
+            ON cds._rowid_ IN genomic_range_rowids('cds', exon_chrom, exon_start, exon_end, _gri_ceiling, _gri_floor)
             AND (exon_start = cds_start AND exon_end >= cds_start OR exon_start <= cds_start AND exon_end = cds_end)
         GROUP BY exon._rowid_
         """
