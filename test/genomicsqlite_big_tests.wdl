@@ -73,7 +73,7 @@ task build {
         inlineDockerfile: [
             "FROM ubuntu:20.04",
             "RUN apt-get -qq update && DEBIAN_FRONTEND=noninteractive apt-get install -qq -y ~{sep(' ', apt_deps)}",
-            "pip3 install ~{sep(' ', pip_deps)}"
+            "RUN pip3 install ~{sep(' ', pip_deps)}"
         ]
     }
 }
