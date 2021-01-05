@@ -88,6 +88,8 @@ jobs:
         objdump -t build/libsqlite3.so.0 | grep -o 'GLIBC_.*' | sort -Vr | head -n1
         echo "----"
         sha256sum build/libgenomicsqlite.so build/libsqlite3.so.0
+        cp build/libsqlite3.so.0 /usr/local/lib
+        ldconfig
     - name: rust toolchain
       uses: actions-rs/toolchain@v1
       with:
