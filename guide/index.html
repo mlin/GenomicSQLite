@@ -732,6 +732,12 @@ for some extra details.</p>
 
 <p>Link the program to <code>sqlite3</code> and <code>genomicsqlite</code> libraries; optionally,
 <a href="https://github.com/SRombauts/SQLiteCpp">SQLiteCpp</a>.</p>
+<p>GNU/Linux: to link the prebuilt <code>libgenomicsqlite.so</code> distributed from our GitHub Releases, you
+may have to compile your source with <code>CXXFLAGS=-D_GLIBCXX_USE_CXX11_ABI=0</code>. This is because the
+library is built against an old libstdc++ version to improve runtime compatibility. The
+function of this flag is explained in the libstdc++ docs on
+<a href="https://gcc.gnu.org/onlinedocs/libstdc++/manual/using_dual_abi.html">Dual ABI</a>. If you build
+<code>libgenomicsqlite.so</code> from source, then the flag will not be needed.</p>
 <p>General note: GenomicSQLite C++ routines are liable to throw exceptions.</p>
 </div>
 <input id="__tabbed_1_5" name="__tabbed_1" type="radio" /><label for="__tabbed_1_5">C</label><div class="tabbed-content">
