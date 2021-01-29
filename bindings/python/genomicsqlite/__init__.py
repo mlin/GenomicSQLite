@@ -58,6 +58,8 @@ def connect(dbfile: str, read_only: bool = False, **kwargs) -> sqlite3.Connectio
         if config_key in kwargs:
             config[config_key] = kwargs[config_key]
             del kwargs[config_key]
+    if read_only:
+        config["mode"] = "ro"
     config_json = json.dumps(config)
 
     # formulate the URI connection string
@@ -66,8 +68,6 @@ def connect(dbfile: str, read_only: bool = False, **kwargs) -> sqlite3.Connectio
         "SELECT genomicsqlite_uri(?,?)",
         (dbfile, config_json),
     )
-    if read_only:
-        uri += "&mode=ro"
 
     # open the connection
     conn = sqlite3.connect(uri, uri=True, **kwargs)

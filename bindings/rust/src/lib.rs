@@ -110,9 +110,6 @@ static START: Once = Once::new();
 /// println!("GenomicSQLite {}", conn.unwrap().genomicsqlite_version());
 /// ```
 pub fn open<P: AsRef<Path>>(path: P, flags: OpenFlags, config: &Object) -> Result<Connection> {
-    // open :memory: connection for control ops
-    let memconn = Connection::open_in_memory().unwrap();
-
     // once: load libgenomicsqlite extension
     START.call_once(|| {
         let mut _tmpdir;
@@ -126,6 +123,7 @@ pub fn open<P: AsRef<Path>>(path: P, flags: OpenFlags, config: &Object) -> Resul
                 None => "libgenomicsqlite".to_string(),
             },
         };
+        let memconn = Connection::open_in_memory().unwrap();
         let _guard = LoadExtensionGuard::new(&memconn).unwrap();
         match memconn.load_extension(libgenomicsqlite.clone(), None) {
             Err(err) => panic!(
@@ -137,6 +135,7 @@ pub fn open<P: AsRef<Path>>(path: P, flags: OpenFlags, config: &Object) -> Resul
     });
 
     // generate config & connection strings
+    let memconn = Connection::open_in_memory().unwrap();
     let config_json_str = config.dump();
     let uri: String = query1str(
         &memconn,
@@ -472,5 +471,21 @@ mod tests {
         assert_eq!(chr3.name, "chr3");
         assert_eq!(chr3.rid, 3);
         assert_eq!(chr3.length, 198295559);
+    }
+
+    #[test]
+    fn web_test() {
+        let config = json::object::Object::new();
+        let conn = super::open(
+            "https://github.com/mlin/sqlite_zstd_vfs/releases/download/web-test-db-v1/TxDb.Hsapiens.UCSC.hg38.knownGene.vacuum.genomicsqlite",
+            OpenFlags::SQLITE_OPEN_READ_ONLY,
+            &config,
+        ).unwrap();
+        let ans: i64 = conn
+            .query_row("SELECT COUNT(1) FROM sqlite_master", NO_PARAMS, |row| {
+                row.get(0)
+            })
+            .unwrap();
+        assert_eq!(ans, 12);
     }
 }
