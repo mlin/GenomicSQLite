@@ -28,7 +28,7 @@ ENV SQLITE_CFLAGS="\
         -DSQLITE_ENABLE_SESSION \
 "
 
-RUN yum install -y -q wget unzip rsync git centos-release-scl
+RUN yum install -y -q wget unzip rsync git libcurl-devel centos-release-scl
 RUN yum install -y -q devtoolset-8-gcc devtoolset-8-gcc-c++ devtoolset-8-make
 
 RUN mkdir -p /work/GenomicSQLite
