@@ -146,8 +146,10 @@ def test_txdbquery(genomicsqlite_txdb):
 
 
 def test_web():
-    DB_URL = "https://github.com/mlin/sqlite_zstd_vfs/releases/download/web-test-db-v1/TxDb.Hsapiens.UCSC.hg38.knownGene.vacuum.genomicsqlite"
-    conn = genomicsqlite.connect(DB_URL, read_only=True)
+    conn = genomicsqlite.connect(
+        "https://github.com/mlin/sqlite_zstd_vfs/releases/download/web-test-db-v1/TxDb.Hsapiens.UCSC.hg38.knownGene.vacuum.genomicsqlite",
+        read_only=True,
+    )
 
     results = list(
         t[0]
