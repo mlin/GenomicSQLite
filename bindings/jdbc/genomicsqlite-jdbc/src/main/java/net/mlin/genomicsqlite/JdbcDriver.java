@@ -108,7 +108,7 @@ public class JdbcDriver extends org.sqlite.JDBC {
 
     // connect via sqlite-jdbc
     if (prop.getProperty("open_mode") == null
-        && (url.indexOf("&mode=ro") > -1 || url.indexOf("&immutable=1"))) {
+        && (url.indexOf("&mode=ro") > -1 || url.indexOf("&immutable=1") > -1)) {
       prop.setProperty("open_mode", "65"); // SQLITE_OPEN_READONLY|SQLITE_OPEN_URI
     }
     SQLiteConnection conn = org.sqlite.JDBC.createConnection("jdbc:sqlite:" + url, prop);
