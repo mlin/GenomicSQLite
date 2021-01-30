@@ -1,8 +1,10 @@
 site_name: Genomics Extension for SQLite
 nav:
     - Intro & Install: index.md
-    - Programming Guide: guide.md
-    - Language Bindings Guide: bindings.md
+    - Guide - Opening Databases: guide_db.md
+    - Guide - Genomic Range Indexing: guide_gri.md
+    - Guide - Helper Routines: guide_helpers.md
+    - Writing Language Bindings: bindings.md
     - Internals: internals.md
 theme: material
 markdown_extensions:
