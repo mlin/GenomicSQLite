@@ -58,7 +58,7 @@ jobs:
     - name: build
       run: cmake -DCMAKE_BUILD_TYPE=${{ matrix.BUILD_TYPE }} -B build . && cmake --build build -j $(nproc)
     - name: test
-      run: env -C build ctest -V
+      run: env SQLITE_WEB_LOG=99 -C build ctest -V
 
   linux-x86-64-so:
     runs-on: ubuntu-20.04
@@ -96,12 +96,12 @@ jobs:
         toolchain: stable
         default: true
     - name: test portable .so
-      run: env -C build ctest -V
+      run: env -C build SQLITE_WEB_LOG=99 ctest -V
     - name: test rust crate
       run: |
         set -e
         cp build/libgenomicsqlite.so bindings/rust
-        bindings/rust/cargo test --release
+        SQLITE_WEB_LOG=99 bindings/rust/cargo test --release
         bindings/rust/cargo package --list | grep libgenomicsqlite.so
     - name: prepare artifacts
       run: cp build/{libgenomicsqlite.so,libsqlite3.so.0} .
@@ -157,12 +157,12 @@ jobs:
       run: |
         cd build
         otool -L test/capi_smoke_test
-        ctest -V
+        SQLITE_WEB_LOG=99 ctest -V
     - name: test rust crate
       run: |
         set -e
         cp build/libgenomicsqlite.dylib bindings/rust
-        bindings/rust/cargo test --release
+        SQLITE_WEB_LOG=99 bindings/rust/cargo test --release
         bindings/rust/cargo package --list | grep libgenomicsqlite.dylib
     - name: prepare artifacts
       run: cp build/libgenomicsqlite.dylib include/genomicsqlite.h .
