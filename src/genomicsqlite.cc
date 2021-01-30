@@ -10,6 +10,7 @@ SQLITE_EXTENSION_INIT1
 #include "SQLiteVirtualTable.hpp"
 #include "genomicsqlite.h"
 #include "hardcoded_refseq.hpp"
+#include "web_vfs.h"
 #include "zstd_vfs.h"
 
 using namespace std;
@@ -164,26 +165,30 @@ static void sqlfn_genomicsqlite_default_config_json(sqlite3_context *ctx, int ar
 string GenomicSQLiteURI(const string &dbfile, const string &config_json = "") {
     ConfigParser cfg(config_json);
 
+    bool web = dbfile.substr(0, 5) == "http:" || dbfile.substr(0, 6) == "https:";
     ostringstream uri;
-    uri << "file:" << dbfile << "?vfs=zstd"; // TODO: URI-encode dbfile
-    string mode = cfg.GetString("$.mode", "");
-    if (!mode.empty()) {
-        uri << "&mode=" << mode;
-    }
-    uri << "&outer_page_size=" << to_string(cfg.GetInt("$.outer_page_KiB") * 1024);
-    uri << "&outer_cache_size=-65536"; // enlarge to hold index b-tree pages for large db's
-    uri << "&level=" << to_string(cfg.GetInt("$.zstd_level"));
+    uri << "file:" << (web ? "/__web__" : SQLiteNested::urlencode(dbfile, true)) << "?vfs=zstd"
+        << (web ? ("&mode=ro&immutable=1&web_url=" + SQLiteNested::urlencode(dbfile)) : "")
+        << "&outer_cache_size=-65536"; // enlarge to hold index b-tree pages for large db's
     int threads = cfg.GetInt("$.threads");
     uri << "&threads=" << to_string(threads);
     if (threads > 1 && cfg.GetInt("$.inner_page_KiB") < 16 && !cfg.GetBool("$.force_prefetch")) {
         // prefetch is usually counterproductive if inner_page_KiB < 16
         uri << "&noprefetch=1";
     }
-    if (cfg.GetBool("$.immutable")) {
-        uri << "&immutable=1";
-    }
-    if (cfg.GetBool("$.unsafe_load")) {
-        uri << "&nolock=1&outer_unsafe";
+    if (!web) {
+        string mode = cfg.GetString("$.mode", "");
+        if (!mode.empty()) {
+            uri << "&mode=" << mode;
+        }
+        uri << "&outer_page_size=" << to_string(cfg.GetInt("$.outer_page_KiB") * 1024);
+        uri << "&level=" << to_string(cfg.GetInt("$.zstd_level"));
+        if (cfg.GetBool("$.immutable")) {
+            uri << "&immutable=1";
+        }
+        if (cfg.GetBool("$.unsafe_load")) {
+            uri << "&nolock=1&outer_unsafe";
+        }
     }
     return uri.str();
 }
@@ -291,32 +296,61 @@ static void sqlfn_genomicsqlite_tuning_sql(sqlite3_context *ctx, int argc, sqlit
     SQL_WRAPPER(GenomicSQLiteTuningSQL(config_json, schema))
 }
 
-static void ensure_ext_loaded() {
-    // for C/C++ GenomicSQLiteOpen
+void GenomicSQLiteInit(int (*open_v2)(const char *, sqlite3 **, int, const char *),
+                       int (*enable_load_extension)(sqlite3 *, int),
+                       int (*load_extension)(sqlite3 *, const char *, const char *, char **)) {
     static bool ext_loaded = false;
     if (!ext_loaded) {
-        const char *libgenomicsqlite = getenv("LIBGENOMICSQLITE");
-        if (!libgenomicsqlite || !libgenomicsqlite[0]) {
-            libgenomicsqlite = "libgenomicsqlite";
+
+        sqlite3 *memdb = nullptr;
+        int rc = open_v2(":memory:", &memdb, SQLITE_OPEN_CREATE | SQLITE_OPEN_READWRITE, nullptr);
+        if (rc != SQLITE_OK) {
+            sqlite3_close(memdb);
+            throw runtime_error("GenomicSQLiteInit() unable to open temporary SQLite connection");
         }
-        SQLite::Database db(":memory:", SQLite::OPEN_READWRITE | SQLite::OPEN_CREATE);
-        db.loadExtension(libgenomicsqlite, nullptr);
-        ext_loaded = true;
+        enable_load_extension(memdb, 1);
+        char *zErrMsg = nullptr;
+        rc = load_extension(memdb, "libgenomicsqlite", nullptr, &zErrMsg);
+        if (rc != SQLITE_OK) {
+            string err = "GenomicSQLiteInit() unable to load the extension" +
+                         (zErrMsg ? ": " + string(zErrMsg) : "");
+            sqlite3_free(zErrMsg);
+            sqlite3_close(memdb);
+            throw runtime_error(err);
+        }
+        sqlite3_free(zErrMsg);
+        rc = sqlite3_close(memdb);
+        if (rc != SQLITE_OK) {
+            throw runtime_error("GenomicSQLiteInit() unable to close temporary SQLite connection");
+        }
+    }
+    if (open_v2 != sqlite3_api->open_v2) {
+        throw std::runtime_error(
+            "GenomicSQLiteInit() saw inconsistent libsqlite3/libgenomicsqlite library linkage in this process");
+    }
+    ext_loaded = true;
+}
+
+extern "C" int genomicsqlite_init(int (*open_v2)(const char *, sqlite3 **, int, const char *),
+                                  int (*enable_load_extension)(sqlite3 *, int),
+                                  int (*load_extension)(sqlite3 *, const char *, const char *,
+                                                        char **),
+                                  char **pzErrMsg) {
+    try {
+        GenomicSQLiteInit(open_v2, enable_load_extension, load_extension);
+        return SQLITE_OK;
+    } catch (std::bad_alloc &) {
+        return SQLITE_NOMEM;
+    } catch (std::exception &exn) {
+        if (pzErrMsg) {
+            *pzErrMsg = sqlite3_mprintf("%s", exn.what());
+        }
+        return SQLITE_ERROR;
     }
 }
 
 int GenomicSQLiteOpen(const string &dbfile, sqlite3 **ppDb, string &errmsg_out, int flags,
                       const string &config_json) noexcept {
-    try {
-        ensure_ext_loaded();
-    } catch (SQLite::Exception &exn) {
-        errmsg_out = "failed loading libgenomicsqlite shared library: " + string(exn.what());
-        return exn.getErrorCode();
-    } catch (std::exception &exn) {
-        errmsg_out = "failed loading libgenomicsqlite shared library: " + string(exn.what());
-        return SQLITE_ERROR;
-    }
-
     // open as requested
     try {
         int ret = sqlite3_open_v2(GenomicSQLiteURI(dbfile, config_json).c_str(), ppDb,
@@ -363,7 +397,6 @@ extern "C" int genomicsqlite_open(const char *filename, sqlite3 **ppDb, char **p
 
 unique_ptr<SQLite::Database> GenomicSQLiteOpen(const string &dbfile, int flags,
                                                const string &config_json) {
-    ensure_ext_loaded();
     unique_ptr<SQLite::Database> db(
         new SQLite::Database(GenomicSQLiteURI(dbfile, config_json), SQLITE_OPEN_URI | flags));
     db->exec(GenomicSQLiteTuningSQL(config_json));
@@ -1719,7 +1752,15 @@ extern "C" int sqlite3_genomicsqlite_init(sqlite3 *db, char **pzErrMsg,
     }
     */
 
-    int rc = (new ZstdVFS())->Register("zstd");
+    int rc = (new WebVFS::VFS())->Register("web");
+    if (rc != SQLITE_OK) {
+        if (pzErrMsg) {
+            *pzErrMsg =
+                sqlite3_mprintf("Genomics Extension %s failed initializing web_vfs", GIT_REVISION);
+        }
+        return rc;
+    }
+    rc = (new ZstdVFS())->Register("zstd");
     if (rc != SQLITE_OK) {
         if (pzErrMsg) {
             *pzErrMsg =

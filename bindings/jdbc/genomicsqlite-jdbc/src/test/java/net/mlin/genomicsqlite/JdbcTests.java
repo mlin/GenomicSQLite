@@ -51,4 +51,19 @@ public class JdbcTests {
     assertEquals(198295559, chr3.length);
     assertEquals("{}", chr3.metaJson);
   }
+
+  @Test
+  public void webTest() throws SQLException {
+    String url =
+        "https://github.com/mlin/sqlite_zstd_vfs/releases/download/web-test-db-v1/TxDb.Hsapiens.UCSC.hg38.knownGene.vacuum.genomicsqlite";
+    url = "jdbc:genomicsqlite:" + url;
+    assertTrue(JdbcDriver.isValidURL(url)); // triggers driver registration absent JAR
+    Properties prop = new Properties();
+    prop.setProperty("genomicsqlite.config_json", "{\"threads\": 3}");
+    Connection conn = DriverManager.getConnection(url, prop);
+    ResultSet row = conn.createStatement().executeQuery("SELECT COUNT(*) FROM sqlite_master");
+    row.next();
+    assertEquals(12, row.getInt(1));
+    conn.close();
+  }
 }

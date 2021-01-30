@@ -2,7 +2,7 @@ name: build
 on: [push, pull_request]
 
 env:
-  APT_DEPS: libzstd-dev samtools tabix libhts-dev pigz python3-pip
+  APT_DEPS: libzstd-dev samtools tabix libhts-dev pigz python3-pip libcurl4-openssl-dev
   BREW_DEPS: python@3.8 sqlite zstd samtools pigz coreutils
   PIP_DEPS: pytest pytest-xdist
   SQLITE_VERSION: 3340000
@@ -58,7 +58,7 @@ jobs:
     - name: build
       run: cmake -DCMAKE_BUILD_TYPE=${{ matrix.BUILD_TYPE }} -B build . && cmake --build build -j $(nproc)
     - name: test
-      run: env -C build ctest -V
+      run: env -C build SQLITE_WEB_LOG=99 ctest -V
 
   linux-x86-64-so:
     runs-on: ubuntu-20.04
@@ -96,12 +96,12 @@ jobs:
         toolchain: stable
         default: true
     - name: test portable .so
-      run: env -C build ctest -V
+      run: env -C build SQLITE_WEB_LOG=99 ctest -V
     - name: test rust crate
       run: |
         set -e
         cp build/libgenomicsqlite.so bindings/rust
-        bindings/rust/cargo test --release
+        SQLITE_WEB_LOG=99 bindings/rust/cargo test --release
         bindings/rust/cargo package --list | grep libgenomicsqlite.so
     - name: prepare artifacts
       run: cp build/{libgenomicsqlite.so,libsqlite3.so.0} .
@@ -138,7 +138,7 @@ jobs:
         echo "PREFIX=$(brew --prefix)" >> $GITHUB_ENV
         echo "PATH=${PREFIX}/opt/python/libexec/bin:${PREFIX}/opt/sqlite/bin:${PATH}" >> $GITHUB_ENV
         echo "CFLAGS=-I$(brew --prefix)/include -I$(brew --prefix)/opt/sqlite/include -march=sandybridge" >> $GITHUB_ENV
-        echo "CXXFLAGS=-I$(brew --prefix)/include -march=sandybridge" >> $GITHUB_ENV
+        echo "CXXFLAGS=-I$(brew --prefix)/include -I$(brew --prefix)/opt/sqlite/include -march=sandybridge" >> $GITHUB_ENV
         echo "LDFLAGS=-L$(brew --prefix)/lib -L$(brew --prefix)/opt/sqlite/lib" >> $GITHUB_ENV
         # used by rusqlite:
         echo "SQLITE3_INCLUDE_DIR=$(brew --prefix)/opt/sqlite/include" >> $GITHUB_ENV
@@ -157,12 +157,12 @@ jobs:
       run: |
         cd build
         otool -L test/capi_smoke_test
-        ctest -V
+        SQLITE_WEB_LOG=99 ctest -V
     - name: test rust crate
       run: |
         set -e
         cp build/libgenomicsqlite.dylib bindings/rust
-        bindings/rust/cargo test --release
+        SQLITE_WEB_LOG=99 bindings/rust/cargo test --release
         bindings/rust/cargo package --list | grep libgenomicsqlite.dylib
     - name: prepare artifacts
       run: cp build/libgenomicsqlite.dylib include/genomicsqlite.h .

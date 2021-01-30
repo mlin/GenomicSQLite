@@ -1,4 +1,5 @@
 import os
+import sys
 import sqlite3
 import subprocess
 import random
@@ -136,6 +137,45 @@ def test_txdbquery(genomicsqlite_txdb):
         """
     for expl in conn.execute("EXPLAIN QUERY PLAN " + exon_cds_counts):
         print(expl[3])
+    cds_exon_count_hist = list(
+        conn.execute(
+            f"SELECT contained_cds, count(exon_id) AS exon_count FROM ({exon_cds_counts}) GROUP BY contained_cds ORDER BY contained_cds"
+        )
+    )
+    assert cds_exon_count_hist[:2] == [(0, 270532), (1, 310059)]
+
+
+def test_web():
+    conn = genomicsqlite.connect(
+        "https://github.com/mlin/sqlite_zstd_vfs/releases/download/web-test-db-v1/TxDb.Hsapiens.UCSC.hg38.knownGene.vacuum.genomicsqlite",
+        read_only=True,
+    )
+
+    results = list(
+        t[0]
+        for t in conn.execute(
+            "SELECT tx_name FROM transcript WHERE _rowid_ IN "
+            + genomicsqlite.genomic_range_rowids_sql(conn, "transcript")
+            + " ORDER BY tx_name",
+            ("chr12", 111803912, 111804012),
+        )
+    )
+    print(results)
+    sys.stdout.flush()
+    assert results == sorted(
+        ["ENST00000416293.7", "ENST00000261733.7", "ENST00000548536.1", "ENST00000549106.1"]
+    )
+
+    exon_cds_counts = """
+        SELECT exon._rowid_ AS exon_id, COUNT(cds._rowid_) AS contained_cds
+        FROM genomic_range_index_levels('cds'), exon LEFT JOIN cds
+            ON cds._rowid_ IN genomic_range_rowids('cds', exon_chrom, exon_start, exon_end, _gri_ceiling, _gri_floor)
+            AND (exon_start = cds_start AND exon_end >= cds_start OR exon_start <= cds_start AND exon_end = cds_end)
+        GROUP BY exon._rowid_
+        """
+    for expl in conn.execute("EXPLAIN QUERY PLAN " + exon_cds_counts):
+        print(expl[3])
+    sys.stdout.flush()
     cds_exon_count_hist = list(
         conn.execute(
             f"SELECT contained_cds, count(exon_id) AS exon_count FROM ({exon_cds_counts}) GROUP BY contained_cds ORDER BY contained_cds"
