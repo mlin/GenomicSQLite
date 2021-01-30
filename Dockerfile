@@ -124,13 +124,6 @@ COPY --from=builder /usr/local/include/sqlite3.h /usr/local/include/
 COPY --from=builder /usr/local/lib/libsqlite3.so.0 /work/GenomicSQLite/build/libgenomicsqlite.so /usr/local/lib/
 RUN ln -s libsqlite3.so.0 /usr/local/lib/libsqlite3.so
 
-# display dependencies & digests in docker build log
-RUN ldd -v -r /usr/local/lib/libgenomicsqlite.so
-RUN objdump -t /usr/local/lib/libgenomicsqlite.so | grep -o 'GLIBC_.*' | sort -Vr | head -n1
-RUN objdump -t /usr/local/lib/libgenomicsqlite.so | grep -o 'GLIBCXX_.*' | sort -Vr | head -n1
-RUN objdump -t /usr/local/lib/libsqlite3.so.0 | grep -o 'GLIBC_.*' | sort -Vr | head -n1
-RUN sha256sum /usr/local/lib/libgenomicsqlite.so /usr/local/lib/libsqlite3.so.0
-
 RUN sqlite3 -cmd '.load /usr/local/lib/libgenomicsqlite.so' :memory: 'select sqlite_version(); select genomicsqlite_version()'
 
 RUN mkdir /work
@@ -140,3 +133,10 @@ RUN apt-get -qq update && apt-get install -qq -y build-essential && gcc -v
 ADD ./test/capi_smoke_test.c ./include/genomicsqlite.h /work/
 RUN gcc -o genomicsqlite_capi_smoke_test ${CFLAGS} capi_smoke_test.c -lgenomicsqlite -lsqlite3
 RUN ./genomicsqlite_capi_smoke_test
+
+# display dependencies & digests in docker build log
+RUN ldd -v -r /usr/local/lib/libgenomicsqlite.so
+RUN objdump -t /usr/local/lib/libgenomicsqlite.so | grep -o 'GLIBC_.*' | sort -Vr | head -n1
+RUN objdump -t /usr/local/lib/libgenomicsqlite.so | grep -o 'GLIBCXX_.*' | sort -Vr | head -n1
+RUN objdump -t /usr/local/lib/libsqlite3.so.0 | grep -o 'GLIBC_.*' | sort -Vr | head -n1
+RUN sha256sum /usr/local/lib/libgenomicsqlite.so /usr/local/lib/libsqlite3.so.0

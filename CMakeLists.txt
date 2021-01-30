@@ -26,7 +26,12 @@ FetchContent_MakeAvailable(concurrentqueue)
 include_directories(${concurrentqueue_SOURCE_DIR})
 include_directories(${sqlite_web_vfs_SOURCE_DIR}/src)
 include_directories(${sqlite_zstd_vfs_SOURCE_DIR}/src)
-if(${CMAKE_SYSTEM_NAME} MATCHES "Linux")
+
+project(genomicsqlite VERSION 1.0
+        DESCRIPTION "Genomics Extension for SQLite"
+        LANGUAGES C CXX)
+
+if(CMAKE_SYSTEM_NAME STREQUAL "Linux")
     # Don't dlopen() libcurl until first attempt to use web_vfs -- avoids loading its large tree of
     # shared library dependencies in most cases. Enabled only for Linux because it seemed to cause
     # libcurl routines to intermittently segfault in the macOS Python tests, which we haven't had
@@ -35,11 +40,7 @@ if(${CMAKE_SYSTEM_NAME} MATCHES "Linux")
     set(LINK_LIBCURL "")
 else()
     set(LINK_LIBCURL curl)
-ENDIF()
-
-project(genomicsqlite VERSION 1.0
-        DESCRIPTION "Genomics Extension for SQLite"
-        LANGUAGES C CXX)
+endif()
 
 set(CMAKE_CXX_STANDARD 11)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
