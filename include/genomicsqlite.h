@@ -26,10 +26,14 @@ char *genomicsqlite_version();
  */
 char *genomicsqlite_default_config_json();
 
-/*
- * Initialize GenomicSQLite extension prior to using genomicsqlite_open(). Pass it the addresses
- * of the sqlite3_open_v2, sqlite3_enable_load_extension, and sqlite3_load_extension functions.
- * Returns SQLITE_OK or an error code, and optionally an error message (to free with sqlite3_free).
+/* Prior to using genomicsqlite_open(), initialize the library as follows:
+ *   char *zErrMsg = 0;
+ *   int rc = GENOMICSQLITE_C_INIT(&zErrMsg);
+ *   if (rc != SQLITE_OK) {
+ *     ...
+ *     sqlite3_free(zErrMsg);
+ *   }
+ *   ...
  */
 int genomicsqlite_init(int (*)(const char *, sqlite3 **, int, const char *),
                        int (*)(sqlite3 *, int),
@@ -148,6 +152,13 @@ int dna_revcomp(const char *dna, size_t len, char *out);
 std::string GenomicSQLiteVersion();
 std::string GenomicSQLiteDefaultConfigJSON();
 
+/* Prior to using GenomicSQLiteOpen(), initialize the library as follows:
+ *   try {
+ *     GENOMICSQLITE_CXX_INIT();
+ *   } catch (std::runtime_error &exn) {
+ *     ...
+ *   }
+ */
 void GenomicSQLiteInit(int (*open_v2)(const char *, sqlite3 **, int, const char *),
                        int (*enable_load_extension)(sqlite3 *, int),
                        int (*load_extension)(sqlite3 *, const char *, const char *, char **));
