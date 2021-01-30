@@ -275,6 +275,7 @@ int main(int argc, char *argv[]) {
 
     try {
         // open output database
+        GENOMICSQLITE_CXX_INIT();
         sqlite3_config(SQLITE_CONFIG_MEMSTATUS, 0);
         sqlite3_config(SQLITE_CONFIG_LOOKASIDE, 2048, 128);
         string config_json = R"({"unsafe_load": true, "zstd_level":)" + to_string(level) +

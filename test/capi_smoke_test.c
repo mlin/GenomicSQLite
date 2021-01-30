@@ -15,6 +15,13 @@ int sql_callback(void *ctx, int nCol, char **values, char **names) {
 }
 
 int main(int argc, char **argv) {
+    char *zErrMsg = 0;
+    int rc = GENOMICSQLITE_C_INIT(&zErrMsg);
+    if (rc != SQLITE_OK) {
+        fprintf(stderr, "genomicsqlite_init -> %d // %s\n", rc,
+                zErrMsg ? zErrMsg : sqlite3_errstr(rc));
+        return 1;
+    }
     fprintf(stderr, "tempnam()\n");
     char *dbfilename = tempnam("/tmp", "gsqlt");
     if (!dbfilename) {
@@ -22,10 +29,9 @@ int main(int argc, char **argv) {
         return 1;
     }
     sqlite3 *pDb = 0;
-    char *zErrMsg = 0;
     fprintf(stderr, "genomicsqlite_open()\n");
-    int rc = genomicsqlite_open(dbfilename, &pDb, &zErrMsg,
-                                SQLITE_OPEN_CREATE | SQLITE_OPEN_READWRITE, "{}");
+    rc = genomicsqlite_open(dbfilename, &pDb, &zErrMsg, SQLITE_OPEN_CREATE | SQLITE_OPEN_READWRITE,
+                            "{}");
     if (rc != SQLITE_OK) {
         fprintf(stderr, "genomicsqlite_open -> %d // %s\n", rc,
                 zErrMsg ? zErrMsg : sqlite3_errstr(rc));
