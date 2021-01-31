@@ -1,4 +1,86 @@
-# Programming Guide - Helper Routines
+# Programming Guide - Useful Routines
+
+#### DNA reverse complement
+
+Reverse-complements a DNA text value (containing only characters from the set `AGCTagct`), preserving original case.
+
+=== "SQL"
+    ``` sql
+    SELECT dna_revcomp('AGCTagct')  -- 'agctAGCT'
+    ```
+
+Given NULL, returns NULL. Any other input is an error.
+
+#### Parse genomic range text
+
+These SQL functions process a text value like `'chr1:2,345-6,789'` into its three parts (sequence/chromosome name, begin position, and end position).
+
+=== "SQL"
+    ``` sql
+    SELECT parse_genomic_range_sequence('chr1:2,345-6,789')  -- 'chr1'
+    SELECT parse_genomic_range_begin('chr1:2,345-6,789')     -- 2344 (!)
+    SELECT parse_genomic_range_end('chr1:2,345-6,789')       -- 6789
+    ```
+
+❗ Since such text ranges are conventionally one-based and closed, `parse_genomic_range_begin()` effectively converts them to zero-based and half-open by [returning one less than the text begin position](https://genome.ucsc.edu/FAQ/FAQtracks#tracks1).
+
+Given NULL, each function returns NULL. An error is raised if the text value can't be parsed, or for any other input type.
+
+#### Two-bit encoding for nucleotide sequences
+
+The extension supplies SQL functions to pack a DNA/RNA sequence TEXT value into a smaller BLOB value, using two bits per nucleotide. (Review [SQLite Datatypes](https://www.sqlite.org/datatype3.html) on the important differences between TEXT and BLOB values & columns.) Storing a large database of sequences using such BLOBs instead of TEXT can improve application I/O efficiency, with up to 4X more nucleotides cached in the same memory space. It is not, however, expected to greatly shrink the database file on disk, owing to the automatic storage compression.
+
+The encoding is case-insensitive and considers `T` and `U` equivalent.
+
+*Encoding:*
+
+=== "SQL"
+    ``` sql
+    SELECT nucleotides_twobit('TCAG')
+    ```
+
+Given a TEXT value consisting of characters from the set `ACGTUacgtu`, compute a two-bit-encoded BLOB value that can later be decoded using `twobit_dna()` or `twobit_rna()`. Given any other ASCII TEXT value (including empty), pass it through unchanged as TEXT. Given NULL, return NULL. Any other input is an error.
+
+Typically used to populate a BLOB column `C` with e.g.
+
+```sql
+INSERT INTO some_table(...,C) VALUES(...,nucleotides_twobit(?))
+```
+
+This works even if some of the sequences contain `N`s or other characters, in which case those sequences are stored as the original TEXT values. Make sure the column has schema type `BLOB` to avoid spurious coercions, and by convention, the column should be named *_twobit.
+
+*Decoding:*
+
+=== "SQL"
+    ``` sql
+    SELECT twobit_dna(nucleotides_twobit('TCAG'))
+    SELECT twobit_rna(nucleotides_twobit('UCAG'))
+    SELECT twobit_dna(nucleotides_twobit('TCAG'),Y,Z)
+    SELECT twobit_rna(nucleotides_twobit('UCAG'),Y,Z)
+    ```
+
+Given a two-bit-encoded BLOB value, decode the nucleotide sequence as uppercased TEXT, with `T`'s for `twobit_dna()` and `U`'s for `twobit_rna()`. Given a TEXT value, pass it through unchanged. Given NULL, return NULL. Any other first input is an error.
+
+The optional `Y` and `Z` arguments can be used to compute [`substr(twobit_dna(X),Y,Z)`](https://sqlite.org/lang_corefunc.html#substr) more efficiently, without decoding the whole sequence. <small>Unfortunately however, [SQLite internals](https://sqlite.org/forum/forumpost/756c1a1e48?t=h) make this operation still liable to use time & memory proportional to the full length of X, not Z. If frequent random access into long sequences is needed, then consider splitting them across multiple rows.</small>
+
+Take care to only use BLOBs originally produced by `nucleotides_twobit()`, as other BLOBs may decode to spurious nucleotide sequences. If you `SELECT twobit_dna(C) FROM some_table` on a column with mixed BLOB and TEXT values as suggested above, note that the results actually stored as TEXT preserve their case and T/U letters, unlike decoded BLOBs.
+
+*Length:*
+
+=== "SQL"
+    ``` sql
+    SELECT twobit_length(dna_twobit('TCAG'))
+    ```
+
+Given a two-bit-encoded BLOB value, return the length of the *decoded* sequence (without actually decoding it). This is *not* equal to `4*length(BLOB)` due to padding.
+
+Given a TEXT value, return its byte length. Given NULL, return NULL. Any other input is an error.
+
+#### JSON1 and UINT extensions
+
+The Genomics Extension bundles the SQLite developers' [JSON1 extension](https://www.sqlite.org/json1.html) and enables it automatically. By convention, JSON object columns should be named \*_json and JSON array columns should be named \*_jsarray. The JSON1 functions can be used with [generated columns](https://sqlite.org/gencol.html) to effectively allow indexing of JSON-embedded fields.
+
+The [UINT collating sequence](https://www.sqlite.org/uintcseq.html) is also bundled. This can be useful to make e.g. `ORDER BY chromosome COLLATE UINT` put 'chr2' before 'chr10'.
 
 #### Attach GenomicSQLite database
 
@@ -206,88 +288,6 @@
 
     /* genomicsqlite_open("compressed.db", ...); */
     ```
-
-#### DNA reverse complement
-
-Reverse-complements a DNA text value (containing only characters from the set `AGCTagct`), preserving original case.
-
-=== "SQL"
-    ``` sql
-    SELECT dna_revcomp('AGCTagct')  -- 'agctAGCT'
-    ```
-
-Given NULL, returns NULL. Any other input is an error.
-
-#### Parse genomic range text
-
-These SQL functions process a text value like `'chr1:2,345-6,789'` into its three parts (sequence/chromosome name, begin position, and end position).
-
-=== "SQL"
-    ``` sql
-    SELECT parse_genomic_range_sequence('chr1:2,345-6,789')  -- 'chr1'
-    SELECT parse_genomic_range_begin('chr1:2,345-6,789')     -- 2344 (!)
-    SELECT parse_genomic_range_end('chr1:2,345-6,789')       -- 6789
-    ```
-
-❗ Since such text ranges are conventionally one-based and closed, `parse_genomic_range_begin()` effectively converts them to zero-based and half-open by [returning one less than the text begin position](https://genome.ucsc.edu/FAQ/FAQtracks#tracks1).
-
-Given NULL, each function returns NULL. An error is raised if the text value can't be parsed, or for any other input type.
-
-#### Two-bit encoding for nucleotide sequences
-
-The extension supplies SQL functions to pack a DNA/RNA sequence TEXT value into a smaller BLOB value, using two bits per nucleotide. (Review [SQLite Datatypes](https://www.sqlite.org/datatype3.html) on the important differences between TEXT and BLOB values & columns.) Storing a large database of sequences using such BLOBs instead of TEXT can improve application I/O efficiency, with up to 4X more nucleotides cached in the same memory space. It is not, however, expected to greatly shrink the database file on disk, owing to the automatic storage compression.
-
-The encoding is case-insensitive and considers `T` and `U` equivalent.
-
-*Encoding:*
-
-=== "SQL"
-    ``` sql
-    SELECT nucleotides_twobit('TCAG')
-    ```
-
-Given a TEXT value consisting of characters from the set `ACGTUacgtu`, compute a two-bit-encoded BLOB value that can later be decoded using `twobit_dna()` or `twobit_rna()`. Given any other ASCII TEXT value (including empty), pass it through unchanged as TEXT. Given NULL, return NULL. Any other input is an error.
-
-Typically used to populate a BLOB column `C` with e.g.
-
-```sql
-INSERT INTO some_table(...,C) VALUES(...,nucleotides_twobit(?))
-```
-
-This works even if some of the sequences contain `N`s or other characters, in which case those sequences are stored as the original TEXT values. Make sure the column has schema type `BLOB` to avoid spurious coercions, and by convention, the column should be named *_twobit.
-
-*Decoding:*
-
-=== "SQL"
-    ``` sql
-    SELECT twobit_dna(nucleotides_twobit('TCAG'))
-    SELECT twobit_rna(nucleotides_twobit('UCAG'))
-    SELECT twobit_dna(nucleotides_twobit('TCAG'),Y,Z)
-    SELECT twobit_rna(nucleotides_twobit('UCAG'),Y,Z)
-    ```
-
-Given a two-bit-encoded BLOB value, decode the nucleotide sequence as uppercased TEXT, with `T`'s for `twobit_dna()` and `U`'s for `twobit_rna()`. Given a TEXT value, pass it through unchanged. Given NULL, return NULL. Any other first input is an error.
-
-The optional `Y` and `Z` arguments can be used to compute [`substr(twobit_dna(X),Y,Z)`](https://sqlite.org/lang_corefunc.html#substr) more efficiently, without decoding the whole sequence. <small>Unfortunately however, [SQLite internals](https://sqlite.org/forum/forumpost/756c1a1e48?t=h) make this operation still liable to use time & memory proportional to the full length of X, not Z. If frequent random access into long sequences is needed, then consider splitting them across multiple rows.</small>
-
-Take care to only use BLOBs originally produced by `nucleotides_twobit()`, as other BLOBs may decode to spurious nucleotide sequences. If you `SELECT twobit_dna(C) FROM some_table` on a column with mixed BLOB and TEXT values as suggested above, note that the results actually stored as TEXT preserve their case and T/U letters, unlike decoded BLOBs.
-
-*Length:*
-
-=== "SQL"
-    ``` sql
-    SELECT twobit_length(dna_twobit('TCAG'))
-    ```
-
-Given a two-bit-encoded BLOB value, return the length of the *decoded* sequence (without actually decoding it). This is *not* equal to `4*length(BLOB)` due to padding.
-
-Given a TEXT value, return its byte length. Given NULL, return NULL. Any other input is an error.
-
-#### JSON1 and UINT extensions
-
-The Genomics Extension bundles the SQLite developers' [JSON1 extension](https://www.sqlite.org/json1.html) and enables it automatically. By convention, JSON object columns should be named \*_json and JSON array columns should be named \*_jsarray. The JSON1 functions can be used with [generated columns](https://sqlite.org/gencol.html) to effectively allow indexing of JSON-embedded fields.
-
-The [UINT collating sequence](https://www.sqlite.org/uintcseq.html) is also bundled. This can be useful to make e.g. `ORDER BY chromosome COLLATE UINT` put 'chr2' before 'chr10'.
 
 #### Genomics Extension version
 

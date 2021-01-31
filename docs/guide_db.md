@@ -1,4 +1,4 @@
-# Programming Guide - Opening Databases
+# Programming Guide - Opening Compressed Databases
 
 The Genomics Extension integrates with your programming language's existing SQLite3 bindings to provide a familiar experience wherever possible.
 
@@ -176,21 +176,51 @@ The default configuration (inner_page_KiB, outer_page_KiB) = (16,32) balances ra
 
 The connection's potential memory usage can usually be budgeted as roughly the page cache size, plus the size of any uncommitted write transaction (unless unsafe_load), plus some safety factor. ❗However, this can *multiply by (threads+1)* during queries whose results are at least that large and must be re-sorted. That includes index creation, when the indexed columns total such size.
 
-### Advice for big data
+## genomicsqlite interactive shell
 
-**Tips for writing large databases quickly:**
+The Python package includes a `genomicsqlite` utility that starts the [`sqlite3` interactive shell](https://sqlite.org/cli.html) with the Genomics Extension enabled. This is a great way to quickly inspect and explore your data, as one might use `grep` or `awk` on text file formats. With the Python package installed (`pip3 install genomicsqlite` or `conda install genomicsqlite`), simply invoke:
+
+```
+$ genomicsqlite DB_FILENAME [-readonly]
+```
+
+to enter the SQL prompt with the database open. Or, add an SQL statement (in quotes) to perform and exit. If you've installed the Python package but the script isn't found, set your `PATH` to include the `bin` directory with Python console scripts.
+
+**Database compaction.** The utility also has a subcommand to re-compress and defragment an existing database file, which can be used to increase the compression level and optimize access to it. 
+
+```
+$ genomicsqlite DB_FILENAME -compact
+```
+
+generates `DB_FILENAME.compact`; see its `--help` for additional options. 
+
+Due to decompression overhead, this compaction procedure may be too slow for large tables that weren't originally written in their primary key order. See advice below on preventing this.
+
+## Reading databases over the web
+
+The **GenomicSQLite Open** routine and the `genomicsqlite` utility also accept http: and https: URLs instead of local filenames, creating a connection to read the compressed database file over the web directly. The connection must be opened read-only in the appropriate manner for your language bindings (such as the flag `SQLITE_OPEN_READONLY`). The URL server must support [HTTP GET range](https://developer.mozilla.org/en-US/docs/Web/HTTP/Range_requests) requests, and the content must not change for the lifetime of the connection.
+
+Under the hood, the extension uses [libcurl](https://curl.se/libcurl/) to send web requests for necessary portions of the database file as queries proceed. It has adaptive batching & prefetching to balance the number and size of these requests. This works well for point lookups and queries that scan largely-contiguous slices of tables and indexes (a modest number thereof). It's less suitable for big multi-way joins and other aggressively random access patterns; in such cases, it will be better to download the database file upfront to open locally.
+
+The `genomicsqlite` compaction subcommand can optimize a file's suitability for web access.
+
+**Logging.** When HTTP requests fail or are retried, the extension writes log messages to standard error by default. These can be disabled by setting `"web_log": 0` in the GenomicSQLite configuration, or by setting `SQLITE_WEB_LOG=0` in the environment. The setting can also be increased up to 5 to log every request and other details.
+
+## Advice for big data
+
+### Writing large databases quickly
 
 1. `sqlite3_config(SQLITE_CONFIG_MEMSTATUS, 0)` if available, to reduce overhead in SQLite3's allocation routines.
 1. Open database with unsafe_load = true to reduce transaction processing overhead (at aforementioned risk) for the connection's lifetime.
 1. Also open with the flag `SQLITE_OPEN_NOMUTEX`, if your application naturally serializes operations on the connection.
 1. Perform all of the following steps within one big SQLite transaction, committed at the end.
 1. Insert data rows reusing prepared, parameterized SQL statements.
-    1. For tables with explicit primary keys: insert their rows in primary key order, if feasible.
+    1. For tables with explicit primary keys: insert their rows in primary key order, if feasible (otherwise, advice below).
     1. Consider preparing data in producer thread(s), with a consumer thread executing insertion statements in a tight loop.
     1. Bind text/blob parameters using [`SQLITE_STATIC`](https://www.sqlite.org/c3ref/bind_blob.html) if suitable.
 1. Create secondary indices, including genomic range indices, only after loading all row data. Use [partial indices](https://www.sqlite.org/partialindex.html) when they suffice.
 
-**Compression guidelines**
+### Compression guidelines
 
 The [Zstandard](https://facebook.github.io/zstd/)-based [compression layer](https://github.com/mlin/sqlite_zstd_vfs) is effective at capturing the typically high compressibility of bioinformatics data. But, one should expect a general-purpose database to need some extra space to keep everything organized, compared to a file format dedicated to one predetermined, read-only schema. To set a rough expectation, the maintainers feel fairly satisfied if the database file size isn't more than double that of a bespoke compression format — especially if it includes useful indices (which if well-designed, should be relatively incompressible).
 
@@ -198,22 +228,15 @@ With SQLite's row-major table [storage format](https://www.sqlite.org/fileformat
 
 The aforementioned zstd_level, threads, and page_size options all affect the compression time-space tradeoff, while enlarging the page cache can reduce decompression overhead (workload-dependent).
 
-## Reading databases over the web
+If you plan to delete or overwrite a significant amount of data in an existing database, issue [`PRAGMA secure_delete=ON`](https://www.sqlite.org/pragma.html#pragma_secure_delete) beforehand to keep the compressed file as small as possible. This works by causing SQLite to overwrite unused database pages with all zeroes, which the compression layer can then reduce to a residual size.
 
-The **GenomicSQLite Open** routine described above also accepts http: and https: URLs instead of local filenames, creating a connection to read the compressed database file over the web. The connection must be opened read-only in the appropriate manner for your language bindings (such as the flag `SQLITE_OPEN_READONLY`). The URL server must support [HTTP GET range](https://developer.mozilla.org/en-US/docs/Web/HTTP/Range_requests) requests, and the content must not change for the lifetime of the connection.
 
-Under the hood, the extension uses [libcurl](https://curl.se/libcurl/) to send web requests for necessary portions of the database file as queries proceed. It has adaptive batching & prefetching to balance the number and size of these requests. These work well for point lookups and queries that scan largely-contiguous slices of tables and indexes (a modest number thereof). It's less suitable for big multi-way joins and other aggressively random access patterns; in such cases, it's better to download the database file upfront to open locally.
+### Optimizing storage layout
 
-VACUUM...
+For multiple reasons mentioned so far, large tables should have their rows initially written in primary key order, ensuring they'll be stored as such in the file; and tables should be written one-at-a-time. If this isn't feasible based on how the data are received, SQLite can help make it so:
 
-**Logging.** When HTTP requests fail or are retried, the extension writes log messages to standard error by default. These can be disabled by setting `web_log: 0` in the GenomicSQLite configuration, or by setting `SQLITE_WEB_LOG=0` in the environment. The setting can also be increased up to 5 to log every request and other information.
+1. Create [*temporary* table(s)](https://sqlite.org/lang_createtable.html) with the same schema as the destination table(s).
+2. Stream all the data into these temporary tables, which are fast to write and read.
+3. `INSERT INTO permanent_table SELECT * FROM temp_table ORDER BY colA, colB, ...` using the primary key column(s) for each desired table.
 
-## genomicsqlite interactive shell
-
-The Python package includes a `genomicsqlite` script that starts the [`sqlite3` interactive shell](https://sqlite.org/cli.html) with the Genomics Extension enabled. Simply invoke,
-
-```
-$ genomicsqlite /path/to/compressed.db [-readonly]
-```
-
-to enter the SQL prompt with the database open. Or, add an SQL statement (in quotes) to perform and exit. If you've installed the Python package but the script isn't found, you probably need to augment your `PATH` with the directory for Python console scripts.
+The Genomics Extension automatically enables SQLite's [parallel, external merge-sorter](https://sqlite.org/src/file/src/vdbesort.c) to execute the last operation efficiently. Ensure it's [configured](https://www.sqlite.org/tempfiles.html) to use a suitable storage subsystem for big temporary files. 

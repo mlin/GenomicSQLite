@@ -624,15 +624,7 @@ As a convention, set `"circular": true` in the `_gri_refseq.gri_refseq_meta_json
 
 ### Advice for big data
 
-A SQLite table's rowid order indicates its physical storage layout. It's therefore preferable for a mainly-GRI-queried table to have had its rows originally inserted in genomic range order, so that the features' (chromosome, beginPosition) monotonically increase with rowid, and range queries enjoy storage/cache locality. While not required in theory, this may be needed in practice for GRI queries that will match a material fraction of a big table's rows.
-
-You can sort the rows of an existing table into a new table with the same schema, with something like `INSERT INTO sorted SELECT * FROM original NOT INDEXED ORDER BY chromosome, beginPosition`. The Genomics Extension enables SQLite's [parallel, external merge-sorter](https://sqlite.org/src/file/src/vdbesort.c) to execute this efficiently; still, if it's feasible to load sorted data upfront, so much the better.
-
-<small>
-Note 1. Make sure [SQLite is configured](https://www.sqlite.org/tempfiles.html) to use a suitable storage subsystem for big temporary files generated whilst sorting. `NOT INDEXED` forces SQLite to use the external sorter instead of some index that'd mislead it into reading the entire table in a shuffled order.
-
-Note 2. The "original" table should come from a separate [attached database](https://www.sqlite.org/lang_attach.html) to avoid `DROP TABLE original` from the final database, which is costly due to the need to defragment afterwards.
-</small>
+A SQLite table's rowid order indicates its physical storage layout. It's therefore preferable for a mainly-GRI-queried table to be written in genomic range order, so that the features' (chromosome, beginPosition) monotonically increase with rowid, and range queries enjoy storage/cache locality. See [*Optimizing storage layout*](guide_db.md) in the compression guide for advice if it isn't straightforward to initally write the rows ordered by (chromosome, beginPosition). While not required in theory, this may be needed in practice for GRI queries that will match a material fraction of a big table's rows.
 
 A series of many GRI queries (including in the course of a join) should also proceed in genomic range order. If this isn't possible, then ideally the database page cache should be enlarged to fit the entire indexed table in memory.
 
