@@ -201,6 +201,10 @@ _USAGE = """
 Enters the sqlite3 command-line shell on a GenomicSQLite-compressed database.
 
 sqlite3_ARG: passed through to sqlite3 (see `sqlite3 -help`)
+
+
+Usage: genomicsqlite DB_FILENAME --compact [options|--help]
+[Re]compress and defragment an existing SQLite3 or GenomicSQLite database. See --compact --help for options
 """
 
 
@@ -213,7 +217,7 @@ def _cli():
     language bindings.
     """
 
-    if "--compact" in sys.argv:
+    if "--compact" in sys.argv or "-compact" in sys.argv:
         _compact(sys.argv[1], sys.argv[2:])
         return
 
@@ -226,7 +230,7 @@ def _cli():
         or next((True for a in ("-h", "-help", "--help") if a in sys.argv), False)
     ):
         print(
-            "Usage: genomicsqlite DB_FILENAME ([-readonly] [sqlite3_ARG ...] | --compact ...)",
+            "Usage: genomicsqlite DB_FILENAME [--readonly] [sqlite3_ARG ...]\n",
             file=sys.stderr,
         )
         print(
@@ -236,6 +240,10 @@ def _cli():
         sys.exit(1)
 
     cfg = {}
+    try:
+        sys.argv[sys.argv.index("--readonly")] = "-readonly"
+    except ValueError:
+        pass
     if "-readonly" in sys.argv:
         cfg["mode"] = "ro"
     cfg = json.dumps(cfg)
@@ -292,7 +300,7 @@ def _compact(dbfilename, argv):
         prog="genomicsqlite DB_FILENAME --compact",
         description="[Re]compress and defragment an existing SQLite3 or GenomicSQLite database.",
     )
-    parser.add_argument("--compact", action="store_true", help=argparse.SUPPRESS)
+    parser.add_argument("-compact", "--compact", action="store_true", help=argparse.SUPPRESS)
     parser.add_argument(
         "-o", dest="out_filename", type=str, help="compacted database path [DB_FILENAME.compact]"
     )
@@ -337,7 +345,7 @@ def _compact(dbfilename, argv):
 
     # open db (sniffing whether it's currently compressed or not)
     con = None
-    web = next((True for pfx in ("http:", "https:") if dbfilename.startswith(pfx)), False)
+    web = dbfilename.startswith("http:") or dbfilename.startswith("https:")
     if not web:
         con = sqlite3.connect(f"file:{urllib.parse.quote(dbfilename)}?mode=ro", uri=True)
         if next(con.execute("PRAGMA application_id"))[0] == 0x7A737464:
