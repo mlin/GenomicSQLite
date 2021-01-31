@@ -213,6 +213,10 @@ def _cli():
     language bindings.
     """
 
+    if "--compact" in sys.argv:
+        _compact(sys.argv[1], sys.argv[2:])
+        return
+
     if (
         len(sys.argv) < 2
         or not (
@@ -221,7 +225,10 @@ def _cli():
         )
         or next((True for a in ("-h", "-help", "--help") if a in sys.argv), False)
     ):
-        print("Usage: genomicsqlite DBFILENAME [-readonly] [sqlite3_ARG ...]", file=sys.stderr)
+        print(
+            "Usage: genomicsqlite DB_FILENAME ([-readonly] [sqlite3_ARG ...] | --compact ...)",
+            file=sys.stderr,
+        )
         print(
             _USAGE.strip(),
             file=sys.stderr,
@@ -275,6 +282,107 @@ def _cli():
             )
         )
     os.execvp("sqlite3", cmd)
+
+
+def _compact(dbfilename, argv):
+    import argparse
+    import urllib.parse
+
+    parser = argparse.ArgumentParser(
+        prog="genomicsqlite DB_FILENAME --compact",
+        description="[Re]compress and defragment an existing SQLite3 or GenomicSQLite database.",
+    )
+    parser.add_argument("--compact", action="store_true", help=argparse.SUPPRESS)
+    parser.add_argument(
+        "-o", dest="out_filename", type=str, help="compacted database path [DB_FILENAME.compact]"
+    )
+    parser.add_argument(
+        "-l",
+        "--level",
+        dest="zstd_level",
+        metavar="N",
+        type=int,
+        default=6,
+        choices=range(-5, 20),
+        help="compression level (-5 to 19) [6]",
+    )
+    parser.add_argument(
+        "--inner-page-KiB",
+        type=int,
+        choices=(1, 2, 4, 8, 16, 32, 64),
+        default=16,
+        help="inner page size [16]",
+    )
+    parser.add_argument(
+        "--outer-page-KiB",
+        type=int,
+        choices=(1, 2, 4, 8, 16, 32, 64),
+        default=64,
+        help="outer page size [64]",
+    )
+    parser.add_argument(
+        "--no-defrag", action="store_true", help="skip defragmentation of compressed data"
+    )
+    parser.add_argument(
+        "-@", dest="threads", type=int, default=-1, help="worker threads [host CPUs up to 8]"
+    )
+    parser.add_argument(
+        "-f",
+        dest="force",
+        action="store_true",
+        help="overwrite existing file at target path, if any",
+    )
+    parser.add_argument("-q", dest="quiet", action="store_true", help="suppress progress messages")
+    args = parser.parse_args(argv)
+
+    # open db (sniffing whether it's currently compressed or not)
+    con = None
+    web = next((True for pfx in ("http:", "https:") if dbfilename.startswith(pfx)), False)
+    if not web:
+        con = sqlite3.connect(f"file:{urllib.parse.quote(dbfilename)}?mode=ro", uri=True)
+        if next(con.execute("PRAGMA application_id"))[0] == 0x7A737464:
+            con = None
+    if not con:
+        con = connect(dbfilename, read_only=True)
+
+    # VACUUM INTO to recompress
+    destfilename = args.out_filename
+    if not destfilename:
+        destfilename = dbfilename
+        if web:
+            destfilename = os.path.basename(destfilename)
+            try:
+                destfilename = destfilename[: destfilename.index("?")]
+            except ValueError:
+                pass
+            assert destfilename
+        destfilename += ".compact"
+
+    if not args.quiet:
+        print(f"Compressing into {destfilename} ...", file=sys.stderr)
+        sys.stderr.flush()
+    if args.force and os.path.isfile(destfilename):
+        os.unlink(destfilename)
+    cfg = {}
+    for k in ("zstd_level", "inner_page_KiB", "outer_page_KiB", "threads"):
+        cfg[k] = vars(args)[k]
+    con.executescript(vacuum_into_sql(con, destfilename, **cfg))
+    con.close()
+
+    # VACUUM compressed outer db
+    if not args.no_defrag:
+        if not args.quiet:
+            print("Defragmenting compressed data...", file=sys.stderr)
+            sys.stderr.flush()
+        con = sqlite3.connect(destfilename, uri=False)
+        con.executescript(
+            "PRAGMA journal_mode=OFF; PRAGMA synchronous=OFF; PRAGMA locking_mode=EXCLUSIVE"
+        )
+        con.executescript("VACUUM")
+
+    con.close()
+    if not args.quiet:
+        print("OK", file=sys.stderr)
 
 
 if __name__ == "__main__":

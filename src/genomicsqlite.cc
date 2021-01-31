@@ -271,7 +271,6 @@ string GenomicSQLiteTuningSQL(const string &config_json, const string &schema = 
     if (cfg.GetBool("$.unsafe_load")) {
         pragmas[schema_prefix + "journal_mode"] = "OFF";
         pragmas[schema_prefix + "synchronous"] = "OFF";
-        pragmas[schema_prefix + "auto_vacuum"] = "FULL";
         pragmas[schema_prefix + "locking_mode"] = "EXCLUSIVE";
     } else {
         // txn rollback after a crash is handled by zstd_vfs's "outer" database, so we can set
@@ -449,9 +448,8 @@ string GenomicSQLiteVacuumIntoSQL(const string &destfile, const string &config_j
 
     ConfigParser cfg(config_json);
     ostringstream ans;
-    ans << "PRAGMA page_size = " << (cfg.GetInt("$.inner_page_KiB") * 1024)
-        << ";\nPRAGMA auto_vacuum = FULL"
-        << ";\nVACUUM INTO " << sqlquote(desturi);
+    ans << "PRAGMA page_size = " << (cfg.GetInt("$.inner_page_KiB") * 1024) << ";\nVACUUM INTO "
+        << sqlquote(desturi);
     return ans.str();
 }
 
