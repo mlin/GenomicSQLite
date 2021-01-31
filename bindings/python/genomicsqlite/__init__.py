@@ -197,6 +197,17 @@ def get_reference_sequences_by_name(
     return ans
 
 
+_USAGE = """
+Enters the sqlite3 command-line shell on a GenomicSQLite-compressed database.
+
+sqlite3_ARG: passed through to sqlite3 (see `sqlite3 -help`)
+
+
+Usage: genomicsqlite DB_FILENAME --compact [options|--help]
+[Re]compress and defragment an existing SQLite3 or GenomicSQLite database. See --compact --help for options
+"""
+
+
 def _cli():
     """
     Command-line entry point wrapping the `sqlite3` interactive CLI to open a GenomicSQLite
@@ -206,47 +217,67 @@ def _cli():
     language bindings.
     """
 
-    if len(sys.argv) < 2 or not os.path.isfile(sys.argv[1]):
-        print("Usage: genomicsqlite DBFILENAME [-readonly] [sqlite3_ARG ...]", file=sys.stderr)
+    if "--compact" in sys.argv or "-compact" in sys.argv:
+        _compact(sys.argv[1], sys.argv[2:])
+        return
+
+    if (
+        len(sys.argv) < 2
+        or not (
+            next((True for pfx in ("http:", "https:") if sys.argv[1].startswith(pfx)), False)
+            or os.path.isfile(sys.argv[1])
+        )
+        or next((True for a in ("-h", "-help", "--help") if a in sys.argv), False)
+    ):
         print(
-            "Enters the sqlite3 interactive CLI on a GenomicSQLite-compressed database.",
+            "Usage: genomicsqlite DB_FILENAME [--readonly] [sqlite3_ARG ...]\n",
+            file=sys.stderr,
+        )
+        print(
+            _USAGE.strip(),
             file=sys.stderr,
         )
         sys.exit(1)
 
-    dbfilename = sys.argv[1]
-    if os.path.islink(dbfilename):
-        target = os.path.realpath(dbfilename)
-        print(f"[warning] following symlink {dbfilename} -> {target}")
-        dbfilename = target
-
-    uri = _execute1(_MEMCONN, "SELECT genomicsqlite_uri(?)", (dbfilename,))
-    tuning_sql = _execute1(_MEMCONN, "SELECT genomicsqlite_tuning_sql()")
-
+    cfg = {}
+    try:
+        sys.argv[sys.argv.index("--readonly")] = "-readonly"
+    except ValueError:
+        pass
     if "-readonly" in sys.argv:
-        uri += "&mode=ro"
+        cfg["mode"] = "ro"
+    cfg = json.dumps(cfg)
+    uri = _execute1(_MEMCONN, "SELECT genomicsqlite_uri(?,?)", (sys.argv[1], cfg))
+    tuning_sql = _execute1(_MEMCONN, "SELECT genomicsqlite_tuning_sql(?)", (cfg,))
+
     cmd = [
         "sqlite3",
+        "-bail",
         "-cmd",
         f".load {_DLL}",
         "-cmd",
         f".open {uri}",
         "-cmd",
+        ".once /dev/null",
+        "-cmd",
         tuning_sql,
         "-cmd",
-        ".headers on",
-        "-cmd",
-        ".mode tabs",
-        "-cmd",
-        ".databases",
-        "-cmd",
-        'SELECT "GenomicSQLite " || genomicsqlite_version()',
-        "-cmd",
         '.prompt "GenomicSQLite> "',
-        ":memory:",
     ]
-    cmd.extend(sys.argv[2:])
-    if sys.stdout.isatty():
+    if sys.stdout.isatty() and not next(
+        (arg for arg in sys.argv[2:] if not arg.startswith("-")), False
+    ):
+        # interactive mode:
+        cmd += [
+            "-cmd",
+            'SELECT "GenomicSQLite " || genomicsqlite_version()',
+            "-cmd",
+            ".headers on",
+        ]
+    cmd.append(":memory:")  # placeholder so remaining positional args are recognized as such
+    cmd += sys.argv[2:]
+
+    if "DEBUG" in os.environ:
         print(
             " ".join(
                 (
@@ -259,6 +290,107 @@ def _cli():
             )
         )
     os.execvp("sqlite3", cmd)
+
+
+def _compact(dbfilename, argv):
+    import argparse
+    import urllib.parse
+
+    parser = argparse.ArgumentParser(
+        prog="genomicsqlite DB_FILENAME --compact",
+        description="[Re]compress and defragment an existing SQLite3 or GenomicSQLite database.",
+    )
+    parser.add_argument("-compact", "--compact", action="store_true", help=argparse.SUPPRESS)
+    parser.add_argument(
+        "-o", dest="out_filename", type=str, help="compacted database path [DB_FILENAME.compact]"
+    )
+    parser.add_argument(
+        "-l",
+        "--level",
+        dest="zstd_level",
+        metavar="N",
+        type=int,
+        default=6,
+        choices=range(-5, 20),
+        help="compression level (-5 to 19) [6]",
+    )
+    parser.add_argument(
+        "--inner-page-KiB",
+        type=int,
+        choices=(1, 2, 4, 8, 16, 32, 64),
+        default=16,
+        help="inner page size [16]",
+    )
+    parser.add_argument(
+        "--outer-page-KiB",
+        type=int,
+        choices=(1, 2, 4, 8, 16, 32, 64),
+        default=64,
+        help="outer page size [64]",
+    )
+    parser.add_argument(
+        "--no-defrag", action="store_true", help="skip defragmentation of compressed data"
+    )
+    parser.add_argument(
+        "-@", dest="threads", type=int, default=-1, help="worker threads [host CPUs up to 8]"
+    )
+    parser.add_argument(
+        "-f",
+        dest="force",
+        action="store_true",
+        help="overwrite existing file at target path, if any",
+    )
+    parser.add_argument("-q", dest="quiet", action="store_true", help="suppress progress messages")
+    args = parser.parse_args(argv)
+
+    # open db (sniffing whether it's currently compressed or not)
+    con = None
+    web = dbfilename.startswith("http:") or dbfilename.startswith("https:")
+    if not web:
+        con = sqlite3.connect(f"file:{urllib.parse.quote(dbfilename)}?mode=ro", uri=True)
+        if next(con.execute("PRAGMA application_id"))[0] == 0x7A737464:
+            con = None
+    if not con:
+        con = connect(dbfilename, read_only=True)
+
+    # VACUUM INTO to recompress
+    destfilename = args.out_filename
+    if not destfilename:
+        destfilename = dbfilename
+        if web:
+            destfilename = os.path.basename(destfilename)
+            try:
+                destfilename = destfilename[: destfilename.index("?")]
+            except ValueError:
+                pass
+            assert destfilename
+        destfilename += ".compact"
+
+    if not args.quiet:
+        print(f"Compressing into {destfilename} ...", file=sys.stderr)
+        sys.stderr.flush()
+    if args.force and os.path.isfile(destfilename):
+        os.unlink(destfilename)
+    cfg = {}
+    for k in ("zstd_level", "inner_page_KiB", "outer_page_KiB", "threads"):
+        cfg[k] = vars(args)[k]
+    con.executescript(vacuum_into_sql(con, destfilename, **cfg))
+    con.close()
+
+    # VACUUM compressed outer db
+    if not args.no_defrag:
+        if not args.quiet:
+            print("Defragmenting compressed data...", file=sys.stderr)
+            sys.stderr.flush()
+        con = sqlite3.connect(destfilename, uri=False)
+        con.executescript(
+            "PRAGMA journal_mode=OFF; PRAGMA synchronous=OFF; PRAGMA locking_mode=EXCLUSIVE"
+        )
+        con.executescript("VACUUM")
+
+    con.close()
+    if not args.quiet:
+        print("OK", file=sys.stderr)
 
 
 if __name__ == "__main__":

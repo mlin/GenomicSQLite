@@ -67,7 +67,8 @@ std::string GenomicSQLiteDefaultConfigJSON() {
     "force_prefetch": false,
     "zstd_level": 6,
     "inner_page_KiB": 16,
-    "outer_page_KiB": 32
+    "outer_page_KiB": 32,
+    "web_log": 2
 })";
 }
 
@@ -167,11 +168,14 @@ string GenomicSQLiteURI(const string &dbfile, const string &config_json = "") {
 
     bool web = dbfile.substr(0, 5) == "http:" || dbfile.substr(0, 6) == "https:";
     ostringstream uri;
-    uri << "file:" << (web ? "/__web__" : SQLiteNested::urlencode(dbfile, true)) << "?vfs=zstd"
-        << (web ? ("&mode=ro&immutable=1&web_url=" + SQLiteNested::urlencode(dbfile)) : "")
-        << "&outer_cache_size=-65536"; // enlarge to hold index b-tree pages for large db's
+    uri << "file:" << (web ? "/__web__" : SQLiteNested::urlencode(dbfile, true)) << "?vfs=zstd";
+    if (web) {
+        uri << "&mode=ro&immutable=1&web_url=" << SQLiteNested::urlencode(dbfile)
+            << "&web_log=" << std::to_string(cfg.GetInt("$.web_log"));
+    }
     int threads = cfg.GetInt("$.threads");
-    uri << "&threads=" << to_string(threads);
+    uri << "&outer_cache_size=-65536"
+        << "&threads=" << to_string(threads);
     if (threads > 1 && cfg.GetInt("$.inner_page_KiB") < 16 && !cfg.GetBool("$.force_prefetch")) {
         // prefetch is usually counterproductive if inner_page_KiB < 16
         uri << "&noprefetch=1";
@@ -267,7 +271,6 @@ string GenomicSQLiteTuningSQL(const string &config_json, const string &schema = 
     if (cfg.GetBool("$.unsafe_load")) {
         pragmas[schema_prefix + "journal_mode"] = "OFF";
         pragmas[schema_prefix + "synchronous"] = "OFF";
-        pragmas[schema_prefix + "auto_vacuum"] = "FULL";
         pragmas[schema_prefix + "locking_mode"] = "EXCLUSIVE";
     } else {
         // txn rollback after a crash is handled by zstd_vfs's "outer" database, so we can set
@@ -445,9 +448,8 @@ string GenomicSQLiteVacuumIntoSQL(const string &destfile, const string &config_j
 
     ConfigParser cfg(config_json);
     ostringstream ans;
-    ans << "PRAGMA page_size = " << (cfg.GetInt("$.inner_page_KiB") * 1024)
-        << ";\nPRAGMA auto_vacuum = FULL"
-        << ";\nVACUUM INTO " << sqlquote(desturi);
+    ans << "PRAGMA page_size = " << (cfg.GetInt("$.inner_page_KiB") * 1024) << ";\nVACUUM INTO "
+        << sqlquote(desturi);
     return ans.str();
 }
 
