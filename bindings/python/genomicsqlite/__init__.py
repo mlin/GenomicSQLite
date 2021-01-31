@@ -197,6 +197,13 @@ def get_reference_sequences_by_name(
     return ans
 
 
+_USAGE = """
+Enters the sqlite3 command-line shell on a GenomicSQLite-compressed database.
+
+sqlite3_ARG: passed through to sqlite3 (see `sqlite3 -help`)
+"""
+
+
 def _cli():
     """
     Command-line entry point wrapping the `sqlite3` interactive CLI to open a GenomicSQLite
@@ -206,47 +213,56 @@ def _cli():
     language bindings.
     """
 
-    if len(sys.argv) < 2 or not os.path.isfile(sys.argv[1]):
+    if (
+        len(sys.argv) < 2
+        or not (
+            next((True for pfx in ("http:", "https:") if sys.argv[1].startswith(pfx)), False)
+            or os.path.isfile(sys.argv[1])
+        )
+        or next((True for a in ("-h", "-help", "--help") if a in sys.argv), False)
+    ):
         print("Usage: genomicsqlite DBFILENAME [-readonly] [sqlite3_ARG ...]", file=sys.stderr)
         print(
-            "Enters the sqlite3 interactive CLI on a GenomicSQLite-compressed database.",
+            _USAGE.strip(),
             file=sys.stderr,
         )
         sys.exit(1)
 
-    dbfilename = sys.argv[1]
-    if os.path.islink(dbfilename):
-        target = os.path.realpath(dbfilename)
-        print(f"[warning] following symlink {dbfilename} -> {target}")
-        dbfilename = target
-
-    uri = _execute1(_MEMCONN, "SELECT genomicsqlite_uri(?)", (dbfilename,))
-    tuning_sql = _execute1(_MEMCONN, "SELECT genomicsqlite_tuning_sql()")
-
+    cfg = {}
     if "-readonly" in sys.argv:
-        uri += "&mode=ro"
+        cfg["mode"] = "ro"
+    cfg = json.dumps(cfg)
+    uri = _execute1(_MEMCONN, "SELECT genomicsqlite_uri(?,?)", (sys.argv[1], cfg))
+    tuning_sql = _execute1(_MEMCONN, "SELECT genomicsqlite_tuning_sql(?)", (cfg,))
+
     cmd = [
         "sqlite3",
+        "-bail",
         "-cmd",
         f".load {_DLL}",
         "-cmd",
         f".open {uri}",
         "-cmd",
+        ".once /dev/null",
+        "-cmd",
         tuning_sql,
         "-cmd",
-        ".headers on",
-        "-cmd",
-        ".mode tabs",
-        "-cmd",
-        ".databases",
-        "-cmd",
-        'SELECT "GenomicSQLite " || genomicsqlite_version()',
-        "-cmd",
         '.prompt "GenomicSQLite> "',
-        ":memory:",
     ]
-    cmd.extend(sys.argv[2:])
-    if sys.stdout.isatty():
+    if sys.stdout.isatty() and not next(
+        (arg for arg in sys.argv[2:] if not arg.startswith("-")), False
+    ):
+        # interactive mode:
+        cmd += [
+            "-cmd",
+            'SELECT "GenomicSQLite " || genomicsqlite_version()',
+            "-cmd",
+            ".headers on",
+        ]
+    cmd.append(":memory:")  # placeholder so remaining positional args are recognized as such
+    cmd += sys.argv[2:]
+
+    if "DEBUG" in os.environ:
         print(
             " ".join(
                 (
