@@ -200,15 +200,13 @@ The aforementioned zstd_level, threads, and page_size options all affect the com
 
 ## Reading databases over the web
 
-Simply provide a http: or https: URL to
-
-The above-described **GenomicSQLite Open** routine also accepts http: and https: URLs, and automatically sets up the connection to read the compressed database file over the web. The database connection must be opened read-only in the appropriate manner for your language bindings (such as by passing the `SQLITE_OPEN_READONLY` flag). The URL server must support [HTTP GET range](https://developer.mozilla.org/en-US/docs/Web/HTTP/Range_requests) requests, and the content must not change for the lifetime of the connection.
+The **GenomicSQLite Open** routine described above also accepts http: and https: URLs instead of local filenames, creating a connection to read the compressed database file over the web. The connection must be opened read-only in the appropriate manner for your language bindings (such as the flag `SQLITE_OPEN_READONLY`). The URL server must support [HTTP GET range](https://developer.mozilla.org/en-US/docs/Web/HTTP/Range_requests) requests, and the content must not change for the lifetime of the connection.
 
 Under the hood, the extension uses [libcurl](https://curl.se/libcurl/) to send web requests for necessary portions of the database file as queries proceed. It has adaptive batching & prefetching to balance the number and size of these requests. These work well for point lookups and queries that scan largely-contiguous slices of tables and indexes (a modest number thereof). It's less suitable for big multi-way joins and other aggressively random access patterns; in such cases, it's better to download the database file upfront to open locally.
 
 VACUUM...
 
-SQLITE_WEB_LOG...
+**Logging.** When HTTP requests fail or are retried, the extension writes log messages to standard error by default. These can be disabled by setting `web_log: 0` in the GenomicSQLite configuration, or by setting `SQLITE_WEB_LOG=0` in the environment. The setting can also be increased up to 5 to log every request and other information.
 
 ## genomicsqlite interactive shell
 
