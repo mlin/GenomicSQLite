@@ -624,9 +624,9 @@ As a convention, set `"circular": true` in the `_gri_refseq.gri_refseq_meta_json
 
 ### Advice for big data
 
-A SQLite table's rowid order indicates its physical storage layout. It's therefore preferable for a mainly-GRI-queried table to be written in genomic range order, so that the features' (chromosome, beginPosition) monotonically increase with rowid, and range queries enjoy storage/cache locality. See [*Optimizing storage layout*](guide_db.md) in the compression guide for advice if it isn't straightforward to initally write the rows ordered by (chromosome, beginPosition). While not required in theory, this may be needed in practice for GRI queries that will match a material fraction of a big table's rows.
+The database file stores tables in rowid order (to a first approximation). It's therefore preferable for a mainly-GRI-queried table to be written in genomic range order, so that the features' (chromosome, beginPosition) monotonically increase with rowid, and range queries enjoy storage/cache locality. See [*Optimizing storage layout*](guide_db.md#optimizing-storage-layout) in the compression guide for advice if it isn't straightforward to initally write the rows ordered by (chromosome, beginPosition). Though not required in theory, this may be needed in practice for GRI queries that will match a material fraction of a big table's rows.
 
-A series of many GRI queries (including in the course of a join) should also proceed in genomic range order. If this isn't possible, then ideally the database page cache should be enlarged to fit the entire indexed table in memory.
+A series of many GRI queries (including in service of a join) should also proceed in genomic range order. If this isn't possible, then ideally the database page cache should be enlarged to fit the entire indexed table in memory.
 
 If you expect a GRI query to yield a very large, contiguous rowid result set (e.g. all features on a chromosome, in a table *known* to be range-sorted), then the following specialized query plan may be advantageous:
 
