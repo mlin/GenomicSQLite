@@ -67,7 +67,8 @@ std::string GenomicSQLiteDefaultConfigJSON() {
     "force_prefetch": false,
     "zstd_level": 6,
     "inner_page_KiB": 16,
-    "outer_page_KiB": 32
+    "outer_page_KiB": 32,
+    "web_log": 2
 })";
 }
 
@@ -167,11 +168,14 @@ string GenomicSQLiteURI(const string &dbfile, const string &config_json = "") {
 
     bool web = dbfile.substr(0, 5) == "http:" || dbfile.substr(0, 6) == "https:";
     ostringstream uri;
-    uri << "file:" << (web ? "/__web__" : SQLiteNested::urlencode(dbfile, true)) << "?vfs=zstd"
-        << (web ? ("&mode=ro&immutable=1&web_url=" + SQLiteNested::urlencode(dbfile)) : "")
-        << "&outer_cache_size=-65536"; // enlarge to hold index b-tree pages for large db's
+    uri << "file:" << (web ? "/__web__" : SQLiteNested::urlencode(dbfile, true)) << "?vfs=zstd";
+    if (web) {
+        uri << "&mode=ro&immutable=1&web_url=" << SQLiteNested::urlencode(dbfile)
+            << "&web_log=" << std::to_string(cfg.GetInt("$.web_log"));
+    }
     int threads = cfg.GetInt("$.threads");
-    uri << "&threads=" << to_string(threads);
+    uri << "&outer_cache_size=-65536"
+        << "&threads=" << to_string(threads);
     if (threads > 1 && cfg.GetInt("$.inner_page_KiB") < 16 && !cfg.GetBool("$.force_prefetch")) {
         // prefetch is usually counterproductive if inner_page_KiB < 16
         uri << "&noprefetch=1";
