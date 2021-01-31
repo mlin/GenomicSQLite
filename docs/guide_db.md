@@ -178,10 +178,10 @@ The connection's potential memory usage can usually be budgeted as roughly the p
 
 ## genomicsqlite interactive shell
 
-The Python package includes a `genomicsqlite` utility that starts the [`sqlite3` interactive shell](https://sqlite.org/cli.html) with the Genomics Extension enabled. This is a great way to quickly inspect and explore your data, as one might use `grep` or `awk` on text file formats. With the Python package installed (`pip3 install genomicsqlite` or `conda install genomicsqlite`), simply invoke:
+The Python package includes a `genomicsqlite` utility that starts the [`sqlite3` interactive shell](https://sqlite.org/cli.html) with the Genomics Extension enabled. This is a convenient way to inspect and explore your data, as one might use `grep` or `awk` on text file formats. With the Python package installed (`pip3 install genomicsqlite` or `conda install genomicsqlite`), simply invoke:
 
 ```
-$ genomicsqlite DB_FILENAME [-readonly]
+$ genomicsqlite DB_FILENAME [--readonly]
 ```
 
 to enter the SQL prompt with the database open. Or, add an SQL statement (in quotes) to perform and exit. If you've installed the Python package but the script isn't found, set your `PATH` to include the `bin` directory with Python console scripts.
@@ -189,20 +189,20 @@ to enter the SQL prompt with the database open. Or, add an SQL statement (in quo
 **Database compaction.** The utility also has a subcommand to re-compress and defragment an existing database file, which can be used to increase the compression level and optimize access to it. 
 
 ```
-$ genomicsqlite DB_FILENAME -compact
+$ genomicsqlite DB_FILENAME --compact
 ```
 
 generates `DB_FILENAME.compact`; see its `--help` for additional options. 
 
-Due to decompression overhead, this compaction procedure may be too slow for large tables that weren't originally written in their primary key order. See advice below on preventing this.
+Due to decompression overhead, this compaction procedure may be too slow for large tables that weren't originally written in their primary key order. To prevent this, see below *Optimizing storage layout*.
 
 ## Reading databases over the web
 
-The **GenomicSQLite Open** routine and the `genomicsqlite` utility also accept http: and https: URLs instead of local filenames, creating a connection to read the compressed database file over the web directly. The connection must be opened read-only in the appropriate manner for your language bindings (such as the flag `SQLITE_OPEN_READONLY`). The URL server must support [HTTP GET range](https://developer.mozilla.org/en-US/docs/Web/HTTP/Range_requests) requests, and the content must not change for the lifetime of the connection.
+The **GenomicSQLite Open** routine and the `genomicsqlite` utility also accept http: and https: URLs instead of local filenames, creating a connection to read the compressed file over the web directly. The database connection must be opened read-only in the appropriate manner for your language bindings (such as the flag `SQLITE_OPEN_READONLY`). The URL server must support [HTTP GET range](https://developer.mozilla.org/en-US/docs/Web/HTTP/Range_requests) requests, and the content must not change for the lifetime of the connection.
 
 Under the hood, the extension uses [libcurl](https://curl.se/libcurl/) to send web requests for necessary portions of the database file as queries proceed. It has adaptive batching & prefetching to balance the number and size of these requests. This works well for point lookups and queries that scan largely-contiguous slices of tables and indexes (a modest number thereof). It's less suitable for big multi-way joins and other aggressively random access patterns; in such cases, it will be better to download the database file upfront to open locally.
 
-The `genomicsqlite` compaction subcommand can optimize a file's suitability for web access.
+The above-described `genomicsqlite DB_FILENAME --compact` tool can optimize a file's suitability for web access.
 
 **Logging.** When HTTP requests fail or are retried, the extension writes log messages to standard error by default. These can be disabled by setting `"web_log": 0` in the GenomicSQLite configuration, or by setting `SQLITE_WEB_LOG=0` in the environment. The setting can also be increased up to 5 to log every request and other details.
 
