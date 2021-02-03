@@ -178,7 +178,7 @@ The connection's potential memory usage can usually be budgeted as roughly the p
 
 ## genomicsqlite interactive shell
 
-The Python package includes a `genomicsqlite` utility that starts the [`sqlite3` interactive shell](https://sqlite.org/cli.html) on an existing compressed database. This is a convenient way to inspect and explore the data with *ad hoc* SQL queries, as one might use `grep` or `awk` on text files. With the Python package installed (`pip3 install genomicsqlite` or `conda install genomicsqlite`):
+The Python package includes a `genomicsqlite` script that enters the [`sqlite3` interactive shell](https://sqlite.org/cli.html) on an existing compressed database. This is a convenient way to inspect and explore the data with *ad hoc* SQL queries, as one might use `grep` or `awk` on text files. With the Python package installed (`pip3 install genomicsqlite` or `conda install genomicsqlite`):
 
 ```
 $ genomicsqlite DB_FILENAME [--readonly]
@@ -194,7 +194,7 @@ $ genomicsqlite DB_FILENAME --compact
 
 generates `DB_FILENAME.compact`; see its `--help` for additional options. 
 
-Due to decompression overhead, this compaction procedure may be too slow for large tables that weren't initially written in their primary key order. To prevent this, see below *Optimizing storage layout*.
+Due to decompression overhead, this compaction procedure may run too slowly for large tables that weren't initially written in their primary key order. To prevent this, see below *Optimizing storage layout*.
 
 ## Reading databases over the web
 
@@ -218,21 +218,21 @@ The above-described `genomicsqlite DB_FILENAME --compact` tool can optimize a fi
     1. Process the rows in primary key order, if feasible (otherwise, see below *Optimizing storage layout*).
     1. Consider preparing data in producer thread(s), with a consumer thread executing insertion statements in a tight loop.
     1. Bind text/blob parameters using [`SQLITE_STATIC`](https://www.sqlite.org/c3ref/bind_blob.html) if suitable.
-1. Create secondary indices, including genomic range indices, only after loading all row data. Use [partial indices](https://www.sqlite.org/partialindex.html) when they suffice.
+1. Create secondary indexes, including genomic range indexes, only after loading all row data. Use [partial indexes](https://www.sqlite.org/partialindex.html) when they suffice.
 
 ### Optimizing storage layout
 
-For multiple reasons mentioned so far, large tables should have their rows initially inserted in primary key order (or whatever order will promote access locality), ensuring they'll be stored as such in the file; and tables should be written one-at-a-time. If it's inconvenient to process the input data in this way, the following procedure leverages SQLite features:
+For multiple reasons mentioned so far, large tables should have their rows initially inserted in primary key order (or whatever order will promote access locality), ensuring they'll be stored as such in the database file; and tables should be written one-at-a-time. If it's inconvenient to process the input data in this way, the following procedure can help:
 
-1. Create [*temporary* table(s)](https://sqlite.org/lang_createtable.html) with the same schema as the destination table(s).
-2. Stream all the data into these temporary tables, which are fast to write and read.
-3. `INSERT INTO permanent_table SELECT * FROM temp_table ORDER BY colA, colB, ...` using the desired sort order for each table.
+1. Create [*temporary* table(s)](https://sqlite.org/lang_createtable.html) with the same schema as the destination table(s), but omitting any PRIMARY KEY specifiers, UNIQUE constraints, or other indexes.
+2. Stream all the data into these temporary tables, which are fast to write and read, in whatever order is convenient.
+3. `INSERT INTO permanent_table SELECT * FROM temp_table ORDER BY colA, colB, ...` using the primary key (or other desired sort order) for each table.
 
 The Genomics Extension automatically enables SQLite's [parallel, external merge-sorter](https://sqlite.org/src/file/src/vdbesort.c) to execute the last step efficiently. Ensure it's [configured](https://www.sqlite.org/tempfiles.html) to use a suitable storage subsystem for big temporary files.
 
 ### Compression guidelines
 
-The [Zstandard](https://facebook.github.io/zstd/)-based [compression layer](https://github.com/mlin/sqlite_zstd_vfs) is effective at capturing the high compressibility of bioinformatics data. But, one should expect a general-purpose database to use extra space to keep everything organized, compared to a file format dedicated to one read-only schema. To set a rough expectation, the maintainers feel fairly satisfied if the database file size isn't more than double that of a bespoke compression format — especially if it includes useful indices (which if well-designed, should be relatively incompressible).
+The [Zstandard](https://facebook.github.io/zstd/)-based [compression layer](https://github.com/mlin/sqlite_zstd_vfs) is effective at capturing the high compressibility of bioinformatics data. But, one should expect a general-purpose database to use extra space to keep everything organized, compared to a file format dedicated to one read-only schema. To set a rough expectation, the maintainers feel fairly satisfied if the database file size isn't more than double that of a bespoke compression format — especially if it includes useful indexes (which if well-designed, should be relatively incompressible).
 
 The aforementioned zstd_level, threads, and page_size options all affect the compression time-space tradeoff, while enlarging the page cache can reduce decompression overhead (workload-dependent).
 
