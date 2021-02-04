@@ -68,7 +68,8 @@ std::string GenomicSQLiteDefaultConfigJSON() {
     "zstd_level": 6,
     "inner_page_KiB": 16,
     "outer_page_KiB": 32,
-    "web_log": 2
+    "web_log": 2,
+    "web_insecure": false
 })";
 }
 
@@ -171,7 +172,8 @@ string GenomicSQLiteURI(const string &dbfile, const string &config_json = "") {
     uri << "file:" << (web ? "/__web__" : SQLiteNested::urlencode(dbfile, true)) << "?vfs=zstd";
     if (web) {
         uri << "&mode=ro&immutable=1&web_url=" << SQLiteNested::urlencode(dbfile)
-            << "&web_log=" << std::to_string(cfg.GetInt("$.web_log"));
+            << "&web_log=" << cfg.GetInt("$.web_log")
+            << "&web_insecure=" << (cfg.GetBool("$.web_insecure") ? 1 : 0);
     }
     int threads = cfg.GetInt("$.threads");
     uri << "&outer_cache_size=-65536"
