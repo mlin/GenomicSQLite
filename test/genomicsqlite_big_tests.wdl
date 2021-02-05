@@ -126,7 +126,7 @@ task test_sam {
         >&2 ls -l '~{dbname}'
 
         # compaction
-        time /usr/lib/python3.8/genomicsqlite.py --compact --level 8 --inner-page-KiB 64 --outer-page-KiB 2 '~{dbname}'
+        time /usr/lib/python3.8/genomicsqlite.py '~{dbname}' --compact --level 8 --inner-page-KiB 64 --outer-page-KiB 2
         >&2 ls -l '~{dbname}'*
 
         # GRI query
@@ -193,7 +193,7 @@ task test_sam_web {
         #             http://nginx.org/en/docs/http/configuring_https_servers.html
         READS_DB_DIR="$(dirname '~{reads_db}')"
         cat << EOF > nginx.config
-        worker_processes     4;
+        worker_processes     8;
         error_log            stderr warn;
         events {
         }
