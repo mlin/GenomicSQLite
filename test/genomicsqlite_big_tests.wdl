@@ -71,7 +71,7 @@ task build {
 
     Array[String] apt_deps = [
         "zip", "pigz", "wget", "build-essential", "git-core", "sqlite3", "cmake", "libsqlite3-dev",
-        "libzstd-dev", "python3-pip", "maven", "cargo", "libhts-dev", "samtools", "tabix"
+        "libzstd-dev", "python3-pip", "maven", "cargo", "libhts-dev", "samtools", "tabix", "libcurl4-openssl-dev"
     ]
     Array[String] pip_deps = ["pytest", "pytest-xdist"]
 
