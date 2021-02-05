@@ -23,6 +23,13 @@ workflow genomicsqlite_big_tests {
         sam_into_sqlite = build.sam_into_sqlite
     }
 
+    call test_sam_web {
+        input:
+        reads_db = test_sam.reads_db,
+        libgenomicsqlite_so = select_first([libgenomicsqlite_so, build.libgenomicsqlite_so]),
+        genomicsqlite_py = build.genomicsqlite_py
+    }
+
     call test_vcf {
         input:
         variants = variants,
@@ -115,14 +122,18 @@ task test_sam {
         >&2 ls -l "$reads_file"
 
         # load database
-        time sam_into_sqlite --inner-page-KiB 64 --outer-page-KiB 2 "$reads_file" "~{dbname}"
+        time sam_into_sqlite --level -1 --inner-page-KiB 64 --outer-page-KiB 4 "$reads_file" "~{dbname}"
         >&2 ls -l "~{dbname}"
+
+        # compaction
+        time /usr/lib/python3.8/genomicsqlite.py --compact --level 8 --inner-page-KiB 64 --outer-page-KiB 2 "~{dbname}"
+        >&2 ls -l "~{dbname}*"
 
         # GRI query
         time python3 - <<"EOF"
         import sys
         import genomicsqlite
-        dbconn = genomicsqlite.connect('~{dbname}', read_only=True)
+        dbconn = genomicsqlite.connect('~{dbname}.compact', read_only=True)
         chr = genomicsqlite.get_reference_sequences_by_name(dbconn)
         query = 'SELECT count(*) FROM ' + genomicsqlite.genomic_range_rowids_sql(dbconn, 'reads')
         print(query, file=sys.stderr)
@@ -132,21 +143,105 @@ task test_sam {
         EOF
 
         # page compression stats
-        time sqlite3 "~{dbname}" "SELECT meta1, count(*), avg(length(data)) FROM nested_vfs_zstd_pages GROUP BY meta1" >&2
+        time sqlite3 "~{dbname}.compact" "SELECT meta1, count(*), avg(length(data)) FROM nested_vfs_zstd_pages GROUP BY meta1" >&2
 
         # add a QNAME-sorted seqs table. TODO: write it into a separate attached db
         chmod +x /usr/lib/python3.8/genomicsqlite.py
-        time /usr/lib/python3.8/genomicsqlite.py "~{dbname}" "PRAGMA journal_mode=off; PRAGMA synchronous=off; CREATE TABLE reads_seqs_by_qname AS SELECT * from reads_seqs NOT INDEXED ORDER BY qname"
-        >&2 ls -l "~{dbname}"
+        time /usr/lib/python3.8/genomicsqlite.py "~{dbname}.compact" "PRAGMA journal_mode=off; PRAGMA synchronous=off; CREATE TABLE reads_seqs_by_qname AS SELECT * from reads_seqs NOT INDEXED ORDER BY qname"
     >>>
 
     output {
-        File reads_db = dbname
+        File reads_db = dbname + ".compact"
         Int reads_db_size = round(size(dbname))
         Int reads_original_size = round(size(reads))
     }
 
     Array[String] apt_deps = ["sqlite3", "samtools", "tabix", "libzstd1", "pigz", "wget"]
+
+    runtime {
+        cpu: 8
+        inlineDockerfile: [
+            "FROM ubuntu:20.04",
+            "RUN apt-get -qq update && DEBIAN_FRONTEND=noninteractive apt-get install -qq -y ~{sep(' ', apt_deps)}"
+        ]
+    }
+}
+
+task test_sam_web {
+    input {
+        File reads_db
+        File genomicsqlite_py
+        File libgenomicsqlite_so
+    }
+
+    command <<<
+        set -euxo pipefail
+        TMPDIR=${TMPDIR:-/tmp}
+
+        cp ~{genomicsqlite_py} /usr/local/bin/genomicsqlite
+        chmod +x /usr/local/bin/genomicsqlite
+        cp ~{libgenomicsqlite_so} /usr/local/lib/libgenomicsqlite.so
+        ldconfig
+
+        # make self-signed cert
+        openssl req -new -newkey rsa:4096 -days 365 -nodes -x509 \
+            -subj "/C=US/ST=Denial/L=Springfield/O=Dis/CN=www.example.com" \
+            -keyout /tmp/www.example.com.key  -out /tmp/www.example.com.crt
+
+        # write nginx.config as heredoc
+        # references: https://docs.nginx.com/nginx/admin-guide/web-server/serving-static-content/
+        #             http://nginx.org/en/docs/http/configuring_https_servers.html
+        READS_DB_DIR="$(dirname '~{reads_db}')"
+        cat << EOF > nginx.config
+        worker_processes     4;
+        error_log            stderr warn;
+        events {
+        }
+        http {
+            access_log                stderr;
+            proxy_max_temp_file_size  0;
+            sendfile                  on;
+            sendfile_max_chunk        1m;
+
+            server {
+                root                 $READS_DB_DIR;
+                listen               9999 ssl;
+                ssl_certificate      /tmp/www.example.com.crt;
+                ssl_certificate_key  /tmp/www.example.com.key;
+
+                location / {
+                }
+            }
+        }
+        EOF
+
+        # start nginx as background process
+        nginx -Tc "$(pwd)/nginx.config"
+        nginx -c "$(pwd)/nginx.config"
+
+        export SQLITE_WEB_INSECURE=1
+        export SQLITE_WEB_LOG=4
+        URL="$(basename '~{reads_db}')"
+        URL="https://localhost:9999/${URL}"
+
+        # GRI query
+        >&2 genomicsqlite "$URL" -readonly \
+            "SELECT count(1)
+             FROM (SELECT _gri_rid AS rid FROM _gri_refseq WHERE gri_refseq_name='chr21') AS query, reads
+             WHERE reads._rowid_ IN genomic_range_rowids('reads', query.rid, 20000000, 20100000)"
+
+        # big aggregation
+        >&2 genomicsqlite "$URL" -readonly \
+            'SELECT gri_refseq_name, count(1) AS read_count
+                FROM reads LEFT JOIN _gri_refseq USING(_gri_rid)
+                GROUP BY gri_refseq_name
+                ORDER BY read_count DESC'
+
+        # stop nginx
+        killall nginx || true
+    >>>
+
+    Array[String] apt_deps = ["sqlite3", "nginx", "openssl", "python3-minimal", "libcurl4", "psmisc"]
 
     runtime {
         cpu: 8
