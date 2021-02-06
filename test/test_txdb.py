@@ -1,6 +1,5 @@
 import os
 import sys
-import sqlite3
 import subprocess
 import random
 import pytest
@@ -27,9 +26,7 @@ def genomicsqlite_txdb(txdb):
     http://bioconductor.org/packages/release/BiocViews.html#___TxDb
     """
     outfile = txdb[:-7] + ".genomicsqlite"
-    conn = sqlite3.connect(txdb, uri=True)
-    conn.executescript(genomicsqlite.vacuum_into_sql(conn, outfile))
-    conn.close()
+    genomicsqlite._compact(txdb, ["-o", outfile])
     # create GRIs on the three feature tables
     conn = genomicsqlite.connect(outfile)
     conn.executescript(

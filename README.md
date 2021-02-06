@@ -5,8 +5,9 @@
 This [SQLite3 loadable extension](https://www.sqlite.org/loadext.html) adds features to the [ubiquitous](https://www.sqlite.org/mostdeployed.html) embedded RDBMS supporting applications in genome bioinformatics:
 
 * genomic range indexing for overlap queries & joins
-* streaming storage compression (also available [standalone](https://github.com/mlin/sqlite_zstd_vfs))
 * in-SQL utility functions, e.g. reverse-complement DNA, parse "chr1:2,345-6,789"
+* automatic streaming storage compression (also available [standalone](https://github.com/mlin/sqlite_zstd_vfs))
+* reading directly from HTTP(S) URLs (also available [standalone](https://github.com/mlin/sqlite_web_vfs))
 * pre-tuned settings for "big data"
 
 This October 2020 poster discusses the context and long-run ambitions:

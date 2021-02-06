@@ -1,4 +1,4 @@
-# Language Bindings Guide
+# Writing Language Bindings
 
 Thank you for considering a contribution to the language bindings available for the Genomics Extension!
 

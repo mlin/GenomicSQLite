@@ -7,8 +7,9 @@
 This [SQLite3 loadable extension](https://www.sqlite.org/loadext.html) supports applications in genome bioinformatics by adding:
 
 * genomic range indexing for overlap queries & joins
-* streaming storage compression using multithreaded [Zstandard](https://facebook.github.io/zstd/)
-* in-SQL utility functions, e.g. reverse complement DNA or parse "chr1:2,345-6,789"
+* in-SQL utility functions, e.g. reverse-complement DNA, parse "chr1:2,345-6,789"
+* automatic streaming storage compression
+* reading directly from HTTP(S) URLs
 * pre-tuned settings for "big data"
 
 This October 2020 poster discusses the context and long-run ambitions:
@@ -30,7 +31,7 @@ If this is too old, then upgrade SQLite3 using your preferred binary package man
 * [Rpmfind: libsqlite3](https://rpmfind.net/linux/rpm2html/search.php?query=libsqlite3&submit=Search+...&system=&arch=)
 * [Sqlite :: Anaconda Cloud](https://anaconda.org/anaconda/sqlite)
 * Homebrew [formula/sqlite](https://formulae.brew.sh/formula/sqlite), [formula-linux/sqlite](https://formulae.brew.sh/formula-linux/sqlite)
-* As a last resort for GNU/Linux, our [GitHub Releases](https://github.com/mlin/GenomicSQLite/releases) include a `libsqlite3.so.0` that should be compatible with modern (2016+) hosts.
+* As a last resort for GNU/Linux, our [GitHub Releases](https://github.com/mlin/GenomicSQLite/releases) include a `libsqlite3.so.0` that should be compatible with modern (2015+) hosts.
 
 You can always `SELECT sqlite_version()` to verify the upgrade in your program.
 
@@ -92,7 +93,7 @@ It's usually easiest to obtain the extension as a pre-compiled shared library (L
 
 See our [GitHub README](https://github.com/mlin/GenomicSQLite) for the source build procedure, if needed.
 
-We welcome community contributions to the available language bindings; see the Language Bindings Guide if interested.
+We welcome community contributions to the available language bindings; see the [Language Bindings Guide](bindings.md) if interested.
 
 ## Smoke test
 
@@ -122,4 +123,4 @@ The extension makes SQLite an efficient foundation for:
 2. Parallel SQL analytics / OLAP: see [Spark](https://spark.apache.org/), [DuckDB](https://duckdb.org/), many commercial products. <small>(Some bases can be covered with a sharding harness for a pool of threads with their own SQLite connections...)</small>
 3. Streaming: SQLite storage relies on randomly reading & writing throughout the database file.
 
-**Proceed to the Programming Guide section to get started building applications.**
+**Proceed to the [Programming Guide](guide_db.md) section to get started building applications.**
