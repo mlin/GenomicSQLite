@@ -1,6 +1,6 @@
 # Programming Guide - Useful Routines
 
-#### DNA reverse complement
+### DNA reverse complement
 
 Reverse-complements a DNA text value (containing only characters from the set `AGCTagct`), preserving original case.
 
@@ -11,7 +11,7 @@ Reverse-complements a DNA text value (containing only characters from the set `A
 
 Given NULL, returns NULL. Any other input is an error.
 
-#### Parse genomic range text
+### Parse genomic range text
 
 These SQL functions process a text value like `'chr1:2,345-6,789'` into its three parts (sequence/chromosome name, begin position, and end position).
 
@@ -26,7 +26,7 @@ These SQL functions process a text value like `'chr1:2,345-6,789'` into its thre
 
 Given NULL, each function returns NULL. An error is raised if the text value can't be parsed, or for any other input type.
 
-#### Two-bit encoding for nucleotide sequences
+### Two-bit encoding for nucleotide sequences
 
 The extension supplies SQL functions to pack a DNA/RNA sequence TEXT value into a smaller BLOB value, using two bits per nucleotide. (Review [SQLite Datatypes](https://www.sqlite.org/datatype3.html) on the important differences between TEXT and BLOB values & columns.) Storing a large database of sequences using such BLOBs instead of TEXT can improve application I/O efficiency, with up to 4X more nucleotides cached in the same memory space. It is not, however, expected to greatly shrink the database file on disk, owing to the automatic storage compression.
 
@@ -76,13 +76,13 @@ Given a two-bit-encoded BLOB value, return the length of the *decoded* sequence 
 
 Given a TEXT value, return its byte length. Given NULL, return NULL. Any other input is an error.
 
-#### JSON1 and UINT extensions
+### JSON1 and UINT extensions
 
 The Genomics Extension bundles the SQLite developers' [JSON1 extension](https://www.sqlite.org/json1.html) and enables it automatically. By convention, JSON object columns should be named \*_json and JSON array columns should be named \*_jsarray. The JSON1 functions can be used with [generated columns](https://sqlite.org/gencol.html) to effectively allow indexing of JSON-embedded fields.
 
 The [UINT collating sequence](https://www.sqlite.org/uintcseq.html) is also bundled. This can be useful to make e.g. `ORDER BY chromosome COLLATE UINT` put 'chr2' before 'chr10'.
 
-#### Attach GenomicSQLite database
+### Attach GenomicSQLite database
 
 **↪ GenomicSQLite Attach:** *Generate a string* containing a series of SQL statements to execute on an existing database connection in order to [ATTACH](https://www.sqlite.org/lang_attach.html) a GenomicSQLite database under a given schema name. The main connection may be a plain, uncompressed SQLite3 database, as long as (i) it was opened with the `SQLITE_OPEN_URI` flag or language equivalent and (ii) the Genomics Extension is loaded in the executing program.
 
@@ -184,7 +184,7 @@ The [UINT collating sequence](https://www.sqlite.org/uintcseq.html) is also bund
 
 ❗ The file and schema names are textually pasted into a template SQL script. Take care to prevent SQL injection, if they're in any way determined by external input.
 
-#### Compress existing SQLite3 database
+### Compress existing SQLite3 database
 
 **↪ GenomicSQLite Vacuum Into:** *Generate a string* containing a series of SQL statements to execute on an existing database in order to copy it into a new compressed & [defragmented](https://www.sqlite.org/lang_vacuum.html) file. The source database may be a plain, uncompressed SQLite3 database, as long as (i) it was opened with the `SQLITE_OPEN_URI` flag or language equivalent and (ii) the Genomics Extension is loaded in the executing program.
 
@@ -289,7 +289,7 @@ The [UINT collating sequence](https://www.sqlite.org/uintcseq.html) is also bund
     /* genomicsqlite_open("compressed.db", ...); */
     ```
 
-#### Genomics Extension version
+### Genomics Extension version
 
 === "SQL"
     ``` sql

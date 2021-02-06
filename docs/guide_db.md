@@ -186,23 +186,21 @@ $ genomicsqlite DB_FILENAME [--readonly]
 
 to enter the SQL prompt with the database open. Or, add an SQL statement (in quotes) to perform and exit. If you've installed the Python package but the script isn't found, set your `PATH` to include the `bin` directory with Python console scripts.
 
-**Database compaction.** The utility also has a subcommand to re-compress and defragment an existing database file, which can increase its compression level and optimize access to it.
+**Database compaction.** The utility has a subcommand to compress and defragment an existing database file (compressed or uncompressed), which can increase its compression level and optimize access to it.
 
 ```
 $ genomicsqlite DB_FILENAME --compact
 ```
 
-generates `DB_FILENAME.compact`; see its `--help` for additional options.
+generates `DB_FILENAME.compact`; see its `--help` for additional options, in particular `--level`, `--inner-page-KiB` and `--outer-page-KiB` affect the output file size as discussed above.
 
-Due to decompression overhead, the compaction procedure may run too slowly for large tables that weren't initially written in their primary key order. To prevent this, see below *Optimizing storage layout*.
-
-The tool is also able to convert an existing, uncompressed SQLite3 database file.
+Due to decompression overhead, the compaction procedure may be impractically slow if the database has big tables that weren't initially written in their primary key order. To prevent this, see below *Optimizing storage layout*.
 
 ## Reading databases over the web
 
-The **GenomicSQLite Open** routine and the `genomicsqlite` utility also accept http: and https: URLs instead of local filenames, creating a connection to read the compressed file over the web directly. The database connection must be opened read-only in the appropriate manner for your language bindings (such as the flag `SQLITE_OPEN_READONLY`). The URL server must support [HTTP GET range](https://developer.mozilla.org/en-US/docs/Web/HTTP/Range_requests) requests, and the content must not change for the lifetime of the connection.
+The **GenomicSQLite Open** routine and the `genomicsqlite` shell also accept http: and https: URLs instead of local filenames, creating a connection to read the compressed file over the web directly. The database connection must be opened read-only in the appropriate manner for your language bindings (such as the flag `SQLITE_OPEN_READONLY`). The URL server must support [HTTP GET range](https://developer.mozilla.org/en-US/docs/Web/HTTP/Range_requests) requests, and the content must not change for the lifetime of the connection.
 
-Under the hood, the extension uses [libcurl](https://curl.se/libcurl/) to send web requests for necessary portions of the database file as queries proceed. It has adaptive batching & prefetching to balance the number and size of these requests. This works well for point lookups and queries that scan largely-contiguous slices of tables and indexes (a modest number thereof). It's less suitable for big multi-way joins and other aggressively random access patterns; in such cases, it'd be better to download the database file upfront to open locally.
+Under the hood, the extension uses [libcurl](https://curl.se/libcurl/) to send web requests for necessary portions of the database file as queries proceed, with adaptive batching & prefetching to balance the number and size of these requests. This works well for point lookups and queries that scan largely-contiguous slices of tables and indexes (a modest number thereof). It's less suitable for big multi-way joins and other aggressively random access patterns; in such cases, it'd be better to download the database file upfront to open locally.
 
 * The above-described `genomicsqlite DB_FILENAME --compact` tool can optimize a file's suitability for web access.
 * Reading large databases over the web, budget an additional ~600MiB of memory for HTTP prefetch buffers.
