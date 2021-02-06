@@ -342,7 +342,10 @@ def _compact(dbfilename, argv):
     )
     parser.add_argument("-q", dest="quiet", action="store_true", help="suppress progress messages")
     args = parser.parse_args(argv)
-    cfg = {"unsafe_load": True}
+    cfg = {"page_cache_MiB": 64}
+    # reduced page_cache_MiB: memory usage goes unexpectedly high otherwise. Theory: SQLite
+    # miscalculates the size of the page cache for the new database file when we use VACUUM INTO,
+    # maybe due to some confusion involving the cache_size & page_size of the two database files.
     for k in ("zstd_level", "inner_page_KiB", "outer_page_KiB", "threads"):
         cfg[k] = vars(args)[k]
 
