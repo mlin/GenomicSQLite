@@ -37,7 +37,7 @@ First complete the [installation instructions](index.md).
 === "C++"
     ``` c++
     #include <sqlite3.h>
-    #include "SQLiteCpp/SQLiteCpp.h" // optional 
+    #include "SQLiteCpp/SQLiteCpp.h" // optional
     #include "genomicsqlite.h"
 
     int main() {
