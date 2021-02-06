@@ -192,9 +192,11 @@ to enter the SQL prompt with the database open. Or, add an SQL statement (in quo
 $ genomicsqlite DB_FILENAME --compact
 ```
 
-generates `DB_FILENAME.compact`; see its `--help` for additional options. 
+generates `DB_FILENAME.compact`; see its `--help` for additional options.
 
-Due to decompression overhead, this compaction procedure may run too slowly for large tables that weren't initially written in their primary key order. To prevent this, see below *Optimizing storage layout*.
+Due to decompression overhead, the compaction procedure may run too slowly for large tables that weren't initially written in their primary key order. To prevent this, see below *Optimizing storage layout*.
+
+The tool is also able to convert an existing, uncompressed SQLite3 database file.
 
 ## Reading databases over the web
 

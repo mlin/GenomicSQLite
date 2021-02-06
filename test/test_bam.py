@@ -36,8 +36,9 @@ def test_bam(tmp_path):
     dbfile = str(tmp_path / "test.bam.sqlite")
 
     sam_into_sqlite(bamfile, str(dbfile), "--table-prefix", "NA12878_")
+    genomicsqlite._compact(str(dbfile), [])
 
-    con = genomicsqlite.connect(dbfile, read_only=True)
+    con = genomicsqlite.connect(str(dbfile) + ".compact", read_only=True)
 
     count = next(con.execute("SELECT COUNT(*) FROM NA12878_reads"))[0]
     assert count == 592861

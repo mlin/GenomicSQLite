@@ -342,18 +342,38 @@ def _compact(dbfilename, argv):
     )
     parser.add_argument("-q", dest="quiet", action="store_true", help="suppress progress messages")
     args = parser.parse_args(argv)
+    cfg = {"unsafe_load": True}
+    for k in ("zstd_level", "inner_page_KiB", "outer_page_KiB", "threads"):
+        cfg[k] = vars(args)[k]
 
-    # open db (sniffing whether it's currently compressed or not)
+    # sniff whether input db is currently compressed with zstd_vfs or not
     con = None
     web = dbfilename.startswith("http:") or dbfilename.startswith("https:")
     if not web:
         con = sqlite3.connect(f"file:{urllib.parse.quote(dbfilename)}?mode=ro", uri=True)
-        if next(con.execute("PRAGMA application_id"))[0] == 0x7A737464:
+        if next(con.execute("PRAGMA application_id"))[0] != 0x7A737464:
+            # db is uncompressed: apply tuning PRAGMAs
+            if not args.quiet:
+                print(f"Opened uncompressed database {dbfilename}", file=sys.stderr)
+                sys.stderr.flush()
+            con.executescript(
+                _execute1(
+                    con,
+                    "SELECT genomicsqlite_tuning_sql(?)",
+                    (json.dumps(cfg),),
+                )
+            )
+        else:
+            # db is zstd_vfs outer db; proceed to open using our own connect()
+            con.close()
             con = None
     if not con:
-        con = connect(dbfilename, read_only=True)
+        if not args.quiet:
+            print(f"Opening compressed database {dbfilename} ...", file=sys.stderr)
+            sys.stderr.flush()
+        con = connect(dbfilename, read_only=True, **cfg)
 
-    # VACUUM INTO to recompress
+    # VACUUM INTO to [re]compress
     destfilename = args.out_filename
     if not destfilename:
         destfilename = dbfilename
@@ -371,9 +391,6 @@ def _compact(dbfilename, argv):
         sys.stderr.flush()
     if args.force and os.path.isfile(destfilename):
         os.unlink(destfilename)
-    cfg = {}
-    for k in ("zstd_level", "inner_page_KiB", "outer_page_KiB", "threads"):
-        cfg[k] = vars(args)[k]
     con.executescript(vacuum_into_sql(con, destfilename, **cfg))
     con.close()
 
