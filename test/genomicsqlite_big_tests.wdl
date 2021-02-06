@@ -122,11 +122,11 @@ task test_sam {
         >&2 ls -l "$reads_file"
 
         # load database
-        time sam_into_sqlite --level -1 --inner-page-KiB 64 --outer-page-KiB 4 "$reads_file" '~{dbname}'
+        time sam_into_sqlite "$reads_file" '~{dbname}'
         >&2 ls -l '~{dbname}'
 
         # compaction
-        time /usr/lib/python3.8/genomicsqlite.py '~{dbname}' --compact --level 8 --inner-page-KiB 64 --outer-page-KiB 2
+        time /usr/lib/python3.8/genomicsqlite.py '~{dbname}' --compact --level 9 --inner-page-KiB 64 --outer-page-KiB 1
         >&2 ls -l '~{dbname}'*
 
         # GRI query
