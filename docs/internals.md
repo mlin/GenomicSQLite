@@ -6,7 +6,7 @@
 
 SQLite's [file format](https://www.sqlite.org/fileformat.html) divides the database file into a number of fixed-size pages, and it makes I/O requests one page at a time. The [compression layer](https://github.com/mlin/sqlite_zstd_vfs) is a [VFS extension](https://www.sqlite.org/vfs.html) intermediating these requests, using [Zstandard](https://facebook.github.io/zstd/) to compress pages as they're written out and decompress as they're read back in. It uses background thread pools both to parallelize page compression and to "prefetch" during sequential scans.
 
-The compressed pages must be stored in a file that can still be randomly accessed and updated, despite now being variable-length. To solve this, the compression layer uses an "outer" SQLite database, effectively nesting one database inside another. Where SQLite would write database page #P at offset P × page_size in the disk file, instead `INSERT INTO outer_page_table(rowid,data) VALUES(P,compressed_inner_page)`, and later `SELECT data FROM outer_page_table WHERE rowid=P`. Outer database transactions maintain ACID reliability (use at your own risk).
+The compressed pages are now variable length, yet still must be stored in a disk file that can be randomly accessed and updated. To solve this, the compression layer uses an "outer" SQLite3 database, effectively nesting one database inside another. Where SQLite would write database page #P at offset P × page_size in the disk file, instead `INSERT INTO outer_page_table(rowid,data) VALUES(P,compressed_inner_page)`, and later `SELECT data FROM outer_page_table WHERE rowid=P`. Outer database transactions maintain ACID reliability (use at your own risk).
 
 ## Genomic Range Index
 
