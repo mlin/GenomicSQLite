@@ -162,7 +162,7 @@ By the half-open position convention, this includes features that *abut* as well
 
 The optional, trailing `ceiling` & `floor` arguments to `genomic_range_rowids()` optimize GRI queries by skipping steps that'd be useless in view of the length distribution of the indexed features. (See Internals for full explanation.)
 
-The extension supplies a SQL helper function `genomic_range_index_levels(tableName)` to detect the appropriate bounds for (the current snapshot of) the table. Example usage:
+The extension supplies a SQL helper function `genomic_range_index_levels(tableName)` to detect the appropriate bounds for the current version of the table. Example usage:
 
 ```sql
 SELECT col1, col2, ... FROM exons, genomic_range_index_levels('exons')
@@ -173,26 +173,9 @@ SELECT col1, col2, ... FROM exons, genomic_range_index_levels('exons')
 
 Here `_gri_ceiling` and `_gri_floor` are columns of the single row computed by `genomic_range_index_levels('exons')`.
 
-Alternatively, your program might first query `genomic_range_index_levels()` alone, then pass the bounds in to subsequent prepared queries, e.g. in Python:
+`genomic_range_index_levels()` performs some upfront analysis of the GRI, the cost of which will be worthwhile if used to optimize many subsequent GRI queries (but not just one or a few). For a given table in the main schema, multiple uses of `genomic_range_index_levels()` on the same connection will automatically reuse the first analysis results, so long as the database isn't written to in the meantime. 
 
-```python3
-(gri_ceiling, gri_floor) = next(
-    con.execute("SELECT * FROM genomic_range_index_levels('exons')")
-  )
-for (queryChrom, queryBegin, queryEnd) in queryRanges:
-  exons = list(
-    con.execute(
-      "SELECT * from exons WHERE exons._rowid_ IN \
-        genomic_range_rowids('exons',?,?,?,?,?)",
-      (queryChrom, queryBegin, queryEnd, gri_ceiling, gri_floor)
-    )
-  )
-  ...
-```
-
-This bounds detection procedure has a small cost, which will be worthwhile if used to optimize many subsequent GRI queries (but possibly not if just for a few).
-
-**❗ The bounds should be redetected if the min/max feature length may have been changed by inserts or updates to the table. GRI queries with incorrect bounds are liable to produce incomplete results.**
+**❗ Do not use `genomic_range_index_levels()` if a transaction is still open in which the table was previously modified, as its results may be incorrect in that case.**
 
 Omitting the bounds is always safe, albeit slower. <small>Instead of detecting current bounds, they can be figured manually as follows. Set the integer ceiling to *C*, 0 &lt; *C* &lt; 16, such that all (present & future) indexed features are guaranteed to have lengths &le;16<sup>*C*</sup>. For example, if you're querying features on the human genome, then you can set ceiling=7 because the lengthiest chromosome sequence is &lt;16<sup>7</sup>nt. Set the integer floor *F* to (i) the floor value supplied at GRI creation, if any; (ii) *F* &gt; 0 such that the minimum possible feature length &gt;16<sup>*F*-1</sup>, if any; or (iii) zero. The default, safe, albeit slower bounds are C=15, F=0.</small>
 
@@ -214,7 +197,7 @@ FROM genomic_range_index_levels('exons'),
   )
 ```
 
-We fill out the GRI query range using the three coordinate columns of the variants table. The level bounds optimization is highly desirable for the "tight loop" of GRI queries during a join. See also "Advice for big data" below.
+We fill out the GRI query range using the three coordinate columns of the variants table. The level bounds optimization is highly desirable for the "tight loop" of GRI queries during a big join. See also "Advice for big data" below.
 
 ### Reference genome metadata
 

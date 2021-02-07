@@ -324,6 +324,21 @@ def test_gri_levels_in_sql(tmp_path):
     _fill_exons(con)
     con.commit()
 
+    # test caching & invalidation:
+    results = list(con.execute("SELECT * FROM genomic_range_index_levels('exons')"))
+    assert results == [(3, 1)]
+    results = list(con.execute("SELECT * FROM genomic_range_index_levels('exons')"))
+    assert results == [(3, 1)]
+    results = list(con.execute("SELECT * FROM genomic_range_index_levels('main.exons')"))
+    assert results == [(3, 1)]
+    con.execute("INSERT INTO exons VALUES('ether',0,4097,4097,'ether')")
+    con.commit()
+    results = list(con.execute("SELECT * FROM genomic_range_index_levels('exons')"))
+    assert results == [(4, 1)]
+    con.execute("DELETE FROM exons WHERE rid = 'ether'")
+    con.commit()
+    results = list(con.execute("SELECT * FROM genomic_range_index_levels('main.exons')"))
+    assert results == [(3, 1)]
     results = list(con.execute("SELECT * FROM genomic_range_index_levels('exons')"))
     assert results == [(3, 1)]
 
