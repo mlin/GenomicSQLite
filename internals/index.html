@@ -163,8 +163,8 @@
 
 
   <li class="md-nav__item">
-    <a href="../guide/" title="Programming Guide" class="md-nav__link">
-      Programming Guide
+    <a href="../guide_db/" title="Opening Compressed Databases" class="md-nav__link">
+      Opening Compressed Databases
     </a>
   </li>
 
@@ -175,8 +175,32 @@
 
 
   <li class="md-nav__item">
-    <a href="../bindings/" title="Language Bindings Guide" class="md-nav__link">
-      Language Bindings Guide
+    <a href="../guide_gri/" title="Genomic Range Indexing" class="md-nav__link">
+      Genomic Range Indexing
+    </a>
+  </li>
+
+    
+      
+      
+      
+
+
+  <li class="md-nav__item">
+    <a href="../guide_helpers/" title="Useful Routines" class="md-nav__link">
+      Useful Routines
+    </a>
+  </li>
+
+    
+      
+      
+      
+
+
+  <li class="md-nav__item">
+    <a href="../bindings/" title="Writing Language Bindings" class="md-nav__link">
+      Writing Language Bindings
     </a>
   </li>
 
@@ -340,7 +364,8 @@
                 <h1 id="genomics-extension-internals">Genomics Extension Internals</h1>
 <h2 id="compression-layer">Compression layer</h2>
 <p><img alt="Compression layer figure" src="../sqlite_zstd_vfs.png" /></p>
-<p><em>To be written; for now see <a href="https://github.com/mlin/sqlite_zstd_vfs">sqlite_zstd_vfs</a></em></p>
+<p>SQLite's <a href="https://www.sqlite.org/fileformat.html">file format</a> divides the database file into a number of fixed-size pages, and it makes I/O requests one page at a time. The <a href="https://github.com/mlin/sqlite_zstd_vfs">compression layer</a> is a <a href="https://www.sqlite.org/vfs.html">VFS extension</a> intermediating these requests, using <a href="https://facebook.github.io/zstd/">Zstandard</a> to compress pages as they're written out and decompress as they're read back in. It uses background thread pools both to parallelize page compression and to "prefetch" during sequential scans.</p>
+<p>The compressed pages are now variable length, yet still must be stored in a disk file that can be randomly accessed and updated. To solve this, the compression layer uses an "outer" SQLite3 database, effectively nesting one database inside another. Where SQLite would write database page #P at offset P × page_size in the disk file, instead <code>INSERT INTO outer_page_table(rowid,data) VALUES(P,compressed_inner_page)</code>, and later <code>SELECT data FROM outer_page_table WHERE rowid=P</code>. Outer database transactions maintain ACID reliability (use at your own risk).</p>
 <h2 id="genomic-range-index">Genomic Range Index</h2>
 <p><img alt="GRI figure" src="../gri.png" /></p>
 <p>The GenomicSQLite GRI is a conventional multi-column B-tree index, organized so that feature overlap with any length distribution is detectable using a series of SQL "between tuples" queries. </p>
@@ -500,7 +525,7 @@
     <div class="md-footer-nav">
       <nav class="md-footer-nav__inner md-grid" aria-label="Footer">
         
-          <a href="../bindings/" title="Language Bindings Guide" class="md-footer-nav__link md-footer-nav__link--prev" rel="prev">
+          <a href="../bindings/" title="Writing Language Bindings" class="md-footer-nav__link md-footer-nav__link--prev" rel="prev">
             <div class="md-footer-nav__button md-icon">
               <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11h12z"/></svg>
             </div>
@@ -509,7 +534,7 @@
                 <span class="md-footer-nav__direction">
                   Previous
                 </span>
-                Language Bindings Guide
+                Writing Language Bindings
               </div>
             </div>
           </a>

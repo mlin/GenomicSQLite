@@ -1,0 +1,740 @@
+
+
+
+<!doctype html>
+<html lang="en" class="no-js">
+  <head>
+    
+      <meta charset="utf-8">
+      <meta name="viewport" content="width=device-width,initial-scale=1">
+      
+      
+      
+      <link rel="shortcut icon" href="../assets/images/favicon.png">
+      <meta name="generator" content="mkdocs-1.1.2, mkdocs-material-5.4.0">
+    
+    
+      
+        <title>Opening Compressed Databases - Genomics Extension for SQLite</title>
+      
+    
+    
+      <link rel="stylesheet" href="../assets/stylesheets/main.fe0cca5b.min.css">
+      
+      
+    
+    
+    
+      
+        <link href="https://fonts.gstatic.com" rel="preconnect" crossorigin>
+        <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Roboto:300,400,400i,700%7CRoboto+Mono&display=fallback">
+        <style>body,input{font-family:"Roboto",-apple-system,BlinkMacSystemFont,Helvetica,Arial,sans-serif}code,kbd,pre{font-family:"Roboto Mono",SFMono-Regular,Consolas,Menlo,monospace}</style>
+      
+    
+    
+    
+    
+      
+    
+    
+  </head>
+  
+  
+    <body dir="ltr">
+  
+    
+    <input class="md-toggle" data-md-toggle="drawer" type="checkbox" id="__drawer" autocomplete="off">
+    <input class="md-toggle" data-md-toggle="search" type="checkbox" id="__search" autocomplete="off">
+    <label class="md-overlay" for="__drawer"></label>
+    <div data-md-component="skip">
+      
+        
+        <a href="#programming-guide-opening-compressed-databases" class="md-skip">
+          Skip to content
+        </a>
+      
+    </div>
+    <div data-md-component="announce">
+      
+    </div>
+    
+      <header class="md-header" data-md-component="header">
+  <nav class="md-header-nav md-grid" aria-label="Header">
+    <a href=".." title="Genomics Extension for SQLite" class="md-header-nav__button md-logo" aria-label="Genomics Extension for SQLite">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 003-3 3 3 0 00-3-3 3 3 0 00-3 3 3 3 0 003 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54z"/></svg>
+
+    </a>
+    <label class="md-header-nav__button md-icon" for="__drawer">
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M3 6h18v2H3V6m0 5h18v2H3v-2m0 5h18v2H3v-2z"/></svg>
+    </label>
+    <div class="md-header-nav__title" data-md-component="header-title">
+      
+        <div class="md-header-nav__ellipsis">
+          <span class="md-header-nav__topic md-ellipsis">
+            Genomics Extension for SQLite
+          </span>
+          <span class="md-header-nav__topic md-ellipsis">
+            
+              Opening Compressed Databases
+            
+          </span>
+        </div>
+      
+    </div>
+    
+      <label class="md-header-nav__button md-icon" for="__search">
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0116 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.516 6.516 0 019.5 16 6.5 6.5 0 013 9.5 6.5 6.5 0 019.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5z"/></svg>
+      </label>
+      
+<div class="md-search" data-md-component="search" role="dialog">
+  <label class="md-search__overlay" for="__search"></label>
+  <div class="md-search__inner" role="search">
+    <form class="md-search__form" name="search">
+      <input type="text" class="md-search__input" name="query" aria-label="Search" placeholder="Search" autocapitalize="off" autocorrect="off" autocomplete="off" spellcheck="false" data-md-component="search-query" data-md-state="active">
+      <label class="md-search__icon md-icon" for="__search">
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0116 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.516 6.516 0 019.5 16 6.5 6.5 0 013 9.5 6.5 6.5 0 019.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5z"/></svg>
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11h12z"/></svg>
+      </label>
+      <button type="reset" class="md-search__icon md-icon" aria-label="Clear" data-md-component="search-reset" tabindex="-1">
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12 19 6.41z"/></svg>
+      </button>
+    </form>
+    <div class="md-search__output">
+      <div class="md-search__scrollwrap" data-md-scrollfix>
+        <div class="md-search-result" data-md-component="search-result">
+          <div class="md-search-result__meta">
+            Initializing search
+          </div>
+          <ol class="md-search-result__list"></ol>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+    
+    
+  </nav>
+</header>
+    
+    <div class="md-container" data-md-component="container">
+      
+        
+      
+      
+        
+      
+      <main class="md-main" data-md-component="main">
+        <div class="md-main__inner md-grid">
+          
+            
+              <div class="md-sidebar md-sidebar--primary" data-md-component="navigation">
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    <nav class="md-nav md-nav--primary" aria-label="Navigation" data-md-level="0">
+  <label class="md-nav__title" for="__drawer">
+    <a href=".." title="Genomics Extension for SQLite" class="md-nav__button md-logo" aria-label="Genomics Extension for SQLite">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 003-3 3 3 0 00-3-3 3 3 0 00-3 3 3 3 0 003 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54z"/></svg>
+
+    </a>
+    Genomics Extension for SQLite
+  </label>
+  
+  <ul class="md-nav__list" data-md-scrollfix>
+    
+      
+      
+      
+
+
+  <li class="md-nav__item">
+    <a href=".." title="Intro & Install" class="md-nav__link">
+      Intro & Install
+    </a>
+  </li>
+
+    
+      
+      
+      
+
+  
+
+
+  <li class="md-nav__item md-nav__item--active">
+    
+    <input class="md-nav__toggle md-toggle" data-md-toggle="toc" type="checkbox" id="__toc">
+    
+      
+    
+    
+      <label class="md-nav__link md-nav__link--active" for="__toc">
+        Opening Compressed Databases
+        <span class="md-nav__icon md-icon">
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M3 9h14V7H3v2m0 4h14v-2H3v2m0 4h14v-2H3v2m16 0h2v-2h-2v2m0-10v2h2V7h-2m0 6h2v-2h-2v2z"/></svg>
+        </span>
+      </label>
+    
+    <a href="./" title="Opening Compressed Databases" class="md-nav__link md-nav__link--active">
+      Opening Compressed Databases
+    </a>
+    
+      
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon">
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11h12z"/></svg>
+      </span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#loading-the-extension" class="md-nav__link">
+    Loading the extension
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#opening-a-compressed-database" class="md-nav__link">
+    Opening a compressed database
+  </a>
+  
+    <nav class="md-nav" aria-label="Opening a compressed database">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#tuning-options" class="md-nav__link">
+    Tuning options
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#genomicsqlite-interactive-shell" class="md-nav__link">
+    genomicsqlite interactive shell
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#reading-databases-over-the-web" class="md-nav__link">
+    Reading databases over the web
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#advice-for-big-data" class="md-nav__link">
+    Advice for big data
+  </a>
+  
+    <nav class="md-nav" aria-label="Advice for big data">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#writing-large-databases-quickly" class="md-nav__link">
+    Writing large databases quickly
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#optimizing-storage-layout" class="md-nav__link">
+    Optimizing storage layout
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#compression-guidelines" class="md-nav__link">
+    Compression guidelines
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+    
+  </li>
+
+    
+      
+      
+      
+
+
+  <li class="md-nav__item">
+    <a href="../guide_gri/" title="Genomic Range Indexing" class="md-nav__link">
+      Genomic Range Indexing
+    </a>
+  </li>
+
+    
+      
+      
+      
+
+
+  <li class="md-nav__item">
+    <a href="../guide_helpers/" title="Useful Routines" class="md-nav__link">
+      Useful Routines
+    </a>
+  </li>
+
+    
+      
+      
+      
+
+
+  <li class="md-nav__item">
+    <a href="../bindings/" title="Writing Language Bindings" class="md-nav__link">
+      Writing Language Bindings
+    </a>
+  </li>
+
+    
+      
+      
+      
+
+
+  <li class="md-nav__item">
+    <a href="../internals/" title="Internals" class="md-nav__link">
+      Internals
+    </a>
+  </li>
+
+    
+  </ul>
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+            
+              <div class="md-sidebar md-sidebar--secondary" data-md-component="toc">
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon">
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11h12z"/></svg>
+      </span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#loading-the-extension" class="md-nav__link">
+    Loading the extension
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#opening-a-compressed-database" class="md-nav__link">
+    Opening a compressed database
+  </a>
+  
+    <nav class="md-nav" aria-label="Opening a compressed database">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#tuning-options" class="md-nav__link">
+    Tuning options
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#genomicsqlite-interactive-shell" class="md-nav__link">
+    genomicsqlite interactive shell
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#reading-databases-over-the-web" class="md-nav__link">
+    Reading databases over the web
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#advice-for-big-data" class="md-nav__link">
+    Advice for big data
+  </a>
+  
+    <nav class="md-nav" aria-label="Advice for big data">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#writing-large-databases-quickly" class="md-nav__link">
+    Writing large databases quickly
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#optimizing-storage-layout" class="md-nav__link">
+    Optimizing storage layout
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#compression-guidelines" class="md-nav__link">
+    Compression guidelines
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+          
+          <div class="md-content">
+            <article class="md-content__inner md-typeset">
+              
+                
+                
+                  
+                
+                
+                <h1 id="programming-guide-opening-compressed-databases">Programming Guide - Opening Compressed Databases</h1>
+<p>The Genomics Extension integrates with your programming language's existing SQLite3 bindings to provide a familiar experience wherever possible.</p>
+<ul>
+<li>Python: <a href="https://docs.python.org/3/library/sqlite3.html">sqlite3</a></li>
+<li>Java/JVM: <a href="https://github.com/xerial/sqlite-jdbc">sqlite-jdbc</a></li>
+<li>Rust: <a href="https://github.com/rusqlite/rusqlite">rusqlite</a></li>
+<li>C++: <a href="https://github.com/SRombauts/SQLiteCpp">SQLiteCpp</a> (optional, recommended) or directly using...</li>
+<li>C: <a href="https://www.sqlite.org/cintro.html">SQLite C/C++ API</a></li>
+</ul>
+<p>First complete the <a href="..">installation instructions</a>.</p>
+<h2 id="loading-the-extension">Loading the extension</h2>
+<div class="tabbed-set" data-tabs="1:5"><input checked="checked" id="__tabbed_1_1" name="__tabbed_1" type="radio" /><label for="__tabbed_1_1">Python</label><div class="tabbed-content">
+<div class="highlight"><pre><span></span><code><span class="kn">import</span> <span class="nn">sqlite3</span>
+<span class="kn">import</span> <span class="nn">genomicsqlite</span>
+</code></pre></div>
+
+</div>
+<input id="__tabbed_1_2" name="__tabbed_1" type="radio" /><label for="__tabbed_1_2">Java</label><div class="tabbed-content">
+<div class="highlight"><pre><span></span><code><span class="kn">import</span> <span class="nn">java.sql.*</span><span class="p">;</span>
+<span class="kn">import</span> <span class="nn">net.mlin.genomicsqlite.GenomicSQLite</span><span class="p">;</span>
+</code></pre></div>
+
+</div>
+<input id="__tabbed_1_3" name="__tabbed_1" type="radio" /><label for="__tabbed_1_3">Rust</label><div class="tabbed-content">
+<div class="highlight"><pre><span></span><code><span class="k">use</span><span class="w"> </span><span class="n">genomicsqlite</span>::<span class="n">ConnectionMethods</span><span class="p">;</span><span class="w"></span>
+<span class="k">use</span><span class="w"> </span><span class="n">rusqlite</span>::<span class="p">{</span><span class="n">Connection</span><span class="p">,</span><span class="w"> </span><span class="n">OpenFlags</span><span class="p">,</span><span class="w"> </span><span class="n">params</span><span class="p">,</span><span class="w"> </span><span class="n">NO_PARAMS</span><span class="p">};</span><span class="w"></span>
+</code></pre></div>
+
+<p>The <code>genomicsqlite::ConnectionMethods</code> trait makes available GenomicSQLite-specific methods for
+<code>rusqlite::Connection</code> (and <code>rusqlite::Transaction</code>). See <a href="https://docs.rs/genomicsqlite">rustdoc</a>
+for some extra details.</p>
+</div>
+<input id="__tabbed_1_4" name="__tabbed_1" type="radio" /><label for="__tabbed_1_4">C++</label><div class="tabbed-content">
+<div class="highlight"><pre><span></span><code><span class="cp">#include</span> <span class="cpf">&lt;sqlite3.h&gt;</span><span class="cp"></span>
+<span class="cp">#include</span> <span class="cpf">&quot;SQLiteCpp/SQLiteCpp.h&quot; // optional</span><span class="cp"></span>
+<span class="cp">#include</span> <span class="cpf">&quot;genomicsqlite.h&quot;</span><span class="cp"></span>
+
+<span class="kt">int</span> <span class="nf">main</span><span class="p">()</span> <span class="p">{</span>
+  <span class="k">try</span> <span class="p">{</span>
+    <span class="n">GENOMICSQLITE_CXX_INIT</span><span class="p">();</span>
+  <span class="p">}</span> <span class="k">catch</span> <span class="p">(</span><span class="n">std</span><span class="o">::</span><span class="n">runtime_error</span><span class="o">&amp;</span> <span class="n">exn</span><span class="p">)</span> <span class="p">{</span>
+    <span class="c1">// report exn.what()</span>
+  <span class="p">}</span>
+  <span class="p">...</span>
+<span class="p">}</span>
+</code></pre></div>
+
+<p>Link the program to <code>sqlite3</code> and <code>genomicsqlite</code> libraries. Optionally, include
+<a href="https://github.com/SRombauts/SQLiteCpp">SQLiteCpp</a> headers <em>before</em> <code>genomicsqlite.h</code> to use
+its more-convenient API; but <em>don't</em> link it, as the <code>genomicsqlite</code> library has it built-in.</p>
+<p>GNU/Linux: to link the prebuilt <code>libgenomicsqlite.so</code> distributed from our GitHub Releases, you
+may have to compile your source with <code>CXXFLAGS=-D_GLIBCXX_USE_CXX11_ABI=0</code>. This is because the
+library is built against an old libstdc++ version to improve runtime compatibility. The
+function of this flag is explained in the libstdc++ docs on
+<a href="https://gcc.gnu.org/onlinedocs/libstdc++/manual/using_dual_abi.html">Dual ABI</a>. If you build
+<code>libgenomicsqlite.so</code> from source, then the flag will not be needed.</p>
+<p>General note: GenomicSQLite C++ routines are liable to throw exceptions.</p>
+</div>
+<input id="__tabbed_1_5" name="__tabbed_1" type="radio" /><label for="__tabbed_1_5">C</label><div class="tabbed-content">
+<div class="highlight"><pre><span></span><code><span class="cp">#include</span> <span class="cpf">&lt;sqlite3.h&gt;</span><span class="cp"></span>
+<span class="cp">#include</span> <span class="cpf">&quot;genomicsqlite.h&quot;</span><span class="cp"></span>
+
+<span class="kt">int</span> <span class="nf">main</span><span class="p">()</span> <span class="p">{</span>
+  <span class="kt">char</span> <span class="o">*</span><span class="n">zErrMsg</span> <span class="o">=</span> <span class="mi">0</span><span class="p">;</span>
+  <span class="kt">int</span> <span class="n">rc</span> <span class="o">=</span> <span class="n">GENOMICSQLITE_C_INIT</span><span class="p">(</span><span class="o">&amp;</span><span class="n">zErrMsg</span><span class="p">);</span>
+  <span class="k">if</span> <span class="p">(</span><span class="n">rc</span> <span class="o">!=</span> <span class="n">SQLITE_OK</span><span class="p">)</span> <span class="p">{</span>
+    <span class="cm">/* report zErrMsg */</span>
+    <span class="n">sqlite3_free</span><span class="p">(</span><span class="n">zErrMsg</span><span class="p">);</span>
+  <span class="p">}</span>
+  <span class="p">...</span>
+<span class="p">}</span>
+</code></pre></div>
+
+<p>Link the program to <code>sqlite3</code> and <code>genomicsqlite</code> libraries.</p>
+<p>All GenomicSQLite C routines returning a <code>char*</code> string use the following convention. If the
+operation succeeds, then it's a nonempty, null-terminated string. Otherwise, it points to a
+null byte followed immediately by a nonempty, null-terminated error message. <em>In either case,</em>
+the caller must free the string with <code>sqlite3_free()</code>. NULL is returned only if out of memory.</p>
+</div>
+</div>
+<h2 id="opening-a-compressed-database">Opening a compressed database</h2>
+<p><strong>↪ GenomicSQLite Open:</strong> create or open a compressed database, returning a connection object with various settings pre-tuned for large datasets.</p>
+<div class="tabbed-set" data-tabs="2:6"><input checked="checked" id="__tabbed_2_1" name="__tabbed_2" type="radio" /><label for="__tabbed_2_1">Python</label><div class="tabbed-content">
+<div class="highlight"><pre><span></span><code><span class="n">dbconn</span> <span class="o">=</span> <span class="n">genomicsqlite</span><span class="o">.</span><span class="n">connect</span><span class="p">(</span>
+  <span class="n">db_filename</span><span class="p">,</span>
+  <span class="n">read_only</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+  <span class="o">**</span><span class="n">kwargs</span>  <span class="c1">#  genomicsqlite + sqlite3.connect() arguments</span>
+<span class="p">)</span>
+<span class="k">assert</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">dbconn</span><span class="p">,</span> <span class="n">sqlite3</span><span class="o">.</span><span class="n">Connection</span><span class="p">)</span>
+</code></pre></div>
+
+</div>
+<input id="__tabbed_2_2" name="__tabbed_2" type="radio" /><label for="__tabbed_2_2">Java</label><div class="tabbed-content">
+<div class="highlight"><pre><span></span><code><span class="n">java</span><span class="p">.</span><span class="na">util</span><span class="p">.</span><span class="na">Properties</span> <span class="n">config</span> <span class="o">=</span> <span class="k">new</span> <span class="n">java</span><span class="p">.</span><span class="na">util</span><span class="p">.</span><span class="na">Properties</span><span class="p">();</span>
+<span class="n">config</span><span class="p">.</span><span class="na">setProperty</span><span class="p">(</span><span class="s">&quot;genomicsqlite.config_json&quot;</span><span class="p">,</span> <span class="s">&quot;{}&quot;</span><span class="p">);</span>
+<span class="c1">// Properties may originate from org.sqlite.SQLiteConfig.toProperties()</span>
+<span class="c1">// with genomicsqlite.config_json added in.</span>
+
+<span class="n">Connection</span> <span class="n">dbconn</span> <span class="o">=</span> <span class="n">DriverManager</span><span class="p">.</span><span class="na">getConnection</span><span class="p">(</span>
+  <span class="s">&quot;jdbc:genomicsqlite:&quot;</span> <span class="o">+</span> <span class="n">dbfileName</span><span class="p">,</span>
+  <span class="n">config</span>
+<span class="p">);</span>
+</code></pre></div>
+
+</div>
+<input id="__tabbed_2_3" name="__tabbed_2" type="radio" /><label for="__tabbed_2_3">Rust</label><div class="tabbed-content">
+<div class="highlight"><pre><span></span><code><span class="kd">let</span><span class="w"> </span><span class="n">dbconn</span>: <span class="nc">Connection</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">genomicsqlite</span>::<span class="n">open</span><span class="p">(</span><span class="w"></span>
+<span class="w">  </span><span class="n">db_filename</span><span class="p">,</span><span class="w"></span>
+<span class="w">  </span><span class="n">OpenFlags</span>::<span class="n">SQLITE_OPEN_CREATE</span><span class="w"> </span><span class="o">|</span><span class="w"> </span><span class="n">OpenFlags</span>::<span class="n">SQLITE_OPEN_READ_WRITE</span><span class="p">,</span><span class="w"></span>
+<span class="w">  </span><span class="o">&amp;</span><span class="n">json</span>::<span class="n">object</span>::<span class="n">Object</span>::<span class="n">new</span><span class="p">()</span><span class="w">  </span><span class="c1">// tuning options</span>
+<span class="p">)</span><span class="o">?</span><span class="p">;</span><span class="w"></span>
+</code></pre></div>
+
+</div>
+<input id="__tabbed_2_4" name="__tabbed_2" type="radio" /><label for="__tabbed_2_4">SQLiteCpp</label><div class="tabbed-content">
+<div class="highlight"><pre><span></span><code><span class="n">std</span><span class="o">::</span><span class="n">unique_ptr</span><span class="o">&lt;</span><span class="n">SQLite</span><span class="o">::</span><span class="n">Database</span><span class="o">&gt;</span> <span class="n">GenomicSQLiteOpen</span><span class="p">(</span>
+  <span class="k">const</span> <span class="n">std</span><span class="o">::</span><span class="n">string</span> <span class="o">&amp;</span><span class="n">db_filename</span><span class="p">,</span>
+  <span class="kt">int</span> <span class="n">flags</span> <span class="o">=</span> <span class="mi">0</span><span class="p">,</span>
+  <span class="k">const</span> <span class="n">std</span><span class="o">::</span><span class="n">string</span> <span class="o">&amp;</span><span class="n">config_json</span> <span class="o">=</span> <span class="s">&quot;{}&quot;</span>
+<span class="p">);</span>
+</code></pre></div>
+
+</div>
+<input id="__tabbed_2_5" name="__tabbed_2" type="radio" /><label for="__tabbed_2_5">C++</label><div class="tabbed-content">
+<div class="highlight"><pre><span></span><code><span class="kt">int</span> <span class="nf">GenomicSQLiteOpen</span><span class="p">(</span>
+  <span class="k">const</span> <span class="n">std</span><span class="o">::</span><span class="n">string</span> <span class="o">&amp;</span><span class="n">db_filename</span><span class="p">,</span>
+  <span class="n">sqlite3</span> <span class="o">**</span><span class="n">ppDb</span><span class="p">,</span>
+  <span class="n">std</span><span class="o">::</span><span class="n">string</span> <span class="o">&amp;</span><span class="n">errmsg_out</span><span class="p">,</span>
+  <span class="kt">int</span> <span class="n">flags</span> <span class="o">=</span> <span class="mi">0</span><span class="p">,</span>  <span class="o">//</span> <span class="n">as</span> <span class="n">sqlite3_open_v2</span><span class="p">()</span> <span class="n">e</span><span class="p">.</span><span class="n">g</span><span class="p">.</span> <span class="n">SQLITE_OPEN_READONLY</span>
+  <span class="k">const</span> <span class="n">std</span><span class="o">::</span><span class="n">string</span> <span class="o">&amp;</span><span class="n">config_json</span> <span class="o">=</span> <span class="s">&quot;</span><span class="p">{}</span><span class="s">&quot;</span>
+<span class="p">)</span> <span class="k">noexcept</span><span class="p">;</span> <span class="c1">// returns sqlite3_open_v2() code</span>
+</code></pre></div>
+
+</div>
+<input id="__tabbed_2_6" name="__tabbed_2" type="radio" /><label for="__tabbed_2_6">C</label><div class="tabbed-content">
+<div class="highlight"><pre><span></span><code><span class="kt">int</span> <span class="nf">genomicsqlite_open</span><span class="p">(</span>
+  <span class="k">const</span> <span class="kt">char</span> <span class="o">*</span><span class="n">db_filename</span><span class="p">,</span>
+  <span class="n">sqlite3</span> <span class="o">**</span><span class="n">ppDb</span><span class="p">,</span>
+  <span class="kt">char</span> <span class="o">**</span><span class="n">pzErrMsg</span><span class="p">,</span> <span class="cm">/* if nonnull and an error occurs, set to error message</span>
+<span class="cm">                    * which caller should sqlite3_free()</span> <span class="err">*/</span>
+  <span class="kt">int</span> <span class="n">flags</span><span class="p">,</span>              <span class="cm">/* as sqlite3_open_v2() e.g. SQLITE_OPEN_READONLY */</span>
+  <span class="k">const</span> <span class="kt">char</span> <span class="o">*</span><span class="n">config_json</span> <span class="cm">/* JSON text (may be null) */</span>
+<span class="p">);</span> <span class="cm">/* returns sqlite3_open_v2() code */</span>
+</code></pre></div>
+
+</div>
+</div>
+<p>Afterwards, all the usual SQLite3 API operations are available through the returned connection object, which should finally be closed in the usual way. The <a href="https://github.com/mlin/sqlite_zstd_vfs">storage compression layer</a> operates transparently underneath.</p>
+<p><strong>❗ GenomicSQLite databases should <em>only</em> be opened using this routine.</strong> If a program opens an existing GenomicSQLite database using a generic SQLite3 API, it will find a valid database whose schema is that of the compression layer instead of the intended application's. Writing into that schema might effectively corrupt the database!</p>
+<h3 id="tuning-options">Tuning options</h3>
+<p>The aforementioned tuned settings can be further adjusted. Some bindings (e.g. C/C++) receive these options as the text of a JSON object with keys and values, while others admit individual arguments to the Open routine.</p>
+<ul>
+<li><strong>threads = -1</strong>: thread budget for compression, sort, and prefetching/decompression operations; -1 to match up to 8 host processors. Set 1 to disable all background processing.</li>
+<li><strong>inner_page_KiB = 16</strong>: <a href="https://www.sqlite.org/pragma.html#pragma_page_size">SQLite page size</a> for new databases, any of {1, 2, 4, 8, 16, 32, 64}. Larger pages are more compressible, but increase random I/O cost.</li>
+<li><strong>outer_page_KiB = 32</strong>: compression layer page size for new databases, any of {1, 2, 4, 8, 16, 32, 64}. <br/>
+The default configuration (inner_page_KiB, outer_page_KiB) = (16,32) balances random access speed and compression. Try setting them to (8,16) to prioritize random access, or (64,2) to prioritize compression <small>(if compressed database will be &lt;4TB)</small>.</li>
+<li><strong>zstd_level = 6</strong>: Zstandard compression level for newly written data (-7 to 22)</li>
+<li><strong>unsafe_load = false</strong>: set true to disable write transaction safety (see advice on bulk-loading below). <br/>
+    <strong>❗ A database written to unsafely is liable to be corrupted if the application crashes, or if there's a concurrent attempt to modify it.</strong></li>
+<li><strong>page_cache_MiB = 1024</strong>: database cache size. Use a large cache to avoid repeated decompression in successive and complex queries. </li>
+<li><strong>immutable = false</strong>: set true to slightly reduce overhead reading from a database file that won't be modified by this or any concurrent program, guaranteed.</li>
+<li><strong>force_prefetch = false</strong>: set true to enable background prefetching/decompression even if inner_page_KiB &lt; 16 (enabled by default only &ge; that, as it can be counterproductive below; YMMV)</li>
+</ul>
+<p>The connection's potential memory usage can usually be budgeted as roughly the page cache size, plus the size of any uncommitted write transaction (unless unsafe_load), plus some safety factor. ❗However, this can <em>multiply by (threads+1)</em> during queries whose results are at least that large and must be re-sorted. That includes index creation, when the indexed columns total such size.</p>
+<h2 id="genomicsqlite-interactive-shell">genomicsqlite interactive shell</h2>
+<p>The Python package includes a <code>genomicsqlite</code> script that enters the <a href="https://sqlite.org/cli.html"><code>sqlite3</code> interactive shell</a> on an existing compressed database. This is a convenient way to inspect and explore the data with <em>ad hoc</em> SQL queries, as one might use <code>grep</code> or <code>awk</code> on text files. With the Python package installed (<code>pip3 install genomicsqlite</code> or <code>conda install genomicsqlite</code>):</p>
+<div class="highlight"><pre><span></span><code>$ genomicsqlite DB_FILENAME [--readonly]
+</code></pre></div>
+
+<p>to enter the SQL prompt with the database open. Or, add an SQL statement (in quotes) to perform and exit. If you've installed the Python package but the script isn't found, set your <code>PATH</code> to include the <code>bin</code> directory with Python console scripts.</p>
+<p><strong>Database compaction.</strong> The utility has a subcommand to compress and defragment an existing database file (compressed or uncompressed), which can increase its compression level and optimize access to it.</p>
+<div class="highlight"><pre><span></span><code>$ genomicsqlite DB_FILENAME --compact
+</code></pre></div>
+
+<p>generates <code>DB_FILENAME.compact</code>; see its <code>--help</code> for additional options, in particular <code>--level</code>, <code>--inner-page-KiB</code> and <code>--outer-page-KiB</code> affect the output file size as discussed above.</p>
+<p>Due to decompression overhead, the compaction procedure may be impractically slow if the database has big tables that weren't initially written in their primary key order. To prevent this, see below <em>Optimizing storage layout</em>.</p>
+<h2 id="reading-databases-over-the-web">Reading databases over the web</h2>
+<p>The <strong>GenomicSQLite Open</strong> routine and the <code>genomicsqlite</code> shell also accept http: and https: URLs instead of local filenames, creating a connection to read the compressed file over the web directly. The database connection must be opened read-only in the appropriate manner for your language bindings (such as the flag <code>SQLITE_OPEN_READONLY</code>). The URL server must support <a href="https://developer.mozilla.org/en-US/docs/Web/HTTP/Range_requests">HTTP GET range</a> requests, and the content must not change for the lifetime of the connection.</p>
+<p>Under the hood, the extension uses <a href="https://curl.se/libcurl/">libcurl</a> to send web requests for necessary portions of the database file as queries proceed, with adaptive batching &amp; prefetching to balance the number and size of these requests. This works well for point lookups and queries that scan largely-contiguous slices of tables and indexes (a modest number thereof). It's less suitable for big multi-way joins and other aggressively random access patterns; in such cases, it'd be better to download the database file upfront to open locally.</p>
+<ul>
+<li>The above-described <code>genomicsqlite DB_FILENAME --compact</code> tool can optimize a file's suitability for web access.</li>
+<li>Reading large databases over the web, budget an additional ~600MiB of memory for HTTP prefetch buffers.</li>
+<li>To disable TLS certificate and hostname verification, set web_insecure = true in the GenomicSQLite configuration, or SQLITE_WEB_INSECURE=1 in the environment.</li>
+<li>The HTTP driver writes log messages to standard error when requests fail or had to be retried, which can be disabled by setting configuration web_log = 0 or environment SQLITE_WEB_LOG=0; or increased up to 5 to log every request and other details.</li>
+</ul>
+<h2 id="advice-for-big-data">Advice for big data</h2>
+<h3 id="writing-large-databases-quickly">Writing large databases quickly</h3>
+<ol>
+<li><code>sqlite3_config(SQLITE_CONFIG_MEMSTATUS, 0)</code> if available, to reduce overhead in SQLite3's allocation routines.</li>
+<li>Open database with unsafe_load = true to reduce transaction processing overhead (at aforementioned risk) for the connection's lifetime.</li>
+<li>Also open with the flag <code>SQLITE_OPEN_NOMUTEX</code>, if your application naturally serializes operations on the connection.</li>
+<li>Perform all of the following steps within one big SQLite transaction, committed at the end.</li>
+<li>Insert data rows reusing prepared, parameterized SQL statements.<ol>
+<li>Process the rows in primary key order, if feasible (otherwise, see below <em>Optimizing storage layout</em>).</li>
+<li>Consider preparing data in producer thread(s), with a consumer thread executing insertion statements in a tight loop.</li>
+<li>Bind text/blob parameters using <a href="https://www.sqlite.org/c3ref/bind_blob.html"><code>SQLITE_STATIC</code></a> if suitable.</li>
+</ol>
+</li>
+<li>Create secondary indexes, including genomic range indexes, only after loading all row data. Use <a href="https://www.sqlite.org/partialindex.html">partial indexes</a> when they suffice.</li>
+</ol>
+<h3 id="optimizing-storage-layout">Optimizing storage layout</h3>
+<p>For multiple reasons mentioned so far, large tables should have their rows initially inserted in primary key order (or whatever order will promote access locality), ensuring they'll be stored as such in the database file; and tables should be written one-at-a-time. If it's inconvenient to process the input data in this way, the following procedure can help:</p>
+<ol>
+<li>Create <a href="https://sqlite.org/lang_createtable.html"><em>temporary</em> table(s)</a> with the same schema as the destination table(s), but omitting any PRIMARY KEY specifiers, UNIQUE constraints, or other indexes.</li>
+<li>Stream all the data into these temporary tables, which are fast to write and read, in whatever order is convenient.</li>
+<li><code>INSERT INTO permanent_table SELECT * FROM temp_table ORDER BY colA, colB, ...</code> using the primary key (or other desired sort order) for each table.</li>
+</ol>
+<p>The Genomics Extension automatically enables SQLite's <a href="https://sqlite.org/src/file/src/vdbesort.c">parallel, external merge-sorter</a> to execute the last step efficiently. Ensure it's <a href="https://www.sqlite.org/tempfiles.html">configured</a> to use a suitable storage subsystem for big temporary files.</p>
+<h3 id="compression-guidelines">Compression guidelines</h3>
+<p>The <a href="https://facebook.github.io/zstd/">Zstandard</a>-based <a href="https://github.com/mlin/sqlite_zstd_vfs">compression layer</a> is effective at capturing the high compressibility of bioinformatics data. But, one should expect a general-purpose database to use extra space to keep everything organized, compared to a file format dedicated to one read-only schema. To set a rough expectation, the maintainers feel fairly satisfied if the database file size isn't more than double that of a bespoke compression format — especially if it includes useful indexes (which if well-designed, should be relatively incompressible).</p>
+<p>The aforementioned zstd_level, threads, and page_size options all affect the compression time-space tradeoff, while enlarging the page cache can reduce decompression overhead (workload-dependent).</p>
+<p>If you plan to delete or overwrite a significant amount of data in an existing database, issue <a href="https://www.sqlite.org/pragma.html#pragma_secure_delete"><code>PRAGMA secure_delete=ON</code></a> beforehand to keep the compressed file as small as possible. This works by causing SQLite to overwrite unused database pages with all zeroes, which the compression layer can then reduce to a negligible size.</p>
+<p>With SQLite's row-major table <a href="https://www.sqlite.org/fileformat.html">storage format</a>, the first read of a lone cell usually entails decompressing at least its whole row, and there aren't any special column encodings for deltas, run lengths, etc. The "last mile" of optimization may therefore involve certain schema compromises, such as storing infrequently-accessed columns in a separate table to join when needed, or using application-layer encodings with <a href="https://www.sqlite.org/c3ref/blob_open.html">BLOB I/O</a>.</p>
+                
+              
+              
+                
+
+
+              
+            </article>
+          </div>
+        </div>
+      </main>
+      
+        
+<footer class="md-footer">
+  
+    <div class="md-footer-nav">
+      <nav class="md-footer-nav__inner md-grid" aria-label="Footer">
+        
+          <a href=".." title="Intro & Install" class="md-footer-nav__link md-footer-nav__link--prev" rel="prev">
+            <div class="md-footer-nav__button md-icon">
+              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11h12z"/></svg>
+            </div>
+            <div class="md-footer-nav__title">
+              <div class="md-ellipsis">
+                <span class="md-footer-nav__direction">
+                  Previous
+                </span>
+                Intro & Install
+              </div>
+            </div>
+          </a>
+        
+        
+          <a href="../guide_gri/" title="Genomic Range Indexing" class="md-footer-nav__link md-footer-nav__link--next" rel="next">
+            <div class="md-footer-nav__title">
+              <div class="md-ellipsis">
+                <span class="md-footer-nav__direction">
+                  Next
+                </span>
+                Genomic Range Indexing
+              </div>
+            </div>
+            <div class="md-footer-nav__button md-icon">
+              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M4 11v2h12l-5.5 5.5 1.42 1.42L19.84 12l-7.92-7.92L10.5 5.5 16 11H4z"/></svg>
+            </div>
+          </a>
+        
+      </nav>
+    </div>
+  
+  <div class="md-footer-meta md-typeset">
+    <div class="md-footer-meta__inner md-grid">
+      <div class="md-footer-copyright">
+        
+        Made with
+        <a href="https://squidfunk.github.io/mkdocs-material/" target="_blank" rel="noopener">
+          Material for MkDocs
+        </a>
+      </div>
+      
+    </div>
+  </div>
+</footer>
+      
+    </div>
+    
+      <script src="../assets/javascripts/vendor.d710d30a.min.js"></script>
+      <script src="../assets/javascripts/bundle.b39636ac.min.js"></script><script id="__lang" type="application/json">{"clipboard.copy": "Copy to clipboard", "clipboard.copied": "Copied to clipboard", "search.config.lang": "en", "search.config.pipeline": "trimmer, stopWordFilter", "search.config.separator": "[\\s\\-]+", "search.result.placeholder": "Type to start searching", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents"}</script>
+      
+      <script>
+        app = initialize({
+          base: "..",
+          features: [],
+          search: Object.assign({
+            worker: "../assets/javascripts/worker/search.a68abb33.min.js"
+          }, typeof search !== "undefined" && search)
+        })
+      </script>
+      
+    
+  </body>
+</html>

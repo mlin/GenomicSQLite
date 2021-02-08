@@ -246,8 +246,8 @@
 
 
   <li class="md-nav__item">
-    <a href="guide/" title="Programming Guide" class="md-nav__link">
-      Programming Guide
+    <a href="guide_db/" title="Opening Compressed Databases" class="md-nav__link">
+      Opening Compressed Databases
     </a>
   </li>
 
@@ -258,8 +258,32 @@
 
 
   <li class="md-nav__item">
-    <a href="bindings/" title="Language Bindings Guide" class="md-nav__link">
-      Language Bindings Guide
+    <a href="guide_gri/" title="Genomic Range Indexing" class="md-nav__link">
+      Genomic Range Indexing
+    </a>
+  </li>
+
+    
+      
+      
+      
+
+
+  <li class="md-nav__item">
+    <a href="guide_helpers/" title="Useful Routines" class="md-nav__link">
+      Useful Routines
+    </a>
+  </li>
+
+    
+      
+      
+      
+
+
+  <li class="md-nav__item">
+    <a href="bindings/" title="Writing Language Bindings" class="md-nav__link">
+      Writing Language Bindings
     </a>
   </li>
 
@@ -371,8 +395,9 @@
 <p>This <a href="https://www.sqlite.org/loadext.html">SQLite3 loadable extension</a> supports applications in genome bioinformatics by adding:</p>
 <ul>
 <li>genomic range indexing for overlap queries &amp; joins</li>
-<li>streaming storage compression using multithreaded <a href="https://facebook.github.io/zstd/">Zstandard</a></li>
-<li>in-SQL utility functions, e.g. reverse complement DNA or parse "chr1:2,345-6,789"</li>
+<li>in-SQL utility functions, e.g. reverse-complement DNA, parse "chr1:2,345-6,789"</li>
+<li>automatic streaming storage compression</li>
+<li>reading directly from HTTP(S) URLs</li>
 <li>pre-tuned settings for "big data"</li>
 </ul>
 <p>This October 2020 poster discusses the context and long-run ambitions:</p>
@@ -388,7 +413,7 @@
 <li><a href="https://rpmfind.net/linux/rpm2html/search.php?query=libsqlite3&amp;submit=Search+...&amp;system=&amp;arch=">Rpmfind: libsqlite3</a></li>
 <li><a href="https://anaconda.org/anaconda/sqlite">Sqlite :: Anaconda Cloud</a></li>
 <li>Homebrew <a href="https://formulae.brew.sh/formula/sqlite">formula/sqlite</a>, <a href="https://formulae.brew.sh/formula-linux/sqlite">formula-linux/sqlite</a></li>
-<li>As a last resort for GNU/Linux, our <a href="https://github.com/mlin/GenomicSQLite/releases">GitHub Releases</a> include a <code>libsqlite3.so.0</code> that should be compatible with modern (2016+) hosts.</li>
+<li>As a last resort for GNU/Linux, our <a href="https://github.com/mlin/GenomicSQLite/releases">GitHub Releases</a> include a <code>libsqlite3.so.0</code> that should be compatible with modern (2015+) hosts.</li>
 </ul>
 <p>You can always <code>SELECT sqlite_version()</code> to verify the upgrade in your program.</p>
 <h2 id="installation">Installation</h2>
@@ -440,7 +465,7 @@ function of this flag is explained in the libstdc++ docs on
 </div>
 </div>
 <p>See our <a href="https://github.com/mlin/GenomicSQLite">GitHub README</a> for the source build procedure, if needed.</p>
-<p>We welcome community contributions to the available language bindings; see the Language Bindings Guide if interested.</p>
+<p>We welcome community contributions to the available language bindings; see the <a href="bindings/">Language Bindings Guide</a> if interested.</p>
 <h2 id="smoke-test">Smoke test</h2>
 <p>We recommend trying our "smoke test" script to quickly verify your local system's compatibility. It requires the Python package installed per the instructions above.</p>
 <div class="highlight"><pre><span></span><code>wget -nv -O - https://raw.githubusercontent.com/mlin/GenomicSQLite/release/test/genomicsqlite_smoke_test.py <span class="se">\</span>
@@ -466,7 +491,7 @@ function of this flag is explained in the libstdc++ docs on
 <li>Parallel SQL analytics / OLAP: see <a href="https://spark.apache.org/">Spark</a>, <a href="https://duckdb.org/">DuckDB</a>, many commercial products. <small>(Some bases can be covered with a sharding harness for a pool of threads with their own SQLite connections...)</small></li>
 <li>Streaming: SQLite storage relies on randomly reading &amp; writing throughout the database file.</li>
 </ol>
-<p><strong>Proceed to the Programming Guide section to get started building applications.</strong></p>
+<p><strong>Proceed to the <a href="guide_db/">Programming Guide</a> section to get started building applications.</strong></p>
                 
               
               
@@ -486,13 +511,13 @@ function of this flag is explained in the libstdc++ docs on
       <nav class="md-footer-nav__inner md-grid" aria-label="Footer">
         
         
-          <a href="guide/" title="Programming Guide" class="md-footer-nav__link md-footer-nav__link--next" rel="next">
+          <a href="guide_db/" title="Opening Compressed Databases" class="md-footer-nav__link md-footer-nav__link--next" rel="next">
             <div class="md-footer-nav__title">
               <div class="md-ellipsis">
                 <span class="md-footer-nav__direction">
                   Next
                 </span>
-                Programming Guide
+                Opening Compressed Databases
               </div>
             </div>
             <div class="md-footer-nav__button md-icon">

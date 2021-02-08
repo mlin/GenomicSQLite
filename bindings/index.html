@@ -15,7 +15,7 @@
     
     
       
-        <title>Language Bindings Guide - Genomics Extension for SQLite</title>
+        <title>Writing Language Bindings - Genomics Extension for SQLite</title>
       
     
     
@@ -49,7 +49,7 @@
     <div data-md-component="skip">
       
         
-        <a href="#language-bindings-guide" class="md-skip">
+        <a href="#writing-language-bindings" class="md-skip">
           Skip to content
         </a>
       
@@ -77,7 +77,7 @@
           </span>
           <span class="md-header-nav__topic md-ellipsis">
             
-              Language Bindings Guide
+              Writing Language Bindings
             
           </span>
         </div>
@@ -163,8 +163,32 @@
 
 
   <li class="md-nav__item">
-    <a href="../guide/" title="Programming Guide" class="md-nav__link">
-      Programming Guide
+    <a href="../guide_db/" title="Opening Compressed Databases" class="md-nav__link">
+      Opening Compressed Databases
+    </a>
+  </li>
+
+    
+      
+      
+      
+
+
+  <li class="md-nav__item">
+    <a href="../guide_gri/" title="Genomic Range Indexing" class="md-nav__link">
+      Genomic Range Indexing
+    </a>
+  </li>
+
+    
+      
+      
+      
+
+
+  <li class="md-nav__item">
+    <a href="../guide_helpers/" title="Useful Routines" class="md-nav__link">
+      Useful Routines
     </a>
   </li>
 
@@ -184,14 +208,14 @@
     
     
       <label class="md-nav__link md-nav__link--active" for="__toc">
-        Language Bindings Guide
+        Writing Language Bindings
         <span class="md-nav__icon md-icon">
           <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M3 9h14V7H3v2m0 4h14v-2H3v2m0 4h14v-2H3v2m16 0h2v-2h-2v2m0-10v2h2V7h-2m0 6h2v-2h-2v2z"/></svg>
         </span>
       </label>
     
-    <a href="./" title="Language Bindings Guide" class="md-nav__link md-nav__link--active">
-      Language Bindings Guide
+    <a href="./" title="Writing Language Bindings" class="md-nav__link md-nav__link--active">
+      Writing Language Bindings
     </a>
     
       
@@ -435,7 +459,7 @@
                   
                 
                 
-                <h1 id="language-bindings-guide">Language Bindings Guide</h1>
+                <h1 id="writing-language-bindings">Writing Language Bindings</h1>
 <p>Thank you for considering a contribution to the language bindings available for the Genomics Extension!</p>
 <h2 id="overview">Overview</h2>
 <p>The extension is a C++11 library, and C/C++ programs compile against it in the usual way to invoke the routines outlined in the Programming Guide. But for other programming languages, another option should make it <strong>unnecessary to use a C/C++ foreign-function interface</strong>.</p>
@@ -525,7 +549,7 @@ FROM [schema.]_gri_refseq [WHERE assembly = ?]
     <div class="md-footer-nav">
       <nav class="md-footer-nav__inner md-grid" aria-label="Footer">
         
-          <a href="../guide/" title="Programming Guide" class="md-footer-nav__link md-footer-nav__link--prev" rel="prev">
+          <a href="../guide_helpers/" title="Useful Routines" class="md-footer-nav__link md-footer-nav__link--prev" rel="prev">
             <div class="md-footer-nav__button md-icon">
               <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11h12z"/></svg>
             </div>
@@ -534,7 +558,7 @@ FROM [schema.]_gri_refseq [WHERE assembly = ?]
                 <span class="md-footer-nav__direction">
                   Previous
                 </span>
-                Programming Guide
+                Useful Routines
               </div>
             </div>
           </a>
