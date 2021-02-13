@@ -239,6 +239,15 @@ def _cli():
         )
         sys.exit(1)
 
+    import shutil
+
+    if not shutil.which("sqlite3"):
+        print(
+            "Error: the `sqlite3` command-line shell doesn't seem to be available; ensure it's installed and found in $PATH",
+            file=sys.stderr,
+        )
+        sys.exit(1)
+
     cfg = {}
     try:
         sys.argv[sys.argv.index("--readonly")] = "-readonly"
