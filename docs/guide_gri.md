@@ -154,15 +154,17 @@ queryChrom = featureChrom AND
 
 (*"query is not disjoint from feature"*)
 
-By the half-open position convention, this includes features that *abut* as well as those that *overlap* the query range. If you don't want those, or if you want only "contained" features, simply add such constraints to your query's WHERE clause.
+**❗ This includes features that *abut* as well as those that *overlap* the query range,** per the half-open position convention. If you don't want those, or if you want only "contained" features, add a WHERE clause to your query (e.g. `WHERE _gri_beg >= queryBeg AND _gri_beg+_gri_len <= queryEnd`).
 
-<small>The query will not match any rows with NULL feature coordinates. If needed, the GRI can inform this query for NULL chromosome/rid: `SELECT ... FROM tableName WHERE _gri_rid IS NULL`.</small>
+**❗ Results return in rowid order,** which isn't necessarily genomic range order (see *Advice for big data*, below). Add an ORDER BY clause to your query if needed (e.g. `ORDER BY _gri_rid, _gri_beg, _gri_len`).
+
+<small>The query won't match any rows with NULL feature coordinates. If needed, the GRI can inform this query for NULL chromosome/rid: `SELECT ... FROM tableName WHERE _gri_rid IS NULL`.</small>
 
 #### Level bounds optimization
 
 The optional, trailing `ceiling` & `floor` arguments to `genomic_range_rowids()` optimize GRI queries by bounding their search *levels*, skipping steps that'd be useless in view of the overall length distribution of the indexed features. (See [Internals](internals.md) for full explanation.)
 
-The extension supplies a SQL helper function `genomic_range_index_levels(tableName)` to detect appropriate level bounds for the current version of the table. This procedure has to analyze the GRI, and the cost of doing so will be worthwhile if used to optimize many subsequent GRI queries (but not for just one or a few). Therefore, a typical program should query `genomic_range_index_levels()` once upfront, then pass the detected bounds in to subsequent prepared queries, e.g. in Python:
+The extension supplies a SQL helper function `genomic_range_index_levels(tableName)` to detect appropriate level bounds for the current version of the table. This procedure has to analyze the GRI, and the logarithmic cost of doing so will be worthwhile if used to optimize many subsequent GRI queries (but not for just one or a few). Therefore, a typical program should query `genomic_range_index_levels()` once upfront, then pass the detected bounds in to subsequent prepared queries, e.g. in Python:
 
 ```python3
 (gri_ceiling, gri_floor) = next(
@@ -181,7 +183,7 @@ for (queryChrom, queryBegin, queryEnd) in queryRanges:
 
 **❗ Don't use the detected level bounds if the table can be modified in the meantime. GRI queries with inappropriate bounds are liable to produce incomplete results.**
 
-Omitting the bounds is always safe, albeit slower. <small>Instead of detecting current bounds, they can be figured manually as follows. Set the integer ceiling to *C*, 0 &lt; *C* &lt; 16, such that all (present & future) indexed features are guaranteed to have lengths &le;16<sup>*C*</sup>. For example, if you're querying features on the human genome, then you can set ceiling=7 because the lengthiest chromosome sequence is &lt;16<sup>7</sup>nt. Set the integer floor *F* to (i) the floor value supplied at GRI creation, if any; (ii) *F* &gt; 0 such that the minimum possible feature length &gt;16<sup>*F*-1</sup>, if any; or (iii) zero. The default, safe, albeit slower bounds are C=15, F=0.</small>
+Omitting the bounds is always safe, albeit slightly slower. <small>Instead of detecting current bounds, they can be figured manually as follows. Set the integer ceiling to *C*, 0 &lt; *C* &lt; 16, such that all (present & future) indexed features are guaranteed to have lengths &le;16<sup>*C*</sup>. For example, if you're querying features on the human genome, then you can set ceiling=7 because the lengthiest chromosome sequence is &lt;16<sup>7</sup>nt. Set the integer floor *F* to (i) the floor value supplied at GRI creation, if any; (ii) *F* &gt; 0 such that the minimum possible feature length &gt;16<sup>*F*-1</sup>, if any; or (iii) zero. The default, safe, albeit slower bounds are C=15, F=0.</small>
 
 #### Joining tables on range overlap
 
