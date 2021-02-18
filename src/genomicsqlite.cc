@@ -603,7 +603,8 @@ static pair<int, int> DetectLevelRange(sqlite3 *dbconn, const string &schema_tab
 }
 
 string GenomicRangeRowidsSQL(sqlite3 *dbconn, const string &indexed_table, const string &qrid,
-                             const string &qbeg, const string &qend, int ceiling, int floor) {
+                             const string &qbeg, const string &qend, int ceiling, int floor,
+                             const string &columns, const string &order_by) {
     if (ceiling < 0) {
         auto p = DetectLevelRange(dbconn, indexed_table);
         floor = floor >= 0 ? floor : p.first;
@@ -623,7 +624,7 @@ string GenomicRangeRowidsSQL(sqlite3 *dbconn, const string &indexed_table, const
             lvq << "\n  UNION ALL\n  ";
         }
         const string &it = indexed_table;
-        lvq << "SELECT _rowid_ FROM " << it << " INDEXED BY " << table << "__gri WHERE"
+        lvq << "SELECT " << columns << " FROM " << it << " INDEXED BY " << table << "__gri WHERE"
             << "\n   (" << it << "._gri_rid," << it << "._gri_lvl," << it << "._gri_beg) BETWEEN (("
             << qrid << "),-" << lv << ",(" << qbeg << ")-0x1" << string(lv, '0') << ") AND (("
             << qrid << "),-" << lv << ",(" << qend << ")-0)" // (*)
@@ -638,9 +639,16 @@ string GenomicRangeRowidsSQL(sqlite3 *dbconn, const string &indexed_table, const
          */
     }
     lvq << ")";
-    string ans = "(SELECT _rowid_ FROM\n" + lvq.str() + "\n ORDER BY _rowid_)";
+    string ans = "(SELECT " + columns + " FROM\n" + lvq.str() + "\n ORDER BY " + order_by + ")";
     _DBG << ans << endl;
     return ans;
+}
+
+string GenomicRangeRowidsSQL(sqlite3 *dbconn, const string &indexed_table, const string &qrid,
+                             const string &qbeg, const string &qend, int ceiling, int floor) {
+    static const string rowid("_rowid_");
+    return GenomicRangeRowidsSQL(dbconn, indexed_table, qrid, qbeg, qend, ceiling, floor, rowid,
+                                 rowid);
 }
 
 extern "C" char *genomic_range_rowids_sql(sqlite3 *dbconn, const char *table, const char *qrid,
@@ -674,6 +682,11 @@ static void sqlfn_genomic_range_rowids_sql(sqlite3_context *ctx, int argc, sqlit
 // statements between queries. Cached statements can be reused only for the same ceiling and floor
 // values, which if omitted default to the maximum and minimum possible values (safe but
 // less efficient)
+//
+// genomic_range_clusters(tableName, qrid, qbeg, qend[, ceiling [, floor]]): rather than returning
+// just one column of rowids, return (_gri_rid, _gri_beg, _gri_end, _rowid_, _gri_cluster), where
+// _gri_cluster is an integer uniquely grouping ranges into clusters (by single linkage of overlap
+// or abutment). 
 class GenomicRangeRowidsCursor : public SQLiteVirtualTableCursor {
   public:
     struct table_stmt_cache {
@@ -682,8 +695,8 @@ class GenomicRangeRowidsCursor : public SQLiteVirtualTableCursor {
     };
     using stmt_cache = map<string, GenomicRangeRowidsCursor::table_stmt_cache>;
 
-    GenomicRangeRowidsCursor(sqlite3 *db, stmt_cache &stmt_cache)
-        : db_(db), stmt_cache_(stmt_cache) {}
+    GenomicRangeRowidsCursor(sqlite3 *db, stmt_cache &stmt_cache, bool clusters = false)
+        : db_(db), stmt_cache_(stmt_cache), clusters_(clusters) {}
     virtual ~GenomicRangeRowidsCursor() { ReturnStmtToCache(); }
 
     int Filter(int idxNum, const char *idxStr, int argc, sqlite3_value **argv) override {
@@ -735,8 +748,10 @@ class GenomicRangeRowidsCursor : public SQLiteVirtualTableCursor {
 
                 if (cache.pool.empty()) {
                     // prepare new sqlite3_stmt for GRI query
-                    string sql =
-                        GenomicRangeRowidsSQL(db_, table_name_, "?1", "?2", "?3", ceiling_, floor_);
+                    string columns =
+                        clusters_ ? "_gri_rid, _gri_beg, _gri_len, _rowid_" : "_rowid_";
+                    string sql = GenomicRangeRowidsSQL(db_, table_name_, "?1", "?2", "?3", ceiling_,
+                                                       floor_, columns, columns);
                     sql = sql.substr(1, sql.size() - 2); // trim parentheses
                     sqlite3_stmt *pStmt = nullptr;
                     if (sqlite3_prepare_v3(db_, sql.c_str(), -1, 0, &pStmt, nullptr) != SQLITE_OK) {
@@ -775,6 +790,18 @@ class GenomicRangeRowidsCursor : public SQLiteVirtualTableCursor {
                     return rc;
                 }
                 ReturnStmtToCache(); // successful EOF
+            } else if (clusters_) {
+                sqlite3_value *row_rid = sqlite3_column_value(stmt_.get(), 0);
+                if (!cluster_rid_ || different_rid(cluster_rid_.get(), row_rid)) {
+                    cluster_rid_ =
+                        shared_ptr<sqlite3_value>(sqlite3_value_dup(row_rid), sqlite3_value_free);
+                    cluster_end_ = LLONG_MIN;
+                }
+                sqlite3_int64 beg = sqlite3_column_int64(stmt_.get(), 1);
+                if (cluster_end_ < beg) {
+                    cluster_id_ = sqlite3_column_int64(stmt_.get(), 3);
+                }
+                cluster_end_ = std::max(cluster_end_, beg + sqlite3_column_int64(stmt_.get(), 2));
             }
         }
         return SQLITE_OK;
@@ -784,29 +811,48 @@ class GenomicRangeRowidsCursor : public SQLiteVirtualTableCursor {
 
     int Column(sqlite3_context *ctx, int colno) override {
         assert(stmt_);
-        if (!stmt_)
+        if (!stmt_) {
             return SQLITE_ERROR;
-        if (colno == 0) {
-            sqlite3_result_value(ctx, sqlite3_column_value(stmt_.get(), 0));
-        } else {
-            sqlite3_result_null(ctx);
         }
+        if (clusters_) {
+            switch (colno) {
+            case 0: // _gri_rid
+            case 1: // _gri_beg
+            case 3: // _rowid_
+                sqlite3_result_value(ctx, sqlite3_column_value(stmt_.get(), colno));
+                return SQLITE_OK;
+            case 2: // _gri_end
+                sqlite3_result_int64(ctx, sqlite3_column_int64(stmt_.get(), 1) +
+                                              sqlite3_column_int64(stmt_.get(), 2));
+                return SQLITE_OK;
+            case 4: // _gri_cluster
+                sqlite3_result_int64(ctx, cluster_id_);
+                return SQLITE_OK;
+            }
+        } else if (colno == 0) {
+            sqlite3_result_value(ctx, sqlite3_column_value(stmt_.get(), 0));
+            return SQLITE_OK;
+        }
+        sqlite3_result_null(ctx);
         return SQLITE_OK;
     }
 
     int Rowid(sqlite_int64 *pRowid) override {
         assert(stmt_);
-        *pRowid = sqlite3_column_int64(stmt_.get(), 0);
+        *pRowid = sqlite3_column_int64(stmt_.get(), clusters_ ? 3 : 0);
         return SQLITE_OK;
     }
 
   private:
     sqlite3 *db_;
     stmt_cache &stmt_cache_;
+    bool clusters_;
 
     shared_ptr<sqlite3_stmt> stmt_;
     string table_name_;
     int ceiling_ = 15, floor_ = 0;
+    shared_ptr<sqlite3_value> cluster_rid_;
+    sqlite3_int64 cluster_id_ = LLONG_MIN, cluster_end_ = LLONG_MIN;
 
     void ReturnStmtToCache() {
         if (stmt_) {
@@ -818,6 +864,29 @@ class GenomicRangeRowidsCursor : public SQLiteVirtualTableCursor {
             }
             stmt_.reset();
         }
+    }
+
+    bool different_rid(sqlite3_value *lhs, sqlite3_value *rhs) {
+        auto lty = sqlite3_value_type(lhs), rty = sqlite3_value_type(rhs);
+        bool lint = lty == SQLITE_INTEGER, rint = rty == SQLITE_INTEGER;
+        if (lint != rint) {
+            return true;
+        }
+        if (lint) {
+            return sqlite3_value_int64(lhs) != sqlite3_value_int64(rhs);
+        }
+        bool lnul = lty == SQLITE_NULL, rnul = rty == SQLITE_NULL;
+        if (lnul != rnul) {
+            return true;
+        }
+        if (lnul) {
+            return false;
+        }
+        auto llen = sqlite3_value_bytes(lhs);
+        if (llen != sqlite3_value_bytes(rhs)) {
+            return true;
+        }
+        return memcmp(sqlite3_value_blob(lhs), sqlite3_value_blob(rhs), llen) != 0;
     }
 };
 
@@ -849,6 +918,39 @@ class GenomicRangeRowidsTVF : public SQLiteVirtualTable {
             db, pAux, argc, argv, ppVTab, pzErr,
             unique_ptr<SQLiteVirtualTable>(new GenomicRangeRowidsTVF(db)),
             "CREATE TABLE genomic_range_rowids(_rowid_ INTEGER, tableName HIDDEN, qrid HIDDEN, qbeg HIDDEN, qend HIDDEN, ceiling HIDDEN, floor HIDDEN)");
+    }
+};
+
+class GenomicRangeClustersTVF : public SQLiteVirtualTable {
+    GenomicRangeRowidsCursor::stmt_cache stmt_cache_;
+
+    unique_ptr<SQLiteVirtualTableCursor> NewCursor() override {
+        return unique_ptr<SQLiteVirtualTableCursor>(
+            new GenomicRangeRowidsCursor(db_, stmt_cache_, true));
+    }
+
+  public:
+    GenomicRangeClustersTVF(sqlite3 *db) : SQLiteVirtualTable(db) {}
+
+    int BestIndex(sqlite3_index_info *info) override {
+        int rc = BestIndexTVF(info, 1, 4, 6);
+        if (rc != SQLITE_OK)
+            return rc;
+        info->orderByConsumed = info->nOrderBy <= 4;
+        for (int i = 0; i < 4 && i < info->nOrderBy && info->orderByConsumed; ++i) {
+            if (info->aOrderBy[i].iColumn != i || info->aOrderBy[0].desc) {
+                info->orderByConsumed = 0;
+            }
+        }
+        return SQLITE_OK;
+    }
+
+    static int Connect(sqlite3 *db, void *pAux, int argc, const char *const *argv,
+                       sqlite3_vtab **ppVTab, char **pzErr) {
+        return SQLiteVirtualTable::SimpleConnect(
+            db, pAux, argc, argv, ppVTab, pzErr,
+            unique_ptr<SQLiteVirtualTable>(new GenomicRangeClustersTVF(db)),
+            "CREATE TABLE genomic_range_clusters(_gri_rid INTEGER, _gri_beg INTEGER, _gri_end INTEGER, _rowid_ INTEGER, _gri_cluster INTEGER, tableName HIDDEN, qrid HIDDEN, qbeg HIDDEN, qend HIDDEN, ceiling HIDDEN, floor HIDDEN)");
     }
 };
 
@@ -1691,6 +1793,14 @@ static int register_genomicsqlite_functions(sqlite3 *db, const char **pzErrMsg,
         if (pzErrMsg) {
             *pzErrMsg = sqlite3_mprintf(
                 "Genomics Extension %s failed to register genomic_range_rowids", GIT_REVISION);
+        }
+        return rc;
+    }
+    rc = RegisterSQLiteVirtualTable<GenomicRangeClustersTVF>(db, "genomic_range_clusters");
+    if (rc != SQLITE_OK) {
+        if (pzErrMsg) {
+            *pzErrMsg = sqlite3_mprintf(
+                "Genomics Extension %s failed to register genomic_range_clusters", GIT_REVISION);
         }
         return rc;
     }
