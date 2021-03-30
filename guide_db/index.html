@@ -608,7 +608,7 @@ The default configuration (inner_page_KiB, outer_page_KiB) = (16,32) balances ra
 </ul>
 <p>The connection's potential memory usage can usually be budgeted as roughly the page cache size, plus the size of any uncommitted write transaction (unless unsafe_load), plus some safety factor. ❗However, this can <em>multiply by (threads+1)</em> during queries whose results are at least that large and must be re-sorted. That includes index creation, when the indexed columns total such size.</p>
 <h2 id="genomicsqlite-interactive-shell">genomicsqlite interactive shell</h2>
-<p>The Python package includes a <code>genomicsqlite</code> script that enters the <a href="https://sqlite.org/cli.html"><code>sqlite3</code> interactive shell</a> on an existing compressed database. This is a convenient way to inspect and explore the data with <em>ad hoc</em> SQL queries, as one might use <code>grep</code> or <code>awk</code> on text files. With the Python package installed (<code>pip3 install genomicsqlite</code> or <code>conda install genomicsqlite</code>):</p>
+<p>The Python package includes a <code>genomicsqlite</code> script that enters the <a href="https://sqlite.org/cli.html"><code>sqlite3</code> interactive shell</a> on an existing compressed database. This is a convenient way to inspect and explore the data with <em>ad hoc</em> SQL queries, as one might use <code>grep</code> or <code>awk</code> on text files. With the Python package installed (<code>pip3 install genomicsqlite</code> or <code>conda install -c mlin genomicsqlite</code>):</p>
 <div class="highlight"><pre><span></span><code>$ genomicsqlite DB_FILENAME [--readonly]
 </code></pre></div>
 
