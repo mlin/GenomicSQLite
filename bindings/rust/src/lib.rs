@@ -4,7 +4,7 @@
 //!
 //! Installation & programming guide: [https://mlin.github.io/GenomicSQLite/](https://mlin.github.io/GenomicSQLite/)
 use json::object::Object;
-use rusqlite::{params, Connection, LoadExtensionGuard, OpenFlags, Result, NO_PARAMS};
+use rusqlite::{params, Connection, LoadExtensionGuard, OpenFlags, Result};
 use std::collections::HashMap;
 use std::env;
 #[cfg(feature = "bundle_libgenomicsqlite")]
@@ -80,8 +80,7 @@ fn bundle_libgenomicsqlite() -> Option<(String, TempDir)> {
 // helper for simple queries
 fn query1str<P>(conn: &Connection, sql: &str, params: P) -> Result<String>
 where
-    P: IntoIterator,
-    P::Item: rusqlite::ToSql,
+    P: rusqlite::Params,
 {
     let ans: Result<String> = conn.query_row(sql, params, |row| row.get(0));
     ans
@@ -243,7 +242,7 @@ pub trait ConnectionMethods {
 
 impl ConnectionMethods for Connection {
     fn genomicsqlite_version(&self) -> String {
-        query1str(self, "SELECT genomicsqlite_version()", NO_PARAMS).unwrap()
+        query1str(self, "SELECT genomicsqlite_version()", []).unwrap()
     }
 
     fn genomicsqlite_attach_sql<P: AsRef<Path>>(
@@ -358,7 +357,7 @@ impl ConnectionMethods for Connection {
         );
         let mut stmt = self.prepare(&sql)?;
         let assembly_param = params![assembly];
-        let refseqs = stmt.query_map(assembly.map_or(NO_PARAMS, |_| &assembly_param), |row| {
+        let refseqs = stmt.query_map(assembly.map_or(params![], |_| &assembly_param), |row| {
             let meta_json_str: String = row.get(5)?;
             Ok(RefSeq {
                 rid: row.get(0)?,
@@ -406,7 +405,7 @@ impl ConnectionMethods for Connection {
 #[cfg(test)]
 mod tests {
     use super::ConnectionMethods;
-    use rusqlite::{OpenFlags, NO_PARAMS};
+    use rusqlite::OpenFlags;
 
     #[test]
     fn smoke_test() {
@@ -425,7 +424,7 @@ mod tests {
 
         // check that tuning SQL applied successfully
         let mut ans: i64 = conn
-            .query_row("PRAGMA threads", NO_PARAMS, |row| row.get(0))
+            .query_row("PRAGMA threads", [], |row| row.get(0))
             .unwrap();
         assert_eq!(ans, 3);
 
@@ -453,7 +452,7 @@ mod tests {
         ans = conn
             .query_row(
                 "SELECT COUNT(*) FROM genomic_range_rowids('feature',3,34,34)",
-                NO_PARAMS,
+                [],
                 |row| row.get(0),
             )
             .unwrap();
@@ -482,9 +481,7 @@ mod tests {
             &config,
         ).unwrap();
         let ans: i64 = conn
-            .query_row("SELECT COUNT(1) FROM sqlite_master", NO_PARAMS, |row| {
-                row.get(0)
-            })
+            .query_row("SELECT COUNT(1) FROM sqlite_master", [], |row| row.get(0))
             .unwrap();
         assert_eq!(ans, 12);
     }
