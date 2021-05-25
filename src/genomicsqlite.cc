@@ -855,11 +855,13 @@ class GenomicRangeRowidsTVF : public SQLiteVirtualTable {
 // genomic_range_index_levels(tableName): inspect the GRI to detect the gri_ceiling and gri_floor
 // of the (current snapshot of) the given table. (returns just one row)
 class GenomicRangeIndexLevelsCursor : public SQLiteVirtualTableCursor {
-    sqlite3 *db_;
-    sqlite_int64 ceiling_ = -1, floor_ = -1;
-
   public:
-    GenomicRangeIndexLevelsCursor(sqlite3 *db) : db_(db) {}
+    struct cached_levels {
+        uint32_t data_version = UINT32_MAX;
+        int db_total_changes = INT_MAX, ceiling = 15, floor = 0;
+    };
+    using levels_cache = map<string, cached_levels>;
+    GenomicRangeIndexLevelsCursor(sqlite3 *db, levels_cache &cache) : db_(db), cache_(cache) {}
 
     int Filter(int idxNum, const char *idxStr, int argc, sqlite3_value **argv) override {
         ceiling_ = floor_ = -1;
@@ -870,15 +872,60 @@ class GenomicRangeIndexLevelsCursor : public SQLiteVirtualTableCursor {
         } else {
             string table_name = (const char *)sqlite3_value_text(argv[0]);
             // TODO: sanitize table_name
+            auto schema_table = split_schema_table(table_name);
+            string schema = schema_table.first;
+            transform(schema.begin(), schema.end(), schema.begin(), ::tolower);
+
+            uint32_t data_version = UINT32_MAX;
+            int db_total_changes = INT_MAX;
+            bool main = schema.empty() || schema == "main.";
+            if (main) {
+                // cache levels for tables of the main database, invalidated when database changes
+                // are indicated by SQLITE_FCNTL_DATA_VERSION and/or sqlite3_total_changes().
+                // Exclude attached databases because we can't know if a schema name could have
+                // been reattached to a different file between invocations.
+                int rc =
+                    sqlite3_file_control(db_, nullptr, SQLITE_FCNTL_DATA_VERSION, &data_version);
+                if (rc != SQLITE_OK) {
+                    Error("genomic_range_index_levels(): error in SQLITE_FCNTL_DATA_VERSION");
+                    return rc;
+                }
+                db_total_changes = sqlite3_total_changes(db_);
+                auto cached = cache_.find(schema_table.second);
+                if (cached != cache_.end() && data_version == cached->second.data_version &&
+                    db_total_changes == cached->second.db_total_changes) {
+                    floor_ = cached->second.floor;
+                    ceiling_ = cached->second.ceiling;
+                    _DBG << "genomic_range_index_levels() cache hit on " << table_name
+                         << " ceiling = " << ceiling_ << " floor = " << floor_ << endl;
+                    return SQLITE_OK;
+                }
+            }
+
             try {
                 auto p = DetectLevelRange(db_, table_name);
                 floor_ = p.first;
                 ceiling_ = p.second;
-                assert(floor_ >= 0 && ceiling_ >= floor_ && ceiling_ <= 15);
-                return SQLITE_OK;
             } catch (std::exception &exn) {
                 Error(exn.what());
+                return SQLITE_ERROR;
             }
+            assert(floor_ >= 0 && ceiling_ >= floor_ && ceiling_ <= 15);
+
+            if (main) {
+                auto cached = cache_.find(schema_table.second);
+                if (cached == cache_.end()) {
+                    cache_[schema_table.second] = cached_levels();
+                    cached = cache_.find(schema_table.second);
+                    assert(cached != cache_.end());
+                }
+                cached->second.data_version = data_version;
+                cached->second.db_total_changes = db_total_changes;
+                cached->second.ceiling = ceiling_;
+                cached->second.floor = floor_;
+            }
+
+            return SQLITE_OK;
         }
         return SQLITE_ERROR;
     }
@@ -910,11 +957,18 @@ class GenomicRangeIndexLevelsCursor : public SQLiteVirtualTableCursor {
         *pRowid = 1;
         return SQLITE_OK;
     }
+
+  private:
+    sqlite3 *db_;
+    levels_cache &cache_;
+    sqlite_int64 ceiling_ = -1, floor_ = -1;
 };
 
 class GenomicRangeIndexLevelsTVF : public SQLiteVirtualTable {
+    GenomicRangeIndexLevelsCursor::levels_cache cache_;
+
     unique_ptr<SQLiteVirtualTableCursor> NewCursor() override {
-        return unique_ptr<SQLiteVirtualTableCursor>(new GenomicRangeIndexLevelsCursor(db_));
+        return unique_ptr<SQLiteVirtualTableCursor>(new GenomicRangeIndexLevelsCursor(db_, cache_));
     }
 
   public:

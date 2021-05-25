@@ -235,6 +235,7 @@ task test_sam_web {
             'SELECT gri_refseq_name, count(1) AS read_count
                 FROM reads LEFT JOIN _gri_refseq USING(_gri_rid)
                 GROUP BY gri_refseq_name
+                HAVING read_count >= 1000000
                 ORDER BY read_count DESC'
 
         # stop nginx
