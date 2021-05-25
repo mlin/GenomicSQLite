@@ -178,7 +178,7 @@ The connection's potential memory usage can usually be budgeted as roughly the p
 
 ## genomicsqlite interactive shell
 
-The Python package includes a `genomicsqlite` script that enters the [`sqlite3` interactive shell](https://sqlite.org/cli.html) on an existing compressed database. This is a convenient way to inspect and explore the data with *ad hoc* SQL queries, as one might use `grep` or `awk` on text files. With the Python package installed (`pip3 install genomicsqlite` or `conda install genomicsqlite`):
+The Python package includes a `genomicsqlite` script that enters the [`sqlite3` interactive shell](https://sqlite.org/cli.html) on an existing compressed database. This is a convenient way to inspect and explore the data with *ad hoc* SQL queries, as one might use `grep` or `awk` on text files. With the Python package installed (`pip3 install genomicsqlite` or `conda install -c mlin genomicsqlite`):
 
 ```
 $ genomicsqlite DB_FILENAME [--readonly]

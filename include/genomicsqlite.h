@@ -7,9 +7,10 @@
  * C bindings
  *
  * Convention for all functions returning char*:
- * - Return value is always a non-null buffer which must be freed using sqlite3_free()
+ * - Return value is a buffer which must be freed using sqlite3_free()
  * - On success, it's a nonempty, null-terminated string
  * - On failure, it's a null byte, followed immediately by a null-terminated error message
+ * - Null is returned only in an out-of-memory condition
  */
 
 #ifdef __cplusplus
