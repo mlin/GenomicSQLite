@@ -27,6 +27,3 @@ features = ["load_extension", "vtab"]
 [dev-dependencies.uuid]
 version = "^0"
 features = ["v4"]
-
-# TODO:
-# update Programming Guide
