@@ -175,11 +175,9 @@ SELECT col1, col2, ... FROM exons, genomic_range_index_levels('exons')
 
 Here `_gri_ceiling` and `_gri_floor` are columns of the single row computed by `genomic_range_index_levels('exons')`.
 
-`genomic_range_index_levels()` performs some upfront analysis of the GRI, the cost of which will be worthwhile if used to optimize many subsequent GRI queries (but not just one or a few). For a given table in the main schema, multiple uses of `genomic_range_index_levels()` on the same connection will automatically reuse the first analysis results, so long as the database isn't written to in the meantime. 
+`genomic_range_index_levels()` performs some upfront analysis of table's GRI upon its first use on any database connection. The cost of this analysis should be worthwhile if it's used to optimize many `genomic_range_rowids()` operations (but not just one or a few). Subsequent uses of `genomic_range_index_levels()` on the same connection & table reuse the first analysis results, unless the database changes in the meantime (in which case the analysis is redone).
 
-**❗ Do not use `genomic_range_index_levels()` if a transaction is still open in which the table was previously modified, as its results may be incorrect in that case.**
-
-Omitting the bounds is always safe, albeit slightly slower. <small>Instead of detecting current bounds, they can be figured manually as follows. Set the integer ceiling to *C*, 0 &lt; *C* &lt; 16, such that all (present & future) indexed features are guaranteed to have lengths &le;16<sup>*C*</sup>. For example, if you're querying features on the human genome, then you can set ceiling=7 because the lengthiest chromosome sequence is &lt;16<sup>7</sup>nt. Set the integer floor *F* to (i) the floor value supplied at GRI creation, if any; (ii) *F* &gt; 0 such that the minimum possible feature length &gt;16<sup>*F*-1</sup>, if any; or (iii) zero. The default, safe, albeit slower bounds are C=15, F=0.</small>
+<small>Instead of detecting current bounds, they can be figured manually as follows. Set the integer ceiling to *C*, 0 &lt; *C* &lt; 16, such that all (present & future) indexed features are guaranteed to have lengths &le;16<sup>*C*</sup>. For example, if you're querying features on the human genome, then you can set ceiling=7 because the lengthiest chromosome sequence is &lt;16<sup>7</sup>nt. Set the integer floor *F* to (i) the floor value supplied at GRI creation, if any; (ii) *F* &gt; 0 such that the minimum possible feature length &gt;16<sup>*F*-1</sup>, if any; or (iii) zero. The default, safe, albeit slower bounds are C=15, F=0.</small>
 
 #### Joining tables on range overlap
 
