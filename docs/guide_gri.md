@@ -177,7 +177,7 @@ Here `_gri_ceiling` and `_gri_floor` are columns of the single row computed by `
 
 `genomic_range_index_levels()` performs some upfront analysis of table's GRI upon its first use on any database connection. The cost of this analysis should be worthwhile if it's used to optimize many `genomic_range_rowids()` operations (but not just one or a few). Subsequent uses of `genomic_range_index_levels()` on the same connection & table reuse the first analysis, unless the database changes in the meantime, in which case the analysis must be redone. This suggests using `genomic_range_index_levels()` only once the database is read-only.
 
-<small>Instead of detecting current bounds, they can be figured manually as follows. Set the integer ceiling to *C*, 0 &lt; *C* &lt; 16, such that all (present & future) indexed features are guaranteed to have lengths &le;16<sup>*C*</sup>. For example, if you're querying features on the human genome, then you can set ceiling=7 because the lengthiest chromosome sequence is &lt;16<sup>7</sup>nt. Set the integer floor *F* to (i) the floor value supplied at GRI creation, if any; (ii) *F* &gt; 0 such that the minimum possible feature length &gt;16<sup>*F*-1</sup>, if any; or (iii) zero. The default bounds are C=15, F=0. GRI queries with incorrect bounds are liable to produce incomplete results.</small>
+<small>Instead of detecting current bounds, they can be figured manually as follows. Set the integer ceiling to *C*, 0 &lt; *C* &lt; 16, such that all (present & future) indexed features are guaranteed to have lengths &le;16<sup>*C*</sup>. For example, if you're querying features on the human genome, then you can set ceiling=7 because the lengthiest chromosome sequence is &lt;16<sup>7</sup>nt. Set the integer floor *F* to (i) the floor value supplied at GRI creation, if any; (ii) *F* &gt; 0 such that the minimum possible feature length &gt;16<sup>*F*-1</sup>, if any; or (iii) zero. The safe, default bounds are C=15, F=0. GRI queries with inappropriate bounds are liable to produce incomplete results.</small>
 
 #### Joining tables on range overlap
 
@@ -196,7 +196,7 @@ FROM variants LEFT JOIN exons ON exons._rowid_ IN
 
 We fill out the GRI query range using the three coordinate columns of the variants table.
 
-We may be able to speed this up by supplying level bounds, as shown above. Optionally, in this case where we expect a "tight loop" of many GRI queries, we can even inline the bounds detection:
+We may be able to speed this up by supplying level bounds, as discussed above:
 
 ``` sql
 SELECT variants.*, exons._rowid_
@@ -212,13 +212,7 @@ FROM genomic_range_index_levels('exons'),
   )
 ```
 
-<<<<<<< HEAD
-We fill out the GRI query range using the three coordinate columns of the variants table. The level bounds optimization is highly desirable for the "tight loop" of GRI queries during a big join. See also "Advice for big data" below.
-=======
-Here `_gri_ceiling` and `_gri_floor` are columns of the single row computed by `genomic_range_index_levels('exons')`.
-
 See also "Advice for big data" below on optimizing storage layout for GRI queries.
->>>>>>> main
 
 ### Reference genome metadata
 
