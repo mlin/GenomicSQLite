@@ -858,7 +858,7 @@ class GenomicRangeIndexLevelsCursor : public SQLiteVirtualTableCursor {
   public:
     struct cached_levels {
         uint32_t data_version = UINT32_MAX;
-        int ceiling = 15, floor = 0;
+        int db_total_changes = INT_MAX, ceiling = 15, floor = 0;
     };
     using levels_cache = map<string, cached_levels>;
     GenomicRangeIndexLevelsCursor(sqlite3 *db, levels_cache &cache) : db_(db), cache_(cache) {}
@@ -877,20 +877,23 @@ class GenomicRangeIndexLevelsCursor : public SQLiteVirtualTableCursor {
             transform(schema.begin(), schema.end(), schema.begin(), ::tolower);
 
             uint32_t data_version = UINT32_MAX;
+            int db_total_changes = INT_MAX;
             bool main = schema.empty() || schema == "main.";
             if (main) {
                 // cache levels for tables of the main database, invalidated when database changes
-                // are indicated by SQLITE_FCNTL_DATA_VERSION. Exclude attached databases because
-                // we can't know if a schema name could have been reattached to a different file
-                // between invocations.
+                // are indicated by SQLITE_FCNTL_DATA_VERSION and/or sqlite3_total_changes().
+                // Exclude attached databases because we can't know if a schema name could have
+                // been reattached to a different file between invocations.
                 int rc =
                     sqlite3_file_control(db_, nullptr, SQLITE_FCNTL_DATA_VERSION, &data_version);
                 if (rc != SQLITE_OK) {
                     Error("genomic_range_index_levels(): error in SQLITE_FCNTL_DATA_VERSION");
                     return rc;
                 }
+                db_total_changes = sqlite3_total_changes(db_);
                 auto cached = cache_.find(schema_table.second);
-                if (cached != cache_.end() && data_version == cached->second.data_version) {
+                if (cached != cache_.end() && data_version == cached->second.data_version &&
+                    db_total_changes == cached->second.db_total_changes) {
                     floor_ = cached->second.floor;
                     ceiling_ = cached->second.ceiling;
                     _DBG << "genomic_range_index_levels() cache hit on " << table_name
@@ -917,6 +920,7 @@ class GenomicRangeIndexLevelsCursor : public SQLiteVirtualTableCursor {
                     assert(cached != cache_.end());
                 }
                 cached->second.data_version = data_version;
+                cached->second.db_total_changes = db_total_changes;
                 cached->second.ceiling = ceiling_;
                 cached->second.floor = floor_;
             }
