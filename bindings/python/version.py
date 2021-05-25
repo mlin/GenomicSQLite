@@ -61,7 +61,7 @@ _GIT_DESCRIPTION_RE = r"^v(?P<ver>%s)-(?P<commits>\d+)-g(?P<sha>[\da-f]+)$" % (
 
 def read_git_version():
     try:
-        proc = subprocess.Popen(
+        proc = subprocess.Popen(  # pylint: disable=R1732
             ("git", "describe", "--long", "--tags", "--match", "v[0-9]*.*"),
             stdout=subprocess.PIPE,
             stderr=subprocess.PIPE,
