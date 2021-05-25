@@ -331,7 +331,12 @@ def test_gri_levels_in_sql(tmp_path):
     assert results == [(3, 1)]
     results = list(con.execute("SELECT * FROM genomic_range_index_levels('main.exons')"))
     assert results == [(3, 1)]
+    tch1 = con.total_changes
     con.execute("INSERT INTO exons VALUES('ether',0,4097,4097,'ether')")
+    tch2 = con.total_changes
+    assert tch2 > tch1
+    results = list(con.execute("SELECT * FROM genomic_range_index_levels('exons')"))
+    assert results == [(4, 1)]
     con.commit()
     results = list(con.execute("SELECT * FROM genomic_range_index_levels('exons')"))
     assert results == [(4, 1)]
