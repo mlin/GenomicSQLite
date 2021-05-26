@@ -208,7 +208,7 @@ Usage: genomicsqlite DB_FILENAME --compact [options|--help]
 """
 
 
-def _cli(argv=sys.argv):
+def _cli(argv=None):
     """
     Command-line entry point wrapping the `sqlite3` interactive CLI to open a GenomicSQLite
     compressed database file.
@@ -217,6 +217,8 @@ def _cli(argv=sys.argv):
     language bindings.
     """
 
+    if argv is None:
+        argv = sys.argv
     if "--compact" in argv or "-compact" in argv:
         _compact(argv[1], argv[2:])
         return
