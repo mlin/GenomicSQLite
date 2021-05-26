@@ -426,7 +426,7 @@ def _compact(dbfilename, argv):
 
 
 def _dbi(dbfilename, argv):
-    from . import sqlite_web_dbi as dbi
+    from .sqlite_web_dbi import main as dbi_main  # pylint: disable=E0611
 
     argv = [elt for elt in argv if elt not in ("-dbi", "--dbi")]
-    dbi.main(["genomicsqlite DBFILE --dbi", dbfilename] + argv)
+    dbi_main(["genomicsqlite DBFILE --dbi", dbfilename] + argv)
