@@ -430,3 +430,7 @@ def _dbi(dbfilename, argv):
 
     argv = [elt for elt in argv if elt not in ("-dbi", "--dbi")]
     dbi_main(["genomicsqlite DBFILE --dbi", dbfilename] + argv)
+
+
+if __name__ == "__main__":
+    _cli(sys.argv)
