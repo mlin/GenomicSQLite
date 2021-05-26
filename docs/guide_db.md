@@ -215,7 +215,7 @@ Optionally, web access can be further optimized by a small .dbi helper file serv
 
 Use `genomicsqlite DB_FILENAME --dbi` to generate the .dbi helper for an immutable database file, then publish them alongside each other. The .dbi must be regenerated if the database subsequently changes.
 
-The automatic probe can be overridden by setting configuration web_dbi_url to different URL for the .dbi file, or to a local `file:/path/to.dbi` downloaded beforehand. Use the latter feature to save multiple connections from each having to fetch the .dbi separately. Lastly, set web_nodbi to true or environment SQLITE_WEB_NODBI=1 to disable dbi mode entirely.
+To override the automatic probe, set configuration web_dbi_url to a different URL for the .dbi file, or to a local `file:/path/to.dbi` downloaded beforehand. Use the latter feature to save multiple connections from each having to fetch the .dbi separately. Lastly, set web_nodbi to true or environment SQLITE_WEB_NODBI=1 to disable dbi mode entirely.
 
 The .dbi helper is optional, but often beneficial for big databases accessed with high-latency requests. It collects bits of the main file that are key for navigating it, but typically scattered throughout (even after compaction). Prefetching them in the compact .dbi saves the reader from having to pluck them from all over the main file.
 
