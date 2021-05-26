@@ -208,7 +208,7 @@ Usage: genomicsqlite DB_FILENAME --compact [options|--help]
 """
 
 
-def _cli(argv):
+def _cli(argv=sys.argv):
     """
     Command-line entry point wrapping the `sqlite3` interactive CLI to open a GenomicSQLite
     compressed database file.
