@@ -202,9 +202,16 @@ Enters the sqlite3 command-line shell on a GenomicSQLite-compressed database.
 
 sqlite3_ARG: passed through to sqlite3 (see `sqlite3 -help`)
 
+--
 
-Usage: genomicsqlite DB_FILENAME --compact [options|--help]
-[Re]compress and defragment an existing SQLite3 or GenomicSQLite database. See --compact --help for options
+Other tools:
+
+genomicsqlite DB_FILENAME --compact [options|--help]
+[Re]compress and defragment an existing SQLite3 or GenomicSQLite database. See `genomicsqlite --compact --help`
+
+genomicsqlite DB_FILENAME --dbi [options|--help]
+Generate a .dbi helper file to optimize web access for a given database. See `genomicsqlite --dbi --help`
+
 """
 
 
