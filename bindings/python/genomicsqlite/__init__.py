@@ -202,13 +202,20 @@ Enters the sqlite3 command-line shell on a GenomicSQLite-compressed database.
 
 sqlite3_ARG: passed through to sqlite3 (see `sqlite3 -help`)
 
+--
 
-Usage: genomicsqlite DB_FILENAME --compact [options|--help]
-[Re]compress and defragment an existing SQLite3 or GenomicSQLite database. See --compact --help for options
+Other tools:
+
+genomicsqlite DB_FILENAME --compact [options|--help]
+[Re]compress and defragment an existing SQLite3 or GenomicSQLite database. See `genomicsqlite --compact --help`
+
+genomicsqlite DB_FILENAME --dbi [options|--help]
+Generate a .dbi helper file to optimize web access for a given database. See `genomicsqlite --dbi --help`
+
 """
 
 
-def _cli():
+def _cli(argv=None):
     """
     Command-line entry point wrapping the `sqlite3` interactive CLI to open a GenomicSQLite
     compressed database file.
@@ -217,17 +224,22 @@ def _cli():
     language bindings.
     """
 
-    if "--compact" in sys.argv or "-compact" in sys.argv:
-        _compact(sys.argv[1], sys.argv[2:])
+    if argv is None:
+        argv = sys.argv
+    if "--compact" in argv or "-compact" in argv:
+        _compact(argv[1], argv[2:])
+        return
+    if "--dbi" in argv or "-dbi" in argv:
+        _dbi(argv[1], argv[2:])
         return
 
     if (
-        len(sys.argv) < 2
+        len(argv) < 2
         or not (
-            next((True for pfx in ("http:", "https:") if sys.argv[1].startswith(pfx)), False)
-            or os.path.isfile(sys.argv[1])
+            next((True for pfx in ("http:", "https:") if argv[1].startswith(pfx)), False)
+            or os.path.isfile(argv[1])
         )
-        or next((True for a in ("-h", "-help", "--help") if a in sys.argv), False)
+        or next((True for a in ("-h", "-help", "--help") if a in argv), False)
     ):
         print(
             "Usage: genomicsqlite DB_FILENAME [--readonly] [sqlite3_ARG ...]\n",
@@ -250,13 +262,13 @@ def _cli():
 
     cfg = {}
     try:
-        sys.argv[sys.argv.index("--readonly")] = "-readonly"
+        argv[argv.index("--readonly")] = "-readonly"
     except ValueError:
         pass
-    if "-readonly" in sys.argv:
+    if "-readonly" in argv:
         cfg["mode"] = "ro"
     cfg = json.dumps(cfg)
-    uri = _execute1(_MEMCONN, "SELECT genomicsqlite_uri(?,?)", (sys.argv[1], cfg))
+    uri = _execute1(_MEMCONN, "SELECT genomicsqlite_uri(?,?)", (argv[1], cfg))
     tuning_sql = _execute1(_MEMCONN, "SELECT genomicsqlite_tuning_sql(?)", (cfg,))
 
     cmd = [
@@ -274,7 +286,7 @@ def _cli():
         '.prompt "GenomicSQLite> "',
     ]
     if sys.stdout.isatty() and not next(
-        (arg for arg in sys.argv[2:] if not arg.startswith("-")), False
+        (arg for arg in argv[2:] if not arg.startswith("-")), False
     ):
         # interactive mode:
         cmd += [
@@ -284,7 +296,7 @@ def _cli():
             ".headers on",
         ]
     cmd.append(":memory:")  # placeholder so remaining positional args are recognized as such
-    cmd += sys.argv[2:]
+    cmd += argv[2:]
 
     if "DEBUG" in os.environ:
         print(
@@ -422,5 +434,12 @@ def _compact(dbfilename, argv):
         print("OK", file=sys.stderr)
 
 
+def _dbi(dbfilename, argv):
+    from .sqlite_web_dbi import main as dbi_main  # pylint: disable=E0401,E0611
+
+    argv = [elt for elt in argv if elt not in ("-dbi", "--dbi")]
+    dbi_main(["genomicsqlite DBFILE --dbi", dbfilename] + argv)
+
+
 if __name__ == "__main__":
-    _cli()
+    _cli(sys.argv)

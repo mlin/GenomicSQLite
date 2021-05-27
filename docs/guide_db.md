@@ -200,12 +200,24 @@ Due to decompression overhead, the compaction procedure may be impractically slo
 
 The **GenomicSQLite Open** routine and the `genomicsqlite` shell also accept http: and https: URLs instead of local filenames, creating a connection to read the compressed file over the web directly. The database connection must be opened read-only in the appropriate manner for your language bindings (such as the flag `SQLITE_OPEN_READONLY`). The URL server must support [HTTP GET range](https://developer.mozilla.org/en-US/docs/Web/HTTP/Range_requests) requests, and the content must not change for the lifetime of the connection.
 
-Under the hood, the extension uses [libcurl](https://curl.se/libcurl/) to send web requests for necessary portions of the database file as queries proceed, with adaptive batching & prefetching to balance the number and size of these requests. This works well for point lookups and queries that scan largely-contiguous slices of tables and indexes (a modest number thereof). It's less suitable for big multi-way joins and other aggressively random access patterns; in such cases, it'd be better to download the database file upfront to open locally.
+Under the hood, the extension uses [libcurl](https://curl.se/libcurl/) to send web requests for necessary portions of the database file as queries proceed, with adaptive batching & prefetching to balance the number and size of these requests. This works well for point lookups and queries that scan largely-contiguous slices of tables and indexes (and a modest number thereof). It's less suitable for big multi-way joins and other aggressively random access patterns; in such cases, it'd be better to download the database file upfront to open locally.
 
-* The above-described `genomicsqlite DB_FILENAME --compact` tool can optimize a file's suitability for web access.
 * Reading large databases over the web, budget an additional ~600MiB of memory for HTTP prefetch buffers.
-* To disable TLS certificate and hostname verification, set web_insecure = true in the GenomicSQLite configuration, or SQLITE_WEB_INSECURE=1 in the environment.
 * The HTTP driver writes log messages to standard error when requests fail or had to be retried, which can be disabled by setting configuration web_log = 0 or environment SQLITE_WEB_LOG=0; or increased up to 5 to log every request and other details.
+* To disable TLS certificate and hostname verification, set web_insecure = true in the GenomicSQLite configuration, or SQLITE_WEB_INSECURE=1 in the environment.
+* The above-described `genomicsqlite DB_FILENAME --compact` optimizes a database for web access by making the request pattern more contiguous.
+
+### Web access optimization with .dbi helper files
+
+*Experimental feature*
+
+Optionally, web access can be further optimized by a small .dbi helper file served alongside the main database file. The client automatically probes for this by appending `.dbi` to the database URL (unless there's a query string). If that's not usable for any reason, the database falls back to direct access. Increase the web_log to 3 or higher to see which mode is used.
+
+Use `genomicsqlite DB_FILENAME --dbi` to generate the .dbi helper for an immutable database file, then publish them alongside each other. The .dbi must be regenerated if the database subsequently changes.
+
+To override the automatic probe, set configuration web_dbi_url to a different URL for the .dbi file, or to a local `file:/path/to.dbi` downloaded beforehand. Use the latter feature to save multiple connections from each having to fetch the .dbi separately. Lastly, set web_nodbi to true or environment SQLITE_WEB_NODBI=1 to disable dbi mode entirely.
+
+The .dbi helper is optional, but often beneficial for big databases accessed with high-latency requests. It collects bits of the main file that are key for navigating it, but typically scattered throughout (even after compaction). Prefetching them in the compact .dbi saves the reader from having to pluck them from all over the main file.
 
 ## Advice for big data
 

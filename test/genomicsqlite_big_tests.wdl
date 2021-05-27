@@ -23,11 +23,19 @@ workflow genomicsqlite_big_tests {
         sam_into_sqlite = build.sam_into_sqlite
     }
 
-    call test_sam_web {
+    call test_sam_web as test_sam_web_nodbi {
         input:
         reads_db = test_sam.reads_db,
         libgenomicsqlite_so = select_first([libgenomicsqlite_so, build.libgenomicsqlite_so]),
         genomicsqlite_py = build.genomicsqlite_py
+    }
+
+    call test_sam_web as test_sam_web_dbi {
+        input:
+        reads_db = test_sam.reads_db,
+        libgenomicsqlite_so = select_first([libgenomicsqlite_so, build.libgenomicsqlite_so]),
+        genomicsqlite_py = build.genomicsqlite_py,
+        sqlite_web_dbi_py = build.sqlite_web_dbi_py
     }
 
     call test_vcf {
@@ -65,6 +73,7 @@ task build {
     output {
         File libgenomicsqlite_so = "GenomicSQLite/build/libgenomicsqlite.so"
         File genomicsqlite_py = "GenomicSQLite/genomicsqlite.py"
+        File sqlite_web_dbi_py = "GenomicSQLite/build/_deps/sqlite_web_vfs-src/sqlite_web_dbi.py"
         File sam_into_sqlite = "GenomicSQLite/build/loaders/sam_into_sqlite"
         File vcf_into_sqlite = "GenomicSQLite/build/loaders/vcf_into_sqlite"
     }
@@ -172,6 +181,7 @@ task test_sam_web {
         File reads_db
         File genomicsqlite_py
         File libgenomicsqlite_so
+        File? sqlite_web_dbi_py
     }
 
     command <<<
@@ -183,6 +193,14 @@ task test_sam_web {
         cp ~{libgenomicsqlite_so} /usr/local/lib/libgenomicsqlite.so
         ldconfig
 
+        READS_DB_DIR="$(dirname '~{reads_db}')"
+        if [ -n '~{sqlite_web_dbi_py}' ]; then
+            # generate .dbi to serve alongside database
+            cp '~{sqlite_web_dbi_py}' /usr/local/bin/sqlite_web_dbi.py
+            chmod +x /usr/local/bin/sqlite_web_dbi.py
+            sqlite_web_dbi.py '~{reads_db}'
+        fi
+
         # make self-signed cert
         openssl req -new -newkey rsa:4096 -days 365 -nodes -x509 \
             -subj "/C=US/ST=Denial/L=Springfield/O=Dis/CN=www.example.com" \
@@ -191,7 +209,6 @@ task test_sam_web {
         # write nginx.config as heredoc
         # references: https://docs.nginx.com/nginx/admin-guide/web-server/serving-static-content/
         #             http://nginx.org/en/docs/http/configuring_https_servers.html
-        READS_DB_DIR="$(dirname '~{reads_db}')"
         cat << EOF > nginx.config
         worker_processes     8;
         error_log            stderr warn;

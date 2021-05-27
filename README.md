@@ -16,7 +16,7 @@ This October 2020 poster discusses the context and long-run ambitions:
 
 Our **[Colab notebook](https://colab.research.google.com/drive/1OlHPOcRQBhDmEnS1wtOdtUGDkcD7LtKx?usp=sharing)** demonstrates key features with Python, one of several language bindings.
 
-**USE AT YOUR OWN RISK:** The extension makes fundamental changes to the database storage layer. While designed to preserve ACID transaction safety, it's young and unlikely to have zero bugs. This project is not associated with the SQLite developers.
+**USE AT YOUR OWN RISK:** This project is not associated with the SQLite developers. The database storage extensions are designed to preserve ACID transaction safety, but they're young and unlikely to be totally bug-free.
 
 ## [Installation & Programming Guide](https://mlin.github.io/GenomicSQLite/)
 
