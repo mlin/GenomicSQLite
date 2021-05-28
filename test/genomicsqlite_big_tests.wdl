@@ -124,14 +124,14 @@ task test_sam {
             # CRAM given; make BAM to take reference downloads out of the timings
             wget -nv -O - '~{cram_ref_fa_gz}' | pigz -dc > "${TMPDIR}/cram_ref.fa"
             samtools faidx "${TMPDIR}/cram_ref.fa"
-            bam_file="${TMPDIR}/$(basename reads_file .cram).bam"
+            bam_file="${TMPDIR}/$(basename "$reads_file" .cram).bam"
             time samtools view -T "${TMPDIR}/cram_ref.fa" -h -O BAM -@ 8 "$reads_file" > "$bam_file"
             reads_file=$bam_file
         fi
         >&2 ls -l "$reads_file"
 
         # load database
-        time sam_into_sqlite "$reads_file" '~{dbname}'
+        time sam_into_sqlite --inner-page-KiB 64 --outer-page-KiB 2 "$reads_file" '~{dbname}'
         >&2 ls -l '~{dbname}'
 
         # compaction
