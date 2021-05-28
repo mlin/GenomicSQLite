@@ -188,7 +188,7 @@ string GenomicSQLiteURI(const string &dbfile, const string &config_json = "") {
         }
     }
     int threads = cfg.GetInt("$.threads");
-    uri << "&outer_cache_size=-65536"
+    uri << "&outer_cache_size=" << to_string(-64 * cfg.GetInt("$.page_cache_MiB"))
         << "&threads=" << to_string(threads);
     if (threads > 1 && cfg.GetInt("$.inner_page_KiB") < 16 && !cfg.GetBool("$.force_prefetch")) {
         // prefetch is usually counterproductive if inner_page_KiB < 16
@@ -275,7 +275,7 @@ string GenomicSQLiteTuningSQL(const string &config_json, const string &schema = 
         schema_prefix = schema + ".";
     }
     map<string, string> pragmas;
-    pragmas[schema_prefix + "cache_size"] = to_string(-1024 * cfg.GetInt("$.page_cache_MiB"));
+    pragmas[schema_prefix + "cache_size"] = to_string(-960 * cfg.GetInt("$.page_cache_MiB"));
     pragmas[schema_prefix + "max_page_count"] = "2147483646";
     if (schema_prefix.empty()) {
         int threads = cfg.GetInt("$.threads");
