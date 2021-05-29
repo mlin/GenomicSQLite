@@ -59,9 +59,9 @@ if(CMAKE_SYSTEM_NAME STREQUAL "Darwin")
     target_link_libraries(genomicsqlite PRIVATE SQLiteCpp ${LINK_LIBCURL} ${LIBZSTD_A})
 elseif(ZSTD_WHOLE_ARCHIVE)
     # Linux: statically linking zstd
-    target_link_libraries(genomicsqlite PRIVATE SQLiteCpp ${LINK_LIBCURL} -Wl,--whole-archive libzstd.a -Wl,--no-whole-archive)
+    target_link_libraries(genomicsqlite PRIVATE libsqlite3.so.0 SQLiteCpp ${LINK_LIBCURL} -Wl,--whole-archive libzstd.a -Wl,--no-whole-archive)
 else()
-    target_link_libraries(genomicsqlite PRIVATE SQLiteCpp zstd ${LINK_LIBCURL})
+    target_link_libraries(genomicsqlite PRIVATE libsqlite3.so.0 SQLiteCpp zstd ${LINK_LIBCURL})
 endif()
 
 if(CMAKE_PROJECT_NAME STREQUAL PROJECT_NAME)

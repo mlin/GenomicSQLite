@@ -190,6 +190,7 @@ string GenomicSQLiteURI(const string &dbfile, const string &config_json = "") {
             uri << "&nolock=1&outer_unsafe=1";
         }
     }
+    _DBG << uri.str() << endl;
     return uri.str();
 }
 
@@ -281,6 +282,7 @@ string GenomicSQLiteTuningSQL(const string &config_json, const string &schema = 
     for (const auto &p : pragmas) {
         out << "; PRAGMA " << p.first << "=" << p.second;
     }
+    _DBG << out.str() << endl;
     return out.str();
 }
 
@@ -300,12 +302,11 @@ void GenomicSQLiteInit(int (*open_v2)(const char *, sqlite3 **, int, const char 
                        int (*enable_load_extension)(sqlite3 *, int),
                        int (*load_extension)(sqlite3 *, const char *, const char *, char **)) {
     static bool ext_loaded = false;
-    if (!ext_loaded) {
-
+    if (!ext_loaded && !sqlite3_api) {
         sqlite3 *memdb = nullptr;
         int rc = open_v2(":memory:", &memdb, SQLITE_OPEN_CREATE | SQLITE_OPEN_READWRITE, nullptr);
         if (rc != SQLITE_OK) {
-            sqlite3_close(memdb);
+            //sqlite3_close(memdb);
             throw runtime_error("GenomicSQLiteInit() unable to open temporary SQLite connection");
         }
         enable_load_extension(memdb, 1);
@@ -314,8 +315,10 @@ void GenomicSQLiteInit(int (*open_v2)(const char *, sqlite3 **, int, const char 
         if (rc != SQLITE_OK) {
             string err = "GenomicSQLiteInit() unable to load the extension" +
                          (zErrMsg ? ": " + string(zErrMsg) : "");
-            sqlite3_free(zErrMsg);
-            sqlite3_close(memdb);
+            if (sqlite3_api) {
+                sqlite3_free(zErrMsg);
+                sqlite3_close(memdb);
+            }
             throw runtime_error(err);
         }
         sqlite3_free(zErrMsg);
