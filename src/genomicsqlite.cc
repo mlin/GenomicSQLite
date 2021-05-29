@@ -187,7 +187,7 @@ string GenomicSQLiteURI(const string &dbfile, const string &config_json = "") {
             uri << "&immutable=1";
         }
         if (cfg.GetBool("$.unsafe_load")) {
-            uri << "&nolock=1&outer_unsafe";
+            uri << "&nolock=1&outer_unsafe=1";
         }
     }
     return uri.str();
