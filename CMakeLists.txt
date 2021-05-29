@@ -18,7 +18,7 @@ endif()
 FetchContent_Declare(
     sqlite_zstd_vfs
     GIT_REPOSITORY  https://github.com/mlin/sqlite_zstd_vfs.git
-    GIT_TAG         171021e
+    GIT_TAG         a6ae48b
 )
 FetchContent_MakeAvailable(sqlite_zstd_vfs)
 FetchContent_MakeAvailable(sqlitecpp)
@@ -72,7 +72,7 @@ if(CMAKE_PROJECT_NAME STREQUAL PROJECT_NAME)
     set(GENOMICSQLITE_TEST_ENV env PYTHONPATH=${CMAKE_CURRENT_SOURCE_DIR}/bindings/python:${PYTHONPATH} LIBGENOMICSQLITE=${CMAKE_BINARY_DIR}/libgenomicsqlite SQLITE_WEB_LOG=99)
     add_test(NAME smoke_test COMMAND ${GENOMICSQLITE_TEST_ENV} python3 ${CMAKE_CURRENT_SOURCE_DIR}/test/genomicsqlite_smoke_test.py)
     add_test(NAME capi_smoke_test COMMAND ${GENOMICSQLITE_TEST_ENV} ${CMAKE_BINARY_DIR}/test/capi_smoke_test)
-    add_test(NAME JdbcTests COMMAND ${GENOMICSQLITE_TEST_ENV} mvn test -B -f ${CMAKE_CURRENT_SOURCE_DIR}/bindings/jdbc/genomicsqlite-jdbc/pom.xml)
-    add_test(NAME cargo_test COMMAND ${GENOMICSQLITE_TEST_ENV} ${CMAKE_CURRENT_SOURCE_DIR}/bindings/rust/cargo test --no-default-features)
+    #add_test(NAME JdbcTests COMMAND ${GENOMICSQLITE_TEST_ENV} mvn test -B -f ${CMAKE_CURRENT_SOURCE_DIR}/bindings/jdbc/genomicsqlite-jdbc/pom.xml)
+    #add_test(NAME cargo_test COMMAND ${GENOMICSQLITE_TEST_ENV} ${CMAKE_CURRENT_SOURCE_DIR}/bindings/rust/cargo test --no-default-features)
     add_test(NAME pytest COMMAND ${GENOMICSQLITE_TEST_ENV} python3 -m pytest -xv -n 4 --tb=short ${CMAKE_CURRENT_SOURCE_DIR}/test)
 endif()
