@@ -21,12 +21,10 @@ FetchContent_Declare(
     GIT_TAG         a6ae48b
 )
 FetchContent_MakeAvailable(sqlite_zstd_vfs)
-FetchContent_MakeAvailable(sqlitecpp)
 FetchContent_MakeAvailable(sqlite_web_vfs)
 FetchContent_MakeAvailable(concurrentqueue)
 include_directories(${concurrentqueue_SOURCE_DIR})
 include_directories(${sqlite_web_vfs_SOURCE_DIR}/src)
-include_directories(${sqlitecpp_SOURCE_DIR}/include)
 include_directories(${sqlite_zstd_vfs_SOURCE_DIR}/src)
 
 project(genomicsqlite VERSION 1.0

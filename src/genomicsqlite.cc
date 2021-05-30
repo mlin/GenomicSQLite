@@ -10,7 +10,6 @@ SQLITE_EXTENSION_INIT1
 #include "SQLiteVirtualTable.hpp"
 #include "genomicsqlite.h"
 #include "hardcoded_refseq.hpp"
-#include "web_vfs.h"
 #include "zstd_vfs.h"
 
 using namespace std;
@@ -356,12 +355,17 @@ static void ensure_ext_loaded() {
     // for C/C++ GenomicSQLiteOpen
     static bool ext_loaded = false;
     if (!ext_loaded) {
+        auto pre_open_v2 = sqlite3_api ? sqlite3_api->open_v2 : nullptr;
         const char *libgenomicsqlite = getenv("LIBGENOMICSQLITE");
         if (!libgenomicsqlite || !libgenomicsqlite[0]) {
             libgenomicsqlite = "libgenomicsqlite";
         }
         SQLite::Database db(":memory:", SQLite::OPEN_READWRITE | SQLite::OPEN_CREATE);
         db.loadExtension(libgenomicsqlite, nullptr);
+        if (pre_open_v2 && sqlite3_api->open_v2 != pre_open_v2) {
+            throw std::runtime_error(
+                "GenomicSQLiteInit() saw inconsistent libsqlite3/libgenomicsqlite library linkage in this process");
+        }
         ext_loaded = true;
     }
 }
@@ -415,6 +419,7 @@ extern "C" int genomicsqlite_open(const char *filename, sqlite3 **ppDb, char **p
 
 unique_ptr<SQLite::Database> GenomicSQLiteOpen(const string &dbfile, int flags,
                                                const string &config_json) {
+    ensure_ext_loaded();
     unique_ptr<SQLite::Database> db(
         new SQLite::Database(GenomicSQLiteURI(dbfile, config_json), SQLITE_OPEN_URI | flags));
     db->exec(GenomicSQLiteTuningSQL(config_json));
