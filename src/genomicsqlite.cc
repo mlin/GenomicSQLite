@@ -169,6 +169,7 @@ string GenomicSQLiteURI(const string &dbfile, const string &config_json = "") {
     ostringstream uri;
     uri << "file:" << (web ? "/__web__" : SQLiteNested::urlencode(dbfile, true)) << "?vfs=zstd"
         << (web ? ("&mode=ro&immutable=1&web_url=" + SQLiteNested::urlencode(dbfile)) : "")
+        << "&outer_page_size=" << to_string(cfg.GetInt("$.outer_page_KiB") * 1024)
         << "&outer_cache_size=-65536"; // enlarge to hold index b-tree pages for large db's
     int threads = cfg.GetInt("$.threads");
     uri << "&threads=" << to_string(threads);
@@ -181,7 +182,6 @@ string GenomicSQLiteURI(const string &dbfile, const string &config_json = "") {
         if (!mode.empty()) {
             uri << "&mode=" << mode;
         }
-        uri << "&outer_page_size=" << to_string(cfg.GetInt("$.outer_page_KiB") * 1024);
         uri << "&level=" << to_string(cfg.GetInt("$.zstd_level"));
         if (cfg.GetBool("$.immutable")) {
             uri << "&immutable=1";
@@ -1754,7 +1754,7 @@ extern "C" int sqlite3_genomicsqlite_init(sqlite3 *db, char **pzErrMsg,
         return SQLITE_ERROR;
     }
     */
-
+   /*
     int rc = (new WebVFS::VFS())->Register("web");
     if (rc != SQLITE_OK) {
         if (pzErrMsg) {
@@ -1763,7 +1763,8 @@ extern "C" int sqlite3_genomicsqlite_init(sqlite3 *db, char **pzErrMsg,
         }
         return rc;
     }
-    rc = (new ZstdVFS())->Register("zstd");
+    */
+    int rc = (new ZstdVFS())->Register("zstd");
     if (rc != SQLITE_OK) {
         if (pzErrMsg) {
             *pzErrMsg =
