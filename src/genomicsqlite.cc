@@ -352,10 +352,25 @@ extern "C" int genomicsqlite_init(int (*open_v2)(const char *, sqlite3 **, int, 
     }
 }
 
+static void ensure_ext_loaded() {
+    // for C/C++ GenomicSQLiteOpen
+    static bool ext_loaded = false;
+    if (!ext_loaded) {
+        const char *libgenomicsqlite = getenv("LIBGENOMICSQLITE");
+        if (!libgenomicsqlite || !libgenomicsqlite[0]) {
+            libgenomicsqlite = "libgenomicsqlite";
+        }
+        SQLite::Database db(":memory:", SQLite::OPEN_READWRITE | SQLite::OPEN_CREATE);
+        db.loadExtension(libgenomicsqlite, nullptr);
+        ext_loaded = true;
+    }
+}
+
 int GenomicSQLiteOpen(const string &dbfile, sqlite3 **ppDb, string &errmsg_out, int flags,
                       const string &config_json) noexcept {
     // open as requested
     try {
+        ensure_ext_loaded();
         int ret = sqlite3_open_v2(GenomicSQLiteURI(dbfile, config_json).c_str(), ppDb,
                                   SQLITE_OPEN_URI | flags, nullptr);
         if (ret != SQLITE_OK) {
