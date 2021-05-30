@@ -164,32 +164,27 @@ static void sqlfn_genomicsqlite_default_config_json(sqlite3_context *ctx, int ar
 string GenomicSQLiteURI(const string &dbfile, const string &config_json = "") {
     ConfigParser cfg(config_json);
 
-    bool web = dbfile.substr(0, 5) == "http:" || dbfile.substr(0, 6) == "https:";
     ostringstream uri;
-    uri << "file:" << (web ? "/__web__" : SQLiteNested::urlencode(dbfile, true)) << "?vfs=zstd"
-        << (web ? ("&mode=ro&immutable=1&web_url=" + SQLiteNested::urlencode(dbfile)) : "")
-        << "&outer_page_size=" << to_string(cfg.GetInt("$.outer_page_KiB") * 1024)
-        << "&outer_cache_size=-65536"; // enlarge to hold index b-tree pages for large db's
+    uri << "file:" << dbfile << "?vfs=zstd"; // TODO: URI-encode dbfile
+    string mode = cfg.GetString("$.mode", "");
+    if (!mode.empty()) {
+        uri << "&mode=" << mode;
+    }
+    uri << "&outer_page_size=" << to_string(cfg.GetInt("$.outer_page_KiB") * 1024);
+    uri << "&outer_cache_size=-65536"; // enlarge to hold index b-tree pages for large db's
+    uri << "&level=" << to_string(cfg.GetInt("$.zstd_level"));
     int threads = cfg.GetInt("$.threads");
     uri << "&threads=" << to_string(threads);
     if (threads > 1 && cfg.GetInt("$.inner_page_KiB") < 16 && !cfg.GetBool("$.force_prefetch")) {
         // prefetch is usually counterproductive if inner_page_KiB < 16
         uri << "&noprefetch=1";
     }
-    if (!web) {
-        string mode = cfg.GetString("$.mode", "");
-        if (!mode.empty()) {
-            uri << "&mode=" << mode;
-        }
-        uri << "&level=" << to_string(cfg.GetInt("$.zstd_level"));
-        if (cfg.GetBool("$.immutable")) {
-            uri << "&immutable=1";
-        }
-        if (cfg.GetBool("$.unsafe_load")) {
-            uri << "&nolock=1&outer_unsafe=1";
-        }
+    if (cfg.GetBool("$.immutable")) {
+        uri << "&immutable=1";
     }
-    _DBG << uri.str() << endl;
+    if (cfg.GetBool("$.unsafe_load")) {
+        uri << "&nolock=1&outer_unsafe";
+    }
     return uri.str();
 }
 
