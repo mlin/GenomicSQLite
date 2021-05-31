@@ -38,10 +38,11 @@ char *genomicsqlite_default_config_json();
  */
 int genomicsqlite_init(int (*)(const char *, sqlite3 **, int, const char *),
                        int (*)(sqlite3 *, int),
-                       int (*)(sqlite3 *, const char *, const char *, char **), char **pzErrMsg);
+                       int (*)(sqlite3 *, const char *, const char *, char **), int (*)(sqlite3 *),
+                       void (*)(void *), char **pzErrMsg);
 #define GENOMICSQLITE_C_INIT(pzErrMsg)                                                             \
     genomicsqlite_init(sqlite3_open_v2, sqlite3_enable_load_extension, sqlite3_load_extension,     \
-                       pzErrMsg);
+                       sqlite3_close, sqlite3_free, pzErrMsg);
 
 /*
  * Wrap sqlite3_open() and initialize the "connection" for use with GenomicSQLite. config_json if
@@ -160,11 +161,13 @@ std::string GenomicSQLiteDefaultConfigJSON();
  *     ...
  *   }
  */
-void GenomicSQLiteInit(int (*open_v2)(const char *, sqlite3 **, int, const char *),
-                       int (*enable_load_extension)(sqlite3 *, int),
-                       int (*load_extension)(sqlite3 *, const char *, const char *, char **));
+void GenomicSQLiteInit(int (*)(const char *, sqlite3 **, int, const char *),
+                       int (*)(sqlite3 *, int),
+                       int (*)(sqlite3 *, const char *, const char *, char **), int (*)(sqlite3 *),
+                       void (*)(void *));
 #define GENOMICSQLITE_CXX_INIT()                                                                   \
-    GenomicSQLiteInit(sqlite3_open_v2, sqlite3_enable_load_extension, sqlite3_load_extension);
+    GenomicSQLiteInit(sqlite3_open_v2, sqlite3_enable_load_extension, sqlite3_load_extension,      \
+                      sqlite3_close, sqlite3_free);
 
 int GenomicSQLiteOpen(const std::string &dbfile, sqlite3 **ppDb, std::string &errmsg_out,
                       int flags = 0, const std::string &config_json = "{}") noexcept;

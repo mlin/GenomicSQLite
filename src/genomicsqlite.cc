@@ -205,9 +205,10 @@ string GenomicSQLiteURI(const string &dbfile, const string &config_json = "") {
             uri << "&immutable=1";
         }
         if (cfg.GetBool("$.unsafe_load")) {
-            uri << "&nolock=1&outer_unsafe";
+            uri << "&nolock=1&outer_unsafe=1";
         }
     }
+    _DBG << uri.str() << endl;
     return uri.str();
 }
 
@@ -298,6 +299,7 @@ string GenomicSQLiteTuningSQL(const string &config_json, const string &schema = 
     for (const auto &p : pragmas) {
         out << "; PRAGMA " << p.first << "=" << p.second;
     }
+    _DBG << out.str() << endl;
     return out.str();
 }
 
@@ -315,14 +317,13 @@ static void sqlfn_genomicsqlite_tuning_sql(sqlite3_context *ctx, int argc, sqlit
 
 void GenomicSQLiteInit(int (*open_v2)(const char *, sqlite3 **, int, const char *),
                        int (*enable_load_extension)(sqlite3 *, int),
-                       int (*load_extension)(sqlite3 *, const char *, const char *, char **)) {
-    static bool ext_loaded = false;
-    if (!ext_loaded) {
-
+                       int (*load_extension)(sqlite3 *, const char *, const char *, char **),
+                       int (*close_)(sqlite3 *), void (*free_)(void *)) {
+    if (!sqlite3_api) {
         sqlite3 *memdb = nullptr;
         int rc = open_v2(":memory:", &memdb, SQLITE_OPEN_CREATE | SQLITE_OPEN_READWRITE, nullptr);
         if (rc != SQLITE_OK) {
-            sqlite3_close(memdb);
+            close_(memdb);
             throw runtime_error("GenomicSQLiteInit() unable to open temporary SQLite connection");
         }
         enable_load_extension(memdb, 1);
@@ -331,30 +332,28 @@ void GenomicSQLiteInit(int (*open_v2)(const char *, sqlite3 **, int, const char 
         if (rc != SQLITE_OK) {
             string err = "GenomicSQLiteInit() unable to load the extension" +
                          (zErrMsg ? ": " + string(zErrMsg) : "");
-            sqlite3_free(zErrMsg);
-            sqlite3_close(memdb);
+            free_(zErrMsg);
+            close_(memdb);
             throw runtime_error(err);
         }
-        sqlite3_free(zErrMsg);
-        rc = sqlite3_close(memdb);
+        free_(zErrMsg);
+        rc = close_(memdb);
         if (rc != SQLITE_OK) {
             throw runtime_error("GenomicSQLiteInit() unable to close temporary SQLite connection");
         }
-    }
-    if (open_v2 != sqlite3_api->open_v2) {
+    } else if (open_v2 != sqlite3_api->open_v2) {
         throw std::runtime_error(
-            "GenomicSQLiteInit() saw inconsistent libsqlite3/libgenomicsqlite library linkage in this process");
+            "Two distinct copies of SQLite in this process attempted to load Genomics Extension");
     }
-    ext_loaded = true;
 }
 
-extern "C" int genomicsqlite_init(int (*open_v2)(const char *, sqlite3 **, int, const char *),
-                                  int (*enable_load_extension)(sqlite3 *, int),
-                                  int (*load_extension)(sqlite3 *, const char *, const char *,
-                                                        char **),
-                                  char **pzErrMsg) {
+extern "C" int
+genomicsqlite_init(int (*open_v2)(const char *, sqlite3 **, int, const char *),
+                   int (*enable_load_extension)(sqlite3 *, int),
+                   int (*load_extension)(sqlite3 *, const char *, const char *, char **),
+                   int (*close_)(sqlite3 *), void (*free_)(void *), char **pzErrMsg) {
     try {
-        GenomicSQLiteInit(open_v2, enable_load_extension, load_extension);
+        GenomicSQLiteInit(open_v2, enable_load_extension, load_extension, close_, free_);
         return SQLITE_OK;
     } catch (std::bad_alloc &) {
         return SQLITE_NOMEM;
@@ -458,7 +457,7 @@ static void sqlfn_genomicsqlite_attach_sql(sqlite3_context *ctx, int argc, sqlit
 }
 
 string GenomicSQLiteVacuumIntoSQL(const string &destfile, const string &config_json) {
-    string desturi = GenomicSQLiteURI(destfile, config_json) + "&outer_unsafe=true";
+    string desturi = GenomicSQLiteURI(destfile, config_json) + "&outer_unsafe=1";
 
     ConfigParser cfg(config_json);
     ostringstream ans;
@@ -1786,6 +1785,14 @@ static int register_genomicsqlite_functions(sqlite3 *db, const char **pzErrMsg,
 */
 extern "C" int sqlite3_genomicsqlite_init(sqlite3 *db, char **pzErrMsg,
                                           const sqlite3_api_routines *pApi) {
+    if (sqlite3_api && sqlite3_api != pApi) {
+        if (pzErrMsg) {
+            *pzErrMsg = sqlite3_mprintf(
+                "Two distinct copies of SQLite in this process attempted to load Genomics Extension %s",
+                GIT_REVISION);
+        }
+        return SQLITE_ERROR;
+    }
     SQLITE_EXTENSION_INIT2(pApi);
 
     // The newest SQLite feature currently required is "Generated Columns"
@@ -1800,10 +1807,7 @@ extern "C" int sqlite3_genomicsqlite_init(sqlite3 *db, char **pzErrMsg,
         return SQLITE_ERROR;
     }
 
-    /* disabled b/c JDBC bindings "legitimately" entail two different dynamically-linked sqlite libs!
-    // Check that SQLiteCpp is using the same SQLite library that's loading us. This may not be the
-    // case when different versions of SQLite are linked into the running process, one static and
-    // one dynamic.
+    // Check that SQLiteCpp is using the same SQLite library that's loading us.
     string static_version(pApi->libversion()), dynamic_version("UNKNOWN");
     {
         SQLite::Database tmpdb(":memory:", SQLITE_OPEN_CREATE | SQLITE_OPEN_READWRITE);
@@ -1815,12 +1819,11 @@ extern "C" int sqlite3_genomicsqlite_init(sqlite3 *db, char **pzErrMsg,
     if (static_version != dynamic_version) {
         if (pzErrMsg) {
             *pzErrMsg = sqlite3_mprintf(
-                "Two distinct versions of SQLite (%s & %s) detected by Genomics Extension %s. Eliminate static linking of SQLite from the main executable.",
+                "Two distinct versions of SQLite (%s & %s) in this process detected by Genomics Extension %s",
                 static_version.c_str(), dynamic_version.c_str(), GIT_REVISION);
         }
         return SQLITE_ERROR;
     }
-    */
 
     int rc = (new WebVFS::VFS())->Register("web");
     if (rc != SQLITE_OK) {

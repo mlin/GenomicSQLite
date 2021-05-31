@@ -136,9 +136,11 @@ int main(int argc, char *argv[]) {
         }
 
         // open output database
+        if (sqlite3_config(SQLITE_CONFIG_MEMSTATUS, 0) != SQLITE_OK ||
+            sqlite3_config(SQLITE_CONFIG_LOOKASIDE, 4096, 256) != SQLITE_OK) {
+            throw runtime_error("sqlite3_config() failed");
+        }
         GENOMICSQLITE_CXX_INIT();
-        sqlite3_config(SQLITE_CONFIG_MEMSTATUS, 0);
-        sqlite3_config(SQLITE_CONFIG_LOOKASIDE, 2048, 128);
         auto db = GenomicSQLiteOpen(
             outfilename, SQLITE_OPEN_CREATE | SQLITE_OPEN_READWRITE | SQLITE_OPEN_NOMUTEX,
             R"( {"unsafe_load": true, "zstd_level": )" + to_string(level) + "}");

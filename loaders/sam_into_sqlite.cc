@@ -275,9 +275,11 @@ int main(int argc, char *argv[]) {
 
     try {
         // open output database
+        if (sqlite3_config(SQLITE_CONFIG_MEMSTATUS, 0) != SQLITE_OK ||
+            sqlite3_config(SQLITE_CONFIG_LOOKASIDE, 4096, 256) != SQLITE_OK) {
+            throw runtime_error("sqlite3_config() failed");
+        }
         GENOMICSQLITE_CXX_INIT();
-        sqlite3_config(SQLITE_CONFIG_MEMSTATUS, 0);
-        sqlite3_config(SQLITE_CONFIG_LOOKASIDE, 2048, 128);
         string config_json = R"({"unsafe_load": true, "zstd_level":)" + to_string(level) +
                              R"(,"inner_page_KiB":)" + to_string(inner_page_KiB) +
                              R"(,"outer_page_KiB":)" + to_string(outer_page_KiB) + "}";
