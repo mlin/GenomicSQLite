@@ -613,23 +613,16 @@
 <p><small>The query won't match any rows with NULL feature coordinates. If needed, the GRI can inform this query for NULL chromosome/rid: <code>SELECT ... FROM tableName WHERE _gri_rid IS NULL</code>.</small></p>
 <h4 id="level-bounds-optimization">Level bounds optimization</h4>
 <p>The optional, trailing <code>ceiling</code> &amp; <code>floor</code> arguments to <code>genomic_range_rowids()</code> optimize GRI queries by bounding their search <em>levels</em>, skipping steps that'd be useless in view of the overall length distribution of the indexed features. (See <a href="../internals/">Internals</a> for full explanation.)</p>
-<p>The extension supplies a SQL helper function <code>genomic_range_index_levels(tableName)</code> to detect appropriate level bounds for the current version of the table. This procedure has to analyze the GRI, and the logarithmic cost of doing so will be worthwhile if used to optimize many subsequent GRI queries (but not for just one or a few). Therefore, a typical program should query <code>genomic_range_index_levels()</code> once upfront, then pass the detected bounds in to subsequent prepared queries, e.g. in Python:</p>
-<div class="highlight"><pre><span></span><code><span class="p">(</span><span class="n">gri_ceiling</span><span class="p">,</span> <span class="n">gri_floor</span><span class="p">)</span> <span class="o">=</span> <span class="nb">next</span><span class="p">(</span>
-    <span class="n">con</span><span class="o">.</span><span class="n">execute</span><span class="p">(</span><span class="s2">&quot;SELECT * FROM genomic_range_index_levels(&#39;exons&#39;)&quot;</span><span class="p">)</span>
-  <span class="p">)</span>
-<span class="k">for</span> <span class="p">(</span><span class="n">queryChrom</span><span class="p">,</span> <span class="n">queryBegin</span><span class="p">,</span> <span class="n">queryEnd</span><span class="p">)</span> <span class="ow">in</span> <span class="n">queryRanges</span><span class="p">:</span>
-  <span class="n">exons</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span>
-    <span class="n">con</span><span class="o">.</span><span class="n">execute</span><span class="p">(</span>
-      <span class="s2">&quot;SELECT * from exons WHERE exons._rowid_ IN </span><span class="se">\</span>
-<span class="s2">        genomic_range_rowids(&#39;exons&#39;,?,?,?,?,?)&quot;</span><span class="p">,</span>
-      <span class="p">(</span><span class="n">queryChrom</span><span class="p">,</span> <span class="n">queryBegin</span><span class="p">,</span> <span class="n">queryEnd</span><span class="p">,</span> <span class="n">gri_ceiling</span><span class="p">,</span> <span class="n">gri_floor</span><span class="p">)</span>
-    <span class="p">)</span>
-  <span class="p">)</span>
-  <span class="o">...</span>
+<p>The extension supplies a SQL helper function <code>genomic_range_index_levels(tableName)</code> to detect appropriate level bounds for the current version of the table. Example usage:</p>
+<div class="highlight"><pre><span></span><code><span class="k">SELECT</span> <span class="n">col1</span><span class="p">,</span> <span class="n">col2</span><span class="p">,</span> <span class="p">...</span> <span class="k">FROM</span> <span class="n">exons</span><span class="p">,</span> <span class="n">genomic_range_index_levels</span><span class="p">(</span><span class="s1">&#39;exons&#39;</span><span class="p">)</span>
+  <span class="k">WHERE</span> <span class="n">exons</span><span class="p">.</span><span class="n">_rowid_</span> <span class="k">IN</span>
+    <span class="n">genomic_range_rowids</span><span class="p">(</span><span class="s1">&#39;exons&#39;</span><span class="p">,</span> <span class="s1">&#39;chr12&#39;</span><span class="p">,</span> <span class="mi">111803912</span><span class="p">,</span> <span class="mi">111804012</span><span class="p">,</span>
+                         <span class="n">_gri_ceiling</span><span class="p">,</span> <span class="n">_gri_floor</span><span class="p">)</span>
 </code></pre></div>
 
-<p><strong>❗ Don't use the detected level bounds if the table can be modified in the meantime. GRI queries with inappropriate bounds are liable to produce incomplete results.</strong></p>
-<p>Omitting the bounds is always safe, albeit slightly slower. <small>Instead of detecting current bounds, they can be figured manually as follows. Set the integer ceiling to <em>C</em>, 0 &lt; <em>C</em> &lt; 16, such that all (present &amp; future) indexed features are guaranteed to have lengths &le;16<sup><em>C</em></sup>. For example, if you're querying features on the human genome, then you can set ceiling=7 because the lengthiest chromosome sequence is &lt;16<sup>7</sup>nt. Set the integer floor <em>F</em> to (i) the floor value supplied at GRI creation, if any; (ii) <em>F</em> &gt; 0 such that the minimum possible feature length &gt;16<sup><em>F</em>-1</sup>, if any; or (iii) zero. The default, safe, albeit slower bounds are C=15, F=0.</small></p>
+<p>Here <code>_gri_ceiling</code> and <code>_gri_floor</code> are columns of the single row computed by <code>genomic_range_index_levels('exons')</code>.</p>
+<p><code>genomic_range_index_levels()</code> performs some upfront analysis of table's GRI upon its first use on any database connection. The cost of this analysis should be worthwhile if it's used to optimize many <code>genomic_range_rowids()</code> operations (but not just one or a few). Subsequent uses of <code>genomic_range_index_levels()</code> on the same connection &amp; table reuse the first analysis, unless the database changes in the meantime, in which case the analysis must be redone. This suggests using <code>genomic_range_index_levels()</code> only once the database is read-only.</p>
+<p><small>Instead of detecting current bounds, they can be figured manually as follows. Set the integer ceiling to <em>C</em>, 0 &lt; <em>C</em> &lt; 16, such that all (present &amp; future) indexed features are guaranteed to have lengths &le;16<sup><em>C</em></sup>. For example, if you're querying features on the human genome, then you can set ceiling=7 because the lengthiest chromosome sequence is &lt;16<sup>7</sup>nt. Set the integer floor <em>F</em> to (i) the floor value supplied at GRI creation, if any; (ii) <em>F</em> &gt; 0 such that the minimum possible feature length &gt;16<sup><em>F</em>-1</sup>, if any; or (iii) zero. The safe, default bounds are C=15, F=0. GRI queries with inappropriate bounds are liable to produce incomplete results.</small></p>
 <h4 id="joining-tables-on-range-overlap">Joining tables on range overlap</h4>
 <p>Suppose we have two tables with genomic features to join on range overlap. Only the "right-hand" table must have a GRI; preferably the smaller of the two. For example, annotating a table of variants with the surrounding exon(s), if any:</p>
 <div class="highlight"><pre><span></span><code><span class="k">SELECT</span> <span class="n">variants</span><span class="p">.</span><span class="o">*</span><span class="p">,</span> <span class="n">exons</span><span class="p">.</span><span class="n">_rowid_</span>
@@ -643,7 +636,7 @@
 </code></pre></div>
 
 <p>We fill out the GRI query range using the three coordinate columns of the variants table.</p>
-<p>We may be able to speed this up by supplying level bounds, as shown above. Optionally, in this case where we expect a "tight loop" of many GRI queries, we can even inline the bounds detection:</p>
+<p>We may be able to speed this up by supplying level bounds, as discussed above:</p>
 <div class="highlight"><pre><span></span><code><span class="k">SELECT</span> <span class="n">variants</span><span class="p">.</span><span class="o">*</span><span class="p">,</span> <span class="n">exons</span><span class="p">.</span><span class="n">_rowid_</span>
 <span class="k">FROM</span> <span class="n">genomic_range_index_levels</span><span class="p">(</span><span class="s1">&#39;exons&#39;</span><span class="p">),</span>
      <span class="n">variants</span> <span class="k">LEFT</span> <span class="k">JOIN</span> <span class="n">exons</span> <span class="k">ON</span> <span class="n">exons</span><span class="p">.</span><span class="n">_rowid_</span> <span class="k">IN</span>
@@ -657,7 +650,6 @@
   <span class="p">)</span>
 </code></pre></div>
 
-<p>Here <code>_gri_ceiling</code> and <code>_gri_floor</code> are columns of the single row computed by <code>genomic_range_index_levels('exons')</code>.</p>
 <p>See also "Advice for big data" below on optimizing storage layout for GRI queries.</p>
 <h3 id="reference-genome-metadata">Reference genome metadata</h3>
 <p>The following routines support the aforementioned, recommended convention for storing a <code>_gri_refseq</code> table with information about the genomic reference sequences, which other tables can cross-reference by integer ID (rid) instead of storing textual chromosome names. The columns of <code>_gri_refseq</code> include:</p>
