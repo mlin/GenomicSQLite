@@ -6,5 +6,5 @@ edition = "2018"
 
 [dependencies]
 genomicsqlite = "{{GENOMICSQLITE_VERSION}}"
-rusqlite = "^0.24"
+rusqlite = "^0.25"
 json = "^0"

@@ -2,7 +2,7 @@
 ** GenomicSQLite bundles the JSON1 extension: https://www.sqlite.org/json1.html
 **
 ** This is the (public domain) upstream source file from:
-**   https://github.com/sqlite/sqlite/blob/c795e3d/ext/misc/json1.c
+**   https://github.com/sqlite/sqlite/blob/8505d73/ext/misc/json1.c
 ** with minor edits deferring to genomicsqlite.cc:sqlite3_genomicsqlite_init for extension init
 */
 
@@ -49,6 +49,10 @@ extern const sqlite3_api_routines *sqlite3_api;
 #ifndef LARGEST_INT64
 # define LARGEST_INT64  (0xffffffff|(((sqlite3_int64)0x7fffffff)<<32))
 # define SMALLEST_INT64 (((sqlite3_int64)-1) - LARGEST_INT64)
+#endif
+
+#ifndef deliberate_fall_through
+# define deliberate_fall_through
 #endif
 
 /*
@@ -304,7 +308,7 @@ static void jsonAppendSeparator(JsonString *p){
 */
 static void jsonAppendString(JsonString *p, const char *zIn, u32 N){
   u32 i;
-  if( (N+p->nUsed+2 >= p->nAlloc) && jsonGrow(p,N+2)!=0 ) return;
+  if( zIn==0 || ((N+p->nUsed+2 >= p->nAlloc) && jsonGrow(p,N+2)!=0) ) return;
   p->zBuf[p->nUsed++] = '"';
   for(i=0; i<N; i++){
     unsigned char c = ((unsigned const char*)zIn)[i];
@@ -469,7 +473,7 @@ static void jsonRenderNode(
         jsonAppendString(pOut, pNode->u.zJContent, pNode->n);
         break;
       }
-      /* Fall through into the next case */
+      /* no break */ deliberate_fall_through
     }
     case JSON_REAL:
     case JSON_INT: {
@@ -610,7 +614,7 @@ static void jsonReturn(
       sqlite3_result_int64(pCtx, i);
       int_done:
       break;
-      int_as_real: /* fall through to real */;
+      int_as_real: i=0; /* no break */ deliberate_fall_through
     }
     case JSON_REAL: {
       double r;
@@ -1903,8 +1907,8 @@ static void jsonArrayStep(
       jsonAppendChar(pStr, '[');
     }else if( pStr->nUsed>1 ){
       jsonAppendChar(pStr, ',');
-      pStr->pCtx = ctx;
     }
+    pStr->pCtx = ctx;
     jsonAppendValue(pStr, argv[0]);
   }
 }
@@ -1964,11 +1968,7 @@ static void jsonGroupInverse(
   if( NEVER(!pStr) ) return;
 #endif
   z = pStr->zBuf;
-  for(i=1; (c = z[i])!=',' || inStr || nNest; i++){
-    if( i>=pStr->nUsed ){
-      pStr->nUsed = 1;
-      return;
-    }
+  for(i=1; i<pStr->nUsed && ((c = z[i])!=',' || inStr || nNest); i++){
     if( c=='"' ){
       inStr = !inStr;
     }else if( c=='\\' ){
@@ -1978,8 +1978,13 @@ static void jsonGroupInverse(
       if( c=='}' || c==']' ) nNest--;
     }
   }
-  pStr->nUsed -= i;      
-  memmove(&z[1], &z[i+1], (size_t)pStr->nUsed-1);
+  if( i<pStr->nUsed ){
+    pStr->nUsed -= i;
+    memmove(&z[1], &z[i+1], (size_t)pStr->nUsed-1);
+    z[pStr->nUsed] = 0;
+  }else{
+    pStr->nUsed = 1;
+  }
 }
 #else
 # define jsonGroupInverse 0
@@ -2007,8 +2012,8 @@ static void jsonObjectStep(
       jsonAppendChar(pStr, '{');
     }else if( pStr->nUsed>1 ){
       jsonAppendChar(pStr, ',');
-      pStr->pCtx = ctx;
     }
+    pStr->pCtx = ctx;
     z = (const char*)sqlite3_value_text(argv[0]);
     n = (u32)sqlite3_value_bytes(argv[0]);
     jsonAppendString(pStr, z, n);
@@ -2313,6 +2318,7 @@ static int jsonEachColumn(
       }
       /* For json_each() path and root are the same so fall through
       ** into the root case */
+      /* no break */ deliberate_fall_through
     }
     default: {
       const char *zRoot = p->zRoot;
