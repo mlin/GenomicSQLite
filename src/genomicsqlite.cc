@@ -71,7 +71,8 @@ std::string GenomicSQLiteDefaultConfigJSON() {
     "web_log": 2,
     "web_insecure": false,
     "web_dbi_url": "",
-    "web_nodbi": false
+    "web_nodbi": false,
+    "web_small_KiB": 64
 })";
 }
 
@@ -186,6 +187,7 @@ string GenomicSQLiteURI(const string &dbfile, const string &config_json = "") {
                 uri << "&web_dbi_url=" << SQLiteNested::urlencode(web_dbi_url);
             }
         }
+        uri << "&web_small_KiB=" << cfg.GetInt("$.web_small_KiB");
     }
     int threads = cfg.GetInt("$.threads");
     uri << "&outer_cache_size=" << to_string(-64 * cfg.GetInt("$.page_cache_MiB"))
