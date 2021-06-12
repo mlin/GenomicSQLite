@@ -55,6 +55,7 @@ cmake --build build -j 4 --target genomicsqlite
 * htslib &ge; 1.9, samtools, and tabix
 * pigz
 * Python &ge; 3.6 and packages: pytest pytest-xdist pre-commit black pylint flake8 
+* JDK, mvn, rust
 * clang-format & cppcheck
 
 to:
