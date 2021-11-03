@@ -35,6 +35,7 @@ repos:
     name: pylint
     language: system
     files: \.py$
+    exclude: version\.py
     verbose: true
     entry: env PYTHONPATH=bindings/python pylint
-    args: [-d, "bad-continuation,global-statement,missing-docstring,missing-module-docstring,line-too-long,too-many-arguments,duplicate-code,redefined-outer-name,too-many-locals,bare-except,broad-except,import-outside-toplevel,protected-access,too-many-statements,too-many-branches"]
+    args: [-d, "bad-continuation,global-statement,missing-docstring,missing-module-docstring,line-too-long,too-many-arguments,duplicate-code,redefined-outer-name,too-many-locals,bare-except,broad-except,import-outside-toplevel,protected-access,too-many-statements,too-many-branches,unspecified-encoding"]
