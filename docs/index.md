@@ -14,7 +14,7 @@ This [SQLite3 loadable extension](https://www.sqlite.org/loadext.html) supports 
 
 This October 2020 poster discusses the context and long-run ambitions:
 
-[<img src="GA4GH_8thPlenary_poster_mlin_v2.thumb.jpeg" width="400" alt="GenomicSQLite Poster"/>](GA4GH_8thPlenary_poster_mlin_v2.pdf)
+[<img src="GA4GH_8thPlenary_poster_mlin_v2.thumb.jpeg" width="400" alt="GenomicSQLite Poster"/>](GenomeInformatics2021Poster.pdf)
 
 Our **[Colab notebook](https://colab.research.google.com/drive/1OlHPOcRQBhDmEnS1wtOdtUGDkcD7LtKx?usp=sharing)** demonstrates key features with Python, one of several language bindings.
 
