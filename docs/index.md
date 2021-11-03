@@ -12,7 +12,7 @@ This [SQLite3 loadable extension](https://www.sqlite.org/loadext.html) supports 
 * reading directly from HTTP(S) URLs
 * pre-tuned settings for "big data"
 
-This October 2020 poster discusses the context and long-run ambitions:
+This November 2021 poster discusses the context and long-run ambitions:
 
 [<img src="GA4GH_8thPlenary_poster_mlin_v2.thumb.jpeg" width="400" alt="GenomicSQLite Poster"/>](GenomeInformatics2021Poster.pdf)
 

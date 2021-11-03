@@ -10,9 +10,9 @@ This [SQLite3 loadable extension](https://www.sqlite.org/loadext.html) adds feat
 * reading directly from HTTP(S) URLs (also available [standalone](https://github.com/mlin/sqlite_web_vfs))
 * pre-tuned settings for "big data"
 
-This October 2020 poster discusses the context and long-run ambitions:
+This November 2021 poster discusses the context and long-run ambitions:
 
-[<img src="https://mlin.github.io/GenomicSQLite/GA4GH_8thPlenary_poster_mlin_v2.thumb.jpeg" width="400" alt="GenomicSQLite Poster"/>](https://mlin.github.io/GenomicSQLite/GA4GH_8thPlenary_poster_mlin_v2.pdf)
+[<img src="https://mlin.github.io/GenomicSQLite/GA4GH_8thPlenary_poster_mlin_v2.thumb.jpeg" width="400" alt="GenomicSQLite Poster"/>](https://mlin.github.io/GenomicSQLite/GenomeInformatics2021Poster.pdf)
 
 Our **[Colab notebook](https://colab.research.google.com/drive/1OlHPOcRQBhDmEnS1wtOdtUGDkcD7LtKx?usp=sharing)** demonstrates key features with Python, one of several language bindings.
 
