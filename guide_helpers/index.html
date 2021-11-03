@@ -1,6 +1,4 @@
 
-
-
 <!doctype html>
 <html lang="en" class="no-js">
   <head>
@@ -10,8 +8,9 @@
       
       
       
-      <link rel="shortcut icon" href="../assets/images/favicon.png">
-      <meta name="generator" content="mkdocs-1.1.2, mkdocs-material-5.4.0">
+      
+      <link rel="icon" href="../assets/images/favicon.png">
+      <meta name="generator" content="mkdocs-1.2.3, mkdocs-material-7.3.6">
     
     
       
@@ -19,29 +18,42 @@
       
     
     
-      <link rel="stylesheet" href="../assets/stylesheets/main.fe0cca5b.min.css">
+      <link rel="stylesheet" href="../assets/stylesheets/main.a57b2b03.min.css">
       
+        
+        <link rel="stylesheet" href="../assets/stylesheets/palette.3f5d1f46.min.css">
+        
       
     
     
     
       
-        <link href="https://fonts.gstatic.com" rel="preconnect" crossorigin>
+        
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
         <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Roboto:300,400,400i,700%7CRoboto+Mono&display=fallback">
-        <style>body,input{font-family:"Roboto",-apple-system,BlinkMacSystemFont,Helvetica,Arial,sans-serif}code,kbd,pre{font-family:"Roboto Mono",SFMono-Regular,Consolas,Menlo,monospace}</style>
+        <style>:root{--md-text-font-family:"Roboto";--md-code-font-family:"Roboto Mono"}</style>
       
     
     
     
     
       
+
+
     
     
   </head>
   
   
-    <body dir="ltr">
+    
+    
+    
+    
+    
+    <body dir="ltr" data-md-color-scheme="" data-md-color-primary="none" data-md-color-accent="none">
   
+    
+    <script>function __prefix(e){return new URL("..",location).pathname+"."+e}function __get(e,t=localStorage){return JSON.parse(t.getItem(__prefix(e)))}</script>
     
     <input class="md-toggle" data-md-toggle="drawer" type="checkbox" id="__drawer" autocomplete="off">
     <input class="md-toggle" data-md-toggle="search" type="checkbox" id="__search" autocomplete="off">
@@ -58,48 +70,58 @@
       
     </div>
     
-      <header class="md-header" data-md-component="header">
-  <nav class="md-header-nav md-grid" aria-label="Header">
-    <a href=".." title="Genomics Extension for SQLite" class="md-header-nav__button md-logo" aria-label="Genomics Extension for SQLite">
+      
+
+<header class="md-header" data-md-component="header">
+  <nav class="md-header__inner md-grid" aria-label="Header">
+    <a href=".." title="Genomics Extension for SQLite" class="md-header__button md-logo" aria-label="Genomics Extension for SQLite" data-md-component="logo">
       
   
-  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 003-3 3 3 0 00-3-3 3 3 0 00-3 3 3 3 0 003 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54z"/></svg>
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54z"/></svg>
 
     </a>
-    <label class="md-header-nav__button md-icon" for="__drawer">
+    <label class="md-header__button md-icon" for="__drawer">
       <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M3 6h18v2H3V6m0 5h18v2H3v-2m0 5h18v2H3v-2z"/></svg>
     </label>
-    <div class="md-header-nav__title" data-md-component="header-title">
-      
-        <div class="md-header-nav__ellipsis">
-          <span class="md-header-nav__topic md-ellipsis">
+    <div class="md-header__title" data-md-component="header-title">
+      <div class="md-header__ellipsis">
+        <div class="md-header__topic">
+          <span class="md-ellipsis">
             Genomics Extension for SQLite
           </span>
-          <span class="md-header-nav__topic md-ellipsis">
+        </div>
+        <div class="md-header__topic" data-md-component="header-topic">
+          <span class="md-ellipsis">
             
               Useful Routines
             
           </span>
         </div>
-      
+      </div>
     </div>
     
-      <label class="md-header-nav__button md-icon" for="__search">
-        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0116 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.516 6.516 0 019.5 16 6.5 6.5 0 013 9.5 6.5 6.5 0 019.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5z"/></svg>
+    
+    
+      <label class="md-header__button md-icon" for="__search">
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.516 6.516 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5z"/></svg>
       </label>
       
 <div class="md-search" data-md-component="search" role="dialog">
   <label class="md-search__overlay" for="__search"></label>
   <div class="md-search__inner" role="search">
     <form class="md-search__form" name="search">
-      <input type="text" class="md-search__input" name="query" aria-label="Search" placeholder="Search" autocapitalize="off" autocorrect="off" autocomplete="off" spellcheck="false" data-md-component="search-query" data-md-state="active">
+      <input type="text" class="md-search__input" name="query" aria-label="Search" placeholder="Search" autocapitalize="off" autocorrect="off" autocomplete="off" spellcheck="false" data-md-component="search-query" required>
       <label class="md-search__icon md-icon" for="__search">
-        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0116 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.516 6.516 0 019.5 16 6.5 6.5 0 013 9.5 6.5 6.5 0 019.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5z"/></svg>
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.516 6.516 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5z"/></svg>
         <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11h12z"/></svg>
       </label>
-      <button type="reset" class="md-search__icon md-icon" aria-label="Clear" data-md-component="search-reset" tabindex="-1">
-        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12 19 6.41z"/></svg>
-      </button>
+      <nav class="md-search__options" aria-label="Search">
+        
+        <button type="reset" class="md-search__icon md-icon" aria-label="Clear" tabindex="-1">
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M19 6.41 17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12 19 6.41z"/></svg>
+        </button>
+      </nav>
+      
     </form>
     <div class="md-search__output">
       <div class="md-search__scrollwrap" data-md-scrollfix>
@@ -116,28 +138,33 @@
     
     
   </nav>
+  
 </header>
     
     <div class="md-container" data-md-component="container">
       
+      
         
-      
-      
+          
         
       
       <main class="md-main" data-md-component="main">
         <div class="md-main__inner md-grid">
           
             
-              <div class="md-sidebar md-sidebar--primary" data-md-component="navigation">
+              
+              <div class="md-sidebar md-sidebar--primary" data-md-component="sidebar" data-md-type="navigation" >
                 <div class="md-sidebar__scrollwrap">
                   <div class="md-sidebar__inner">
-                    <nav class="md-nav md-nav--primary" aria-label="Navigation" data-md-level="0">
+                    
+
+
+<nav class="md-nav md-nav--primary" aria-label="Navigation" data-md-level="0">
   <label class="md-nav__title" for="__drawer">
-    <a href=".." title="Genomics Extension for SQLite" class="md-nav__button md-logo" aria-label="Genomics Extension for SQLite">
+    <a href=".." title="Genomics Extension for SQLite" class="md-nav__button md-logo" aria-label="Genomics Extension for SQLite" data-md-component="logo">
       
   
-  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 003-3 3 3 0 00-3-3 3 3 0 00-3 3 3 3 0 003 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54z"/></svg>
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54z"/></svg>
 
     </a>
     Genomics Extension for SQLite
@@ -149,36 +176,15 @@
       
       
 
-
-  <li class="md-nav__item">
-    <a href=".." title="Intro & Install" class="md-nav__link">
-      Intro & Install
-    </a>
-  </li>
-
-    
-      
-      
-      
-
-
-  <li class="md-nav__item">
-    <a href="../guide_db/" title="Opening Compressed Databases" class="md-nav__link">
-      Opening Compressed Databases
-    </a>
-  </li>
-
-    
-      
-      
-      
-
-
-  <li class="md-nav__item">
-    <a href="../guide_gri/" title="Genomic Range Indexing" class="md-nav__link">
-      Genomic Range Indexing
-    </a>
-  </li>
+  
+  
+  
+    <li class="md-nav__item">
+      <a href=".." class="md-nav__link">
+        Intro & Install
+      </a>
+    </li>
+  
 
     
       
@@ -186,40 +192,72 @@
       
 
   
+  
+  
+    <li class="md-nav__item">
+      <a href="../guide_db/" class="md-nav__link">
+        Opening Compressed Databases
+      </a>
+    </li>
+  
 
-
-  <li class="md-nav__item md-nav__item--active">
-    
-    <input class="md-nav__toggle md-toggle" data-md-toggle="toc" type="checkbox" id="__toc">
     
       
+      
+      
+
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../guide_gri/" class="md-nav__link">
+        Genomic Range Indexing
+      </a>
+    </li>
+  
+
     
+      
+      
+      
+
+  
+  
     
-      <label class="md-nav__link md-nav__link--active" for="__toc">
+  
+  
+    <li class="md-nav__item md-nav__item--active">
+      
+      <input class="md-nav__toggle md-toggle" data-md-toggle="toc" type="checkbox" id="__toc">
+      
+      
+        
+      
+      
+        <label class="md-nav__link md-nav__link--active" for="__toc">
+          Useful Routines
+          <span class="md-nav__icon md-icon"></span>
+        </label>
+      
+      <a href="./" class="md-nav__link md-nav__link--active">
         Useful Routines
-        <span class="md-nav__icon md-icon">
-          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M3 9h14V7H3v2m0 4h14v-2H3v2m0 4h14v-2H3v2m16 0h2v-2h-2v2m0-10v2h2V7h-2m0 6h2v-2h-2v2z"/></svg>
-        </span>
-      </label>
-    
-    <a href="./" title="Useful Routines" class="md-nav__link md-nav__link--active">
-      Useful Routines
-    </a>
-    
+      </a>
       
+        
+
+
 <nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
   
   
     
   
   
     <label class="md-nav__title" for="__toc">
-      <span class="md-nav__icon md-icon">
-        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11h12z"/></svg>
-      </span>
+      <span class="md-nav__icon md-icon"></span>
       Table of contents
     </label>
-    <ul class="md-nav__list" data-md-scrollfix>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
       
         <li class="md-nav__item">
   <a href="#dna-reverse-complement" class="md-nav__link">
@@ -273,32 +311,39 @@
     </ul>
   
 </nav>
-    
-  </li>
+      
+    </li>
+  
 
     
       
       
       
 
-
-  <li class="md-nav__item">
-    <a href="../bindings/" title="Writing Language Bindings" class="md-nav__link">
-      Writing Language Bindings
-    </a>
-  </li>
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../bindings/" class="md-nav__link">
+        Writing Language Bindings
+      </a>
+    </li>
+  
 
     
       
       
       
 
-
-  <li class="md-nav__item">
-    <a href="../internals/" title="Internals" class="md-nav__link">
-      Internals
-    </a>
-  </li>
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../internals/" class="md-nav__link">
+        Internals
+      </a>
+    </li>
+  
 
     
   </ul>
@@ -308,23 +353,25 @@
               </div>
             
             
-              <div class="md-sidebar md-sidebar--secondary" data-md-component="toc">
+              
+              <div class="md-sidebar md-sidebar--secondary" data-md-component="sidebar" data-md-type="toc" >
                 <div class="md-sidebar__scrollwrap">
                   <div class="md-sidebar__inner">
                     
+
+
 <nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
   
   
     
   
   
     <label class="md-nav__title" for="__toc">
-      <span class="md-nav__icon md-icon">
-        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11h12z"/></svg>
-      </span>
+      <span class="md-nav__icon md-icon"></span>
       Table of contents
     </label>
-    <ul class="md-nav__list" data-md-scrollfix>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
       
         <li class="md-nav__item">
   <a href="#dna-reverse-complement" class="md-nav__link">
@@ -383,12 +430,9 @@
               </div>
             
           
-          <div class="md-content">
+          <div class="md-content" data-md-component="content">
             <article class="md-content__inner md-typeset">
               
-                
-                
-                  
                 
                 
                 <h1 id="programming-guide-useful-routines">Programming Guide - Useful Routines</h1>
@@ -397,7 +441,6 @@
 <div class="tabbed-set" data-tabs="1:1"><input checked="checked" id="__tabbed_1_1" name="__tabbed_1" type="radio" /><label for="__tabbed_1_1">SQL</label><div class="tabbed-content">
 <div class="highlight"><pre><span></span><code><span class="k">SELECT</span> <span class="n">dna_revcomp</span><span class="p">(</span><span class="s1">&#39;AGCTagct&#39;</span><span class="p">)</span>  <span class="c1">-- &#39;agctAGCT&#39;</span>
 </code></pre></div>
-
 </div>
 </div>
 <p>Given NULL, returns NULL. Any other input is an error.</p>
@@ -408,7 +451,6 @@
 <span class="k">SELECT</span> <span class="n">parse_genomic_range_begin</span><span class="p">(</span><span class="s1">&#39;chr1:2,345-6,789&#39;</span><span class="p">)</span>     <span class="c1">-- 2344 (!)</span>
 <span class="k">SELECT</span> <span class="n">parse_genomic_range_end</span><span class="p">(</span><span class="s1">&#39;chr1:2,345-6,789&#39;</span><span class="p">)</span>       <span class="c1">-- 6789</span>
 </code></pre></div>
-
 </div>
 </div>
 <p>❗ Since such text ranges are conventionally one-based and closed, <code>parse_genomic_range_begin()</code> effectively converts them to zero-based and half-open by <a href="https://genome.ucsc.edu/FAQ/FAQtracks#tracks1">returning one less than the text begin position</a>.</p>
@@ -420,14 +462,12 @@
 <div class="tabbed-set" data-tabs="3:1"><input checked="checked" id="__tabbed_3_1" name="__tabbed_3" type="radio" /><label for="__tabbed_3_1">SQL</label><div class="tabbed-content">
 <div class="highlight"><pre><span></span><code><span class="k">SELECT</span> <span class="n">nucleotides_twobit</span><span class="p">(</span><span class="s1">&#39;TCAG&#39;</span><span class="p">)</span>
 </code></pre></div>
-
 </div>
 </div>
 <p>Given a TEXT value consisting of characters from the set <code>ACGTUacgtu</code>, compute a two-bit-encoded BLOB value that can later be decoded using <code>twobit_dna()</code> or <code>twobit_rna()</code>. Given any other ASCII TEXT value (including empty), pass it through unchanged as TEXT. Given NULL, return NULL. Any other input is an error.</p>
 <p>Typically used to populate a BLOB column <code>C</code> with e.g.</p>
 <div class="highlight"><pre><span></span><code><span class="k">INSERT</span> <span class="k">INTO</span> <span class="n">some_table</span><span class="p">(...,</span><span class="k">C</span><span class="p">)</span> <span class="k">VALUES</span><span class="p">(...,</span><span class="n">nucleotides_twobit</span><span class="p">(</span><span class="o">?</span><span class="p">))</span>
 </code></pre></div>
-
 <p>This works even if some of the sequences contain <code>N</code>s or other characters, in which case those sequences are stored as the original TEXT values. Make sure the column has schema type <code>BLOB</code> to avoid spurious coercions, and by convention, the column should be named *_twobit.</p>
 <p><em>Decoding:</em></p>
 <div class="tabbed-set" data-tabs="4:1"><input checked="checked" id="__tabbed_4_1" name="__tabbed_4" type="radio" /><label for="__tabbed_4_1">SQL</label><div class="tabbed-content">
@@ -436,7 +476,6 @@
 <span class="k">SELECT</span> <span class="n">twobit_dna</span><span class="p">(</span><span class="n">nucleotides_twobit</span><span class="p">(</span><span class="s1">&#39;TCAG&#39;</span><span class="p">),</span><span class="n">Y</span><span class="p">,</span><span class="n">Z</span><span class="p">)</span>
 <span class="k">SELECT</span> <span class="n">twobit_rna</span><span class="p">(</span><span class="n">nucleotides_twobit</span><span class="p">(</span><span class="s1">&#39;UCAG&#39;</span><span class="p">),</span><span class="n">Y</span><span class="p">,</span><span class="n">Z</span><span class="p">)</span>
 </code></pre></div>
-
 </div>
 </div>
 <p>Given a two-bit-encoded BLOB value, decode the nucleotide sequence as uppercased TEXT, with <code>T</code>'s for <code>twobit_dna()</code> and <code>U</code>'s for <code>twobit_rna()</code>. Given a TEXT value, pass it through unchanged. Given NULL, return NULL. Any other first input is an error.</p>
@@ -446,7 +485,6 @@
 <div class="tabbed-set" data-tabs="5:1"><input checked="checked" id="__tabbed_5_1" name="__tabbed_5" type="radio" /><label for="__tabbed_5_1">SQL</label><div class="tabbed-content">
 <div class="highlight"><pre><span></span><code><span class="k">SELECT</span> <span class="n">twobit_length</span><span class="p">(</span><span class="n">dna_twobit</span><span class="p">(</span><span class="s1">&#39;TCAG&#39;</span><span class="p">))</span>
 </code></pre></div>
-
 </div>
 </div>
 <p>Given a two-bit-encoded BLOB value, return the length of the <em>decoded</em> sequence (without actually decoding it). This is <em>not</em> equal to <code>4*length(BLOB)</code> due to padding.</p>
@@ -464,7 +502,6 @@
 <span class="n">dbconn</span><span class="o">.</span><span class="n">executescript</span><span class="p">(</span><span class="n">attach_sql</span><span class="p">)</span>
 <span class="c1"># compressed.db now attached as db2</span>
 </code></pre></div>
-
 </div>
 <input id="__tabbed_6_2" name="__tabbed_6" type="radio" /><label for="__tabbed_6_2">Java</label><div class="tabbed-content">
 <div class="highlight"><pre><span></span><code><span class="c1">// If needed, no-op to trigger initial load of Genomics Extension:</span>
@@ -476,7 +513,6 @@
 <span class="n">dbconn</span><span class="p">.</span><span class="na">createStatement</span><span class="p">().</span><span class="na">executeUpdate</span><span class="p">(</span><span class="n">attachSql</span><span class="p">);</span>
 <span class="c1">// compressed.db now attached as db2</span>
 </code></pre></div>
-
 </div>
 <input id="__tabbed_6_3" name="__tabbed_6" type="radio" /><label for="__tabbed_6_3">Rust</label><div class="tabbed-content">
 <div class="highlight"><pre><span></span><code><span class="kd">let</span><span class="w"> </span><span class="n">genomicsqlite_options</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">json</span>::<span class="n">object</span>::<span class="n">Object</span>::<span class="n">new</span><span class="p">();</span><span class="w"></span>
@@ -495,62 +531,58 @@
 <span class="n">dbconn</span><span class="p">.</span><span class="n">execute_batch</span><span class="p">(</span><span class="o">&amp;</span><span class="n">attach_sql</span><span class="p">)</span><span class="o">?</span><span class="p">;</span><span class="w"></span>
 <span class="c1">// compressed.db is now attached as db2</span>
 </code></pre></div>
-
 </div>
 <input id="__tabbed_6_4" name="__tabbed_6" type="radio" /><label for="__tabbed_6_4">SQLiteCpp</label><div class="tabbed-content">
-<div class="highlight"><pre><span></span><code><span class="n">std</span><span class="o">::</span><span class="n">string</span> <span class="n">GenomicSQLiteAttachSQL</span><span class="p">(</span>
-  <span class="k">const</span> <span class="n">std</span><span class="o">::</span><span class="n">string</span> <span class="o">&amp;</span><span class="n">dbfile</span><span class="p">,</span>
-  <span class="k">const</span> <span class="n">std</span><span class="o">::</span><span class="n">string</span> <span class="o">&amp;</span><span class="n">schema_name</span><span class="p">,</span>
-  <span class="k">const</span> <span class="n">std</span><span class="o">::</span><span class="n">string</span> <span class="o">&amp;</span><span class="n">config_json</span> <span class="o">=</span> <span class="s">&quot;{}&quot;</span>
-<span class="p">);</span>
+<div class="highlight"><pre><span></span><code><span class="n">std</span><span class="o">::</span><span class="n">string</span><span class="w"> </span><span class="nf">GenomicSQLiteAttachSQL</span><span class="p">(</span><span class="w"></span>
+<span class="w">  </span><span class="k">const</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">string</span><span class="w"> </span><span class="o">&amp;</span><span class="n">dbfile</span><span class="p">,</span><span class="w"></span>
+<span class="w">  </span><span class="k">const</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">string</span><span class="w"> </span><span class="o">&amp;</span><span class="n">schema_name</span><span class="p">,</span><span class="w"></span>
+<span class="w">  </span><span class="k">const</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">string</span><span class="w"> </span><span class="o">&amp;</span><span class="n">config_json</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s">&quot;{}&quot;</span><span class="w"></span>
+<span class="p">);</span><span class="w"></span>
 
-<span class="n">std</span><span class="o">::</span><span class="n">string</span> <span class="n">attach_sql</span> <span class="o">=</span> <span class="n">GenomicSQLiteAttachSQL</span><span class="p">(</span><span class="s">&quot;compressed.db&quot;</span><span class="p">,</span> <span class="s">&quot;db2&quot;</span><span class="p">);</span>
-<span class="n">SQLite</span><span class="o">::</span><span class="n">Database</span> <span class="n">dbconn</span><span class="p">(</span><span class="s">&quot;any.db&quot;</span><span class="p">,</span> <span class="n">SQLITE_OPEN_URI</span><span class="p">);</span>
-<span class="n">dbconn</span><span class="p">.</span><span class="n">exec</span><span class="p">(</span><span class="n">attach_sql</span><span class="p">);</span>
+<span class="n">std</span><span class="o">::</span><span class="n">string</span><span class="w"> </span><span class="n">attach_sql</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">GenomicSQLiteAttachSQL</span><span class="p">(</span><span class="s">&quot;compressed.db&quot;</span><span class="p">,</span><span class="w"> </span><span class="s">&quot;db2&quot;</span><span class="p">);</span><span class="w"></span>
+<span class="n">SQLite</span><span class="o">::</span><span class="n">Database</span><span class="w"> </span><span class="nf">dbconn</span><span class="p">(</span><span class="s">&quot;any.db&quot;</span><span class="p">,</span><span class="w"> </span><span class="n">SQLITE_OPEN_URI</span><span class="p">);</span><span class="w"></span>
+<span class="n">dbconn</span><span class="p">.</span><span class="n">exec</span><span class="p">(</span><span class="n">attach_sql</span><span class="p">);</span><span class="w"></span>
 <span class="c1">// compressed.db now attached as db2</span>
 </code></pre></div>
-
 </div>
 <input id="__tabbed_6_5" name="__tabbed_6" type="radio" /><label for="__tabbed_6_5">C++</label><div class="tabbed-content">
-<div class="highlight"><pre><span></span><code><span class="n">std</span><span class="o">::</span><span class="n">string</span> <span class="n">GenomicSQLiteAttachSQL</span><span class="p">(</span>
-  <span class="k">const</span> <span class="n">std</span><span class="o">::</span><span class="n">string</span> <span class="o">&amp;</span><span class="n">dbfile</span><span class="p">,</span>
-  <span class="k">const</span> <span class="n">std</span><span class="o">::</span><span class="n">string</span> <span class="o">&amp;</span><span class="n">schema_name</span><span class="p">,</span>
-  <span class="k">const</span> <span class="n">std</span><span class="o">::</span><span class="n">string</span> <span class="o">&amp;</span><span class="n">config_json</span> <span class="o">=</span> <span class="s">&quot;{}&quot;</span>
-<span class="p">);</span>
+<div class="highlight"><pre><span></span><code><span class="n">std</span><span class="o">::</span><span class="n">string</span><span class="w"> </span><span class="nf">GenomicSQLiteAttachSQL</span><span class="p">(</span><span class="w"></span>
+<span class="w">  </span><span class="k">const</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">string</span><span class="w"> </span><span class="o">&amp;</span><span class="n">dbfile</span><span class="p">,</span><span class="w"></span>
+<span class="w">  </span><span class="k">const</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">string</span><span class="w"> </span><span class="o">&amp;</span><span class="n">schema_name</span><span class="p">,</span><span class="w"></span>
+<span class="w">  </span><span class="k">const</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">string</span><span class="w"> </span><span class="o">&amp;</span><span class="n">config_json</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s">&quot;{}&quot;</span><span class="w"></span>
+<span class="p">);</span><span class="w"></span>
 
-<span class="n">std</span><span class="o">::</span><span class="n">string</span> <span class="n">attach_sql</span> <span class="o">=</span> <span class="n">GenomicSQLiteAttachSQL</span><span class="p">(</span><span class="s">&quot;compressed.db&quot;</span><span class="p">,</span> <span class="s">&quot;db2&quot;</span><span class="p">);</span>
+<span class="n">std</span><span class="o">::</span><span class="n">string</span><span class="w"> </span><span class="n">attach_sql</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">GenomicSQLiteAttachSQL</span><span class="p">(</span><span class="s">&quot;compressed.db&quot;</span><span class="p">,</span><span class="w"> </span><span class="s">&quot;db2&quot;</span><span class="p">);</span><span class="w"></span>
 <span class="c1">// sqlite3* dbconn opened using sqlite3_open_v2() on some db</span>
 <span class="c1">//   with SQLITE_OPEN_URI</span>
-<span class="kt">char</span><span class="o">*</span> <span class="n">errmsg</span> <span class="o">=</span> <span class="k">nullptr</span><span class="p">;</span>
-<span class="kt">int</span> <span class="n">rc</span> <span class="o">=</span> <span class="n">sqlite3_exec</span><span class="p">(</span><span class="n">dbconn</span><span class="p">,</span> <span class="n">attach_sql</span><span class="p">.</span><span class="n">c_str</span><span class="p">(),</span> <span class="k">nullptr</span><span class="p">,</span> <span class="k">nullptr</span><span class="p">,</span> <span class="o">&amp;</span><span class="n">errmsg</span><span class="p">);</span>
+<span class="kt">char</span><span class="o">*</span><span class="w"> </span><span class="n">errmsg</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="k">nullptr</span><span class="p">;</span><span class="w"></span>
+<span class="kt">int</span><span class="w"> </span><span class="n">rc</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">sqlite3_exec</span><span class="p">(</span><span class="n">dbconn</span><span class="p">,</span><span class="w"> </span><span class="n">attach_sql</span><span class="p">.</span><span class="n">c_str</span><span class="p">(),</span><span class="w"> </span><span class="k">nullptr</span><span class="p">,</span><span class="w"> </span><span class="k">nullptr</span><span class="p">,</span><span class="w"> </span><span class="o">&amp;</span><span class="n">errmsg</span><span class="p">);</span><span class="w"></span>
 <span class="c1">// check rc, free errmsg</span>
 
 <span class="c1">// compressed.db now attached as db2</span>
 </code></pre></div>
-
 </div>
 <input id="__tabbed_6_6" name="__tabbed_6" type="radio" /><label for="__tabbed_6_6">C</label><div class="tabbed-content">
-<div class="highlight"><pre><span></span><code><span class="kt">char</span><span class="o">*</span> <span class="nf">genomicsqlite_attach_sql</span><span class="p">(</span>
-  <span class="k">const</span> <span class="kt">char</span> <span class="o">*</span><span class="n">dbfile</span><span class="p">,</span>
-  <span class="k">const</span> <span class="kt">char</span> <span class="o">*</span><span class="n">schema_name</span><span class="p">,</span>
-  <span class="k">const</span> <span class="kt">char</span> <span class="o">*</span><span class="n">config_json</span>
-<span class="p">);</span>
+<div class="highlight"><pre><span></span><code><span class="kt">char</span><span class="o">*</span><span class="w"> </span><span class="nf">genomicsqlite_attach_sql</span><span class="p">(</span><span class="w"></span>
+<span class="w">  </span><span class="k">const</span><span class="w"> </span><span class="kt">char</span><span class="w"> </span><span class="o">*</span><span class="n">dbfile</span><span class="p">,</span><span class="w"></span>
+<span class="w">  </span><span class="k">const</span><span class="w"> </span><span class="kt">char</span><span class="w"> </span><span class="o">*</span><span class="n">schema_name</span><span class="p">,</span><span class="w"></span>
+<span class="w">  </span><span class="k">const</span><span class="w"> </span><span class="kt">char</span><span class="w"> </span><span class="o">*</span><span class="n">config_json</span><span class="w"></span>
+<span class="p">);</span><span class="w"></span>
 
-<span class="kt">char</span><span class="o">*</span> <span class="n">attach_sql</span> <span class="o">=</span> <span class="n">genomicsqlite_attach_sql</span><span class="p">(</span><span class="s">&quot;compressed.db&quot;</span><span class="p">,</span> <span class="s">&quot;db2&quot;</span><span class="p">,</span> <span class="s">&quot;{}&quot;</span><span class="p">);</span>
-<span class="k">if</span> <span class="p">(</span><span class="o">*</span><span class="n">attach_sql</span><span class="p">)</span> <span class="p">{</span>
-  <span class="kt">char</span><span class="o">*</span> <span class="n">errmsg</span> <span class="o">=</span> <span class="mi">0</span><span class="p">;</span>
-  <span class="cm">/* sqlite3* dbconn opened using sqlite3_open_v2() on some db</span>
-<span class="cm">   * with SQLITE_OPEN_URI */</span>
-  <span class="kt">int</span> <span class="n">rc</span> <span class="o">=</span> <span class="n">sqlite3_exec</span><span class="p">(</span><span class="n">dbconn</span><span class="p">,</span> <span class="n">attach_sql</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="o">&amp;</span><span class="n">errmsg</span><span class="p">);</span>
-  <span class="cm">/* check rc, free errmsg */</span>
-<span class="p">}</span> <span class="k">else</span> <span class="p">{</span>
- <span class="cm">/* see calling convention discussed in previous examples */</span>
-<span class="p">}</span>
-<span class="n">sqlite3_free</span><span class="p">(</span><span class="n">attach_sql</span><span class="p">);</span>
+<span class="kt">char</span><span class="o">*</span><span class="w"> </span><span class="n">attach_sql</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">genomicsqlite_attach_sql</span><span class="p">(</span><span class="s">&quot;compressed.db&quot;</span><span class="p">,</span><span class="w"> </span><span class="s">&quot;db2&quot;</span><span class="p">,</span><span class="w"> </span><span class="s">&quot;{}&quot;</span><span class="p">);</span><span class="w"></span>
+<span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="o">*</span><span class="n">attach_sql</span><span class="p">)</span><span class="w"> </span><span class="p">{</span><span class="w"></span>
+<span class="w">  </span><span class="kt">char</span><span class="o">*</span><span class="w"> </span><span class="n">errmsg</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">0</span><span class="p">;</span><span class="w"></span>
+<span class="w">  </span><span class="cm">/* sqlite3* dbconn opened using sqlite3_open_v2() on some db</span>
+<span class="cm">   * with SQLITE_OPEN_URI */</span><span class="w"></span>
+<span class="w">  </span><span class="kt">int</span><span class="w"> </span><span class="n">rc</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">sqlite3_exec</span><span class="p">(</span><span class="n">dbconn</span><span class="p">,</span><span class="w"> </span><span class="n">attach_sql</span><span class="p">,</span><span class="w"> </span><span class="mi">0</span><span class="p">,</span><span class="w"> </span><span class="mi">0</span><span class="p">,</span><span class="w"> </span><span class="o">&amp;</span><span class="n">errmsg</span><span class="p">);</span><span class="w"></span>
+<span class="w">  </span><span class="cm">/* check rc, free errmsg */</span><span class="w"></span>
+<span class="p">}</span><span class="w"> </span><span class="k">else</span><span class="w"> </span><span class="p">{</span><span class="w"></span>
+<span class="w"> </span><span class="cm">/* see calling convention discussed in previous examples */</span><span class="w"></span>
+<span class="p">}</span><span class="w"></span>
+<span class="n">sqlite3_free</span><span class="p">(</span><span class="n">attach_sql</span><span class="p">);</span><span class="w"></span>
 
-<span class="cm">/* compressed.db now attached as db2 */</span>
+<span class="cm">/* compressed.db now attached as db2 */</span><span class="w"></span>
 </code></pre></div>
-
 </div>
 </div>
 <p>❗ The file and schema names are textually pasted into a template SQL script. Take care to prevent SQL injection, if they're in any way determined by external input.</p>
@@ -565,7 +597,6 @@
 <span class="n">dbconn</span><span class="o">.</span><span class="n">executescript</span><span class="p">(</span><span class="n">vacuum_sql</span><span class="p">)</span>
 <span class="n">dbconn2</span> <span class="o">=</span> <span class="n">genomicsqlite</span><span class="o">.</span><span class="n">connect</span><span class="p">(</span><span class="s1">&#39;compressed.db&#39;</span><span class="p">)</span>
 </code></pre></div>
-
 </div>
 <input id="__tabbed_7_2" name="__tabbed_7" type="radio" /><label for="__tabbed_7_2">Java</label><div class="tabbed-content">
 <div class="highlight"><pre><span></span><code><span class="c1">// If needed, no-op to trigger initial load of Genomics Extension:</span>
@@ -579,7 +610,6 @@
   <span class="s">&quot;jdbc:genomicsqlite:compressed.db&quot;</span>
 <span class="p">);</span>
 </code></pre></div>
-
 </div>
 <input id="__tabbed_7_3" name="__tabbed_7" type="radio" /><label for="__tabbed_7_3">Rust</label><div class="tabbed-content">
 <div class="highlight"><pre><span></span><code><span class="kd">let</span><span class="w"> </span><span class="n">genomicsqlite_options</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">json</span>::<span class="n">object</span>::<span class="n">Object</span>::<span class="n">new</span><span class="p">();</span><span class="w"></span>
@@ -602,92 +632,82 @@
 <span class="w">  </span><span class="o">&amp;</span><span class="n">genomicsqlite_options</span><span class="w"></span>
 <span class="p">)</span><span class="o">?</span><span class="p">;</span><span class="w"></span>
 </code></pre></div>
-
 </div>
 <input id="__tabbed_7_4" name="__tabbed_7" type="radio" /><label for="__tabbed_7_4">SQLiteCpp</label><div class="tabbed-content">
-<div class="highlight"><pre><span></span><code><span class="n">std</span><span class="o">::</span><span class="n">string</span> <span class="n">GenomicSQLiteVacuumIntoSQL</span><span class="p">(</span>
-  <span class="k">const</span> <span class="n">std</span><span class="o">::</span><span class="n">string</span> <span class="o">&amp;</span><span class="n">dest_filename</span><span class="p">,</span>
-  <span class="k">const</span> <span class="n">std</span><span class="o">::</span><span class="n">string</span> <span class="o">&amp;</span><span class="n">config_json</span> <span class="o">=</span> <span class="s">&quot;{}&quot;</span>
-<span class="p">);</span>
+<div class="highlight"><pre><span></span><code><span class="n">std</span><span class="o">::</span><span class="n">string</span><span class="w"> </span><span class="nf">GenomicSQLiteVacuumIntoSQL</span><span class="p">(</span><span class="w"></span>
+<span class="w">  </span><span class="k">const</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">string</span><span class="w"> </span><span class="o">&amp;</span><span class="n">dest_filename</span><span class="p">,</span><span class="w"></span>
+<span class="w">  </span><span class="k">const</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">string</span><span class="w"> </span><span class="o">&amp;</span><span class="n">config_json</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s">&quot;{}&quot;</span><span class="w"></span>
+<span class="p">);</span><span class="w"></span>
 
-<span class="n">std</span><span class="o">::</span><span class="n">string</span> <span class="n">vacuum_sql</span> <span class="o">=</span> <span class="n">GenomicSQLiteVacuumIntoSQL</span><span class="p">(</span><span class="s">&quot;compressed.db&quot;</span><span class="p">);</span>
-<span class="n">SQLite</span><span class="o">::</span><span class="n">Database</span> <span class="n">dbconn</span><span class="p">(</span><span class="s">&quot;existing.db&quot;</span><span class="p">,</span> <span class="n">SQLITE_OPEN_READONLY</span> <span class="o">|</span> <span class="n">SQLITE_OPEN_URI</span><span class="p">);</span>
-<span class="n">dbconn</span><span class="p">.</span><span class="n">exec</span><span class="p">(</span><span class="n">vacuum_sql</span><span class="p">);</span>
-<span class="k">auto</span> <span class="n">dbconn2</span> <span class="o">=</span> <span class="n">GenomicSQLiteOpen</span><span class="p">(</span><span class="s">&quot;compressed.db&quot;</span><span class="p">);</span>
+<span class="n">std</span><span class="o">::</span><span class="n">string</span><span class="w"> </span><span class="n">vacuum_sql</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">GenomicSQLiteVacuumIntoSQL</span><span class="p">(</span><span class="s">&quot;compressed.db&quot;</span><span class="p">);</span><span class="w"></span>
+<span class="n">SQLite</span><span class="o">::</span><span class="n">Database</span><span class="w"> </span><span class="nf">dbconn</span><span class="p">(</span><span class="s">&quot;existing.db&quot;</span><span class="p">,</span><span class="w"> </span><span class="n">SQLITE_OPEN_READONLY</span><span class="w"> </span><span class="o">|</span><span class="w"> </span><span class="n">SQLITE_OPEN_URI</span><span class="p">);</span><span class="w"></span>
+<span class="n">dbconn</span><span class="p">.</span><span class="n">exec</span><span class="p">(</span><span class="n">vacuum_sql</span><span class="p">);</span><span class="w"></span>
+<span class="k">auto</span><span class="w"> </span><span class="n">dbconn2</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">GenomicSQLiteOpen</span><span class="p">(</span><span class="s">&quot;compressed.db&quot;</span><span class="p">);</span><span class="w"></span>
 </code></pre></div>
-
 </div>
 <input id="__tabbed_7_5" name="__tabbed_7" type="radio" /><label for="__tabbed_7_5">C++</label><div class="tabbed-content">
-<div class="highlight"><pre><span></span><code><span class="n">std</span><span class="o">::</span><span class="n">string</span> <span class="n">GenomicSQLiteVacuumIntoSQL</span><span class="p">(</span>
-  <span class="k">const</span> <span class="n">std</span><span class="o">::</span><span class="n">string</span> <span class="o">&amp;</span><span class="n">dest_filename</span><span class="p">,</span>
-  <span class="k">const</span> <span class="n">std</span><span class="o">::</span><span class="n">string</span> <span class="o">&amp;</span><span class="n">config_json</span> <span class="o">=</span> <span class="s">&quot;{}&quot;</span>
-<span class="p">);</span>
+<div class="highlight"><pre><span></span><code><span class="n">std</span><span class="o">::</span><span class="n">string</span><span class="w"> </span><span class="nf">GenomicSQLiteVacuumIntoSQL</span><span class="p">(</span><span class="w"></span>
+<span class="w">  </span><span class="k">const</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">string</span><span class="w"> </span><span class="o">&amp;</span><span class="n">dest_filename</span><span class="p">,</span><span class="w"></span>
+<span class="w">  </span><span class="k">const</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">string</span><span class="w"> </span><span class="o">&amp;</span><span class="n">config_json</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s">&quot;{}&quot;</span><span class="w"></span>
+<span class="p">);</span><span class="w"></span>
 
-<span class="n">std</span><span class="o">::</span><span class="n">string</span> <span class="n">vacuum_sql</span> <span class="o">=</span> <span class="n">GenomicSQLiteVacuumIntoSQL</span><span class="p">(</span><span class="s">&quot;compressed.db&quot;</span><span class="p">);</span>
+<span class="n">std</span><span class="o">::</span><span class="n">string</span><span class="w"> </span><span class="n">vacuum_sql</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">GenomicSQLiteVacuumIntoSQL</span><span class="p">(</span><span class="s">&quot;compressed.db&quot;</span><span class="p">);</span><span class="w"></span>
 <span class="c1">// sqlite3* dbconn opened using sqlite3_open_v2() on some existing.db</span>
 <span class="c1">//   with SQLITE_OPEN_URI</span>
-<span class="kt">char</span><span class="o">*</span> <span class="n">errmsg</span> <span class="o">=</span> <span class="k">nullptr</span><span class="p">;</span>
-<span class="kt">int</span> <span class="n">rc</span> <span class="o">=</span> <span class="n">sqlite3_exec</span><span class="p">(</span><span class="n">dbconn</span><span class="p">,</span> <span class="n">vacuum_sql</span><span class="p">.</span><span class="n">c_str</span><span class="p">(),</span> <span class="k">nullptr</span><span class="p">,</span> <span class="k">nullptr</span><span class="p">,</span> <span class="o">&amp;</span><span class="n">errmsg</span><span class="p">);</span>
+<span class="kt">char</span><span class="o">*</span><span class="w"> </span><span class="n">errmsg</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="k">nullptr</span><span class="p">;</span><span class="w"></span>
+<span class="kt">int</span><span class="w"> </span><span class="n">rc</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">sqlite3_exec</span><span class="p">(</span><span class="n">dbconn</span><span class="p">,</span><span class="w"> </span><span class="n">vacuum_sql</span><span class="p">.</span><span class="n">c_str</span><span class="p">(),</span><span class="w"> </span><span class="k">nullptr</span><span class="p">,</span><span class="w"> </span><span class="k">nullptr</span><span class="p">,</span><span class="w"> </span><span class="o">&amp;</span><span class="n">errmsg</span><span class="p">);</span><span class="w"></span>
 <span class="c1">// check rc, free errmsg</span>
 
 <span class="c1">// rc = GenomicSQLiteOpen(&quot;compressed.db&quot;, ...);</span>
 </code></pre></div>
-
 </div>
 <input id="__tabbed_7_6" name="__tabbed_7" type="radio" /><label for="__tabbed_7_6">C</label><div class="tabbed-content">
-<div class="highlight"><pre><span></span><code><span class="kt">char</span><span class="o">*</span> <span class="nf">genomicsqlite_vacuum_into_sql</span><span class="p">(</span>
-  <span class="k">const</span> <span class="kt">char</span> <span class="o">*</span><span class="n">dest_filename</span><span class="p">,</span>
-  <span class="k">const</span> <span class="kt">char</span> <span class="o">*</span><span class="n">config_json</span>
-<span class="p">);</span>
+<div class="highlight"><pre><span></span><code><span class="kt">char</span><span class="o">*</span><span class="w"> </span><span class="nf">genomicsqlite_vacuum_into_sql</span><span class="p">(</span><span class="w"></span>
+<span class="w">  </span><span class="k">const</span><span class="w"> </span><span class="kt">char</span><span class="w"> </span><span class="o">*</span><span class="n">dest_filename</span><span class="p">,</span><span class="w"></span>
+<span class="w">  </span><span class="k">const</span><span class="w"> </span><span class="kt">char</span><span class="w"> </span><span class="o">*</span><span class="n">config_json</span><span class="w"></span>
+<span class="p">);</span><span class="w"></span>
 
-<span class="kt">char</span><span class="o">*</span> <span class="n">vacuum_sql</span> <span class="o">=</span> <span class="n">genomicsqlite_vacuum_into_sql</span><span class="p">(</span><span class="s">&quot;compressed.db&quot;</span><span class="p">,</span> <span class="s">&quot;{}&quot;</span><span class="p">);</span>
-<span class="k">if</span> <span class="p">(</span><span class="o">*</span><span class="n">vacuum_sql</span><span class="p">)</span> <span class="p">{</span>
-  <span class="kt">char</span><span class="o">*</span> <span class="n">errmsg</span> <span class="o">=</span> <span class="mi">0</span><span class="p">;</span>
-  <span class="cm">/* sqlite3* dbconn opened using sqlite3_open_v2() on some existing.db</span>
-<span class="cm">   * with SQLITE_OPEN_URI */</span>
-  <span class="kt">int</span> <span class="n">rc</span> <span class="o">=</span> <span class="n">sqlite3_exec</span><span class="p">(</span><span class="n">dbconn</span><span class="p">,</span> <span class="n">vacuum_sql</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="o">&amp;</span><span class="n">errmsg</span><span class="p">);</span>
-  <span class="cm">/* check rc, free errmsg */</span>
-<span class="p">}</span> <span class="k">else</span> <span class="p">{</span>
- <span class="cm">/* see calling convention discussed in previous examples */</span>
-<span class="p">}</span>
-<span class="n">sqlite3_free</span><span class="p">(</span><span class="n">vacuum_sql</span><span class="p">);</span>
+<span class="kt">char</span><span class="o">*</span><span class="w"> </span><span class="n">vacuum_sql</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">genomicsqlite_vacuum_into_sql</span><span class="p">(</span><span class="s">&quot;compressed.db&quot;</span><span class="p">,</span><span class="w"> </span><span class="s">&quot;{}&quot;</span><span class="p">);</span><span class="w"></span>
+<span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="o">*</span><span class="n">vacuum_sql</span><span class="p">)</span><span class="w"> </span><span class="p">{</span><span class="w"></span>
+<span class="w">  </span><span class="kt">char</span><span class="o">*</span><span class="w"> </span><span class="n">errmsg</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">0</span><span class="p">;</span><span class="w"></span>
+<span class="w">  </span><span class="cm">/* sqlite3* dbconn opened using sqlite3_open_v2() on some existing.db</span>
+<span class="cm">   * with SQLITE_OPEN_URI */</span><span class="w"></span>
+<span class="w">  </span><span class="kt">int</span><span class="w"> </span><span class="n">rc</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">sqlite3_exec</span><span class="p">(</span><span class="n">dbconn</span><span class="p">,</span><span class="w"> </span><span class="n">vacuum_sql</span><span class="p">,</span><span class="w"> </span><span class="mi">0</span><span class="p">,</span><span class="w"> </span><span class="mi">0</span><span class="p">,</span><span class="w"> </span><span class="o">&amp;</span><span class="n">errmsg</span><span class="p">);</span><span class="w"></span>
+<span class="w">  </span><span class="cm">/* check rc, free errmsg */</span><span class="w"></span>
+<span class="p">}</span><span class="w"> </span><span class="k">else</span><span class="w"> </span><span class="p">{</span><span class="w"></span>
+<span class="w"> </span><span class="cm">/* see calling convention discussed in previous examples */</span><span class="w"></span>
+<span class="p">}</span><span class="w"></span>
+<span class="n">sqlite3_free</span><span class="p">(</span><span class="n">vacuum_sql</span><span class="p">);</span><span class="w"></span>
 
-<span class="cm">/* genomicsqlite_open(&quot;compressed.db&quot;, ...); */</span>
+<span class="cm">/* genomicsqlite_open(&quot;compressed.db&quot;, ...); */</span><span class="w"></span>
 </code></pre></div>
-
 </div>
 </div>
 <h3 id="genomics-extension-version">Genomics Extension version</h3>
 <div class="tabbed-set" data-tabs="8:6"><input checked="checked" id="__tabbed_8_1" name="__tabbed_8" type="radio" /><label for="__tabbed_8_1">SQL</label><div class="tabbed-content">
 <div class="highlight"><pre><span></span><code><span class="k">SELECT</span> <span class="n">genomicsqlite_version</span><span class="p">()</span>
 </code></pre></div>
-
 </div>
 <input id="__tabbed_8_2" name="__tabbed_8" type="radio" /><label for="__tabbed_8_2">Python</label><div class="tabbed-content">
 <div class="highlight"><pre><span></span><code><span class="n">genomicsqlite</span><span class="o">.</span><span class="n">__version__</span>
 </code></pre></div>
-
 </div>
 <input id="__tabbed_8_3" name="__tabbed_8" type="radio" /><label for="__tabbed_8_3">Java</label><div class="tabbed-content">
 <div class="highlight"><pre><span></span><code><span class="n">String</span> <span class="n">genomicsqliteVersion</span> <span class="o">=</span> <span class="n">GenomicSQLite</span><span class="p">.</span><span class="na">version</span><span class="p">(</span><span class="n">dbconn</span><span class="p">);</span>
 </code></pre></div>
-
 </div>
 <input id="__tabbed_8_4" name="__tabbed_8" type="radio" /><label for="__tabbed_8_4">Rust</label><div class="tabbed-content">
 <div class="highlight"><pre><span></span><code><span class="kd">let</span><span class="w"> </span><span class="n">v</span>: <span class="nb">String</span> <span class="o">=</span><span class="w"> </span><span class="n">dbconn</span><span class="p">.</span><span class="n">genomicsqlite_version</span><span class="p">();</span><span class="w"></span>
 </code></pre></div>
-
 </div>
 <input id="__tabbed_8_5" name="__tabbed_8" type="radio" /><label for="__tabbed_8_5">C++</label><div class="tabbed-content">
-<div class="highlight"><pre><span></span><code><span class="n">std</span><span class="o">::</span><span class="n">string</span> <span class="n">GenomicSQLiteVersion</span><span class="p">();</span>
+<div class="highlight"><pre><span></span><code><span class="n">std</span><span class="o">::</span><span class="n">string</span><span class="w"> </span><span class="nf">GenomicSQLiteVersion</span><span class="p">();</span><span class="w"></span>
 </code></pre></div>
-
 </div>
 <input id="__tabbed_8_6" name="__tabbed_8" type="radio" /><label for="__tabbed_8_6">C</label><div class="tabbed-content">
-<div class="highlight"><pre><span></span><code><span class="kt">char</span><span class="o">*</span> <span class="nf">genomicsqlite_version</span><span class="p">();</span>
-<span class="cm">/* result to be sqlite3_free() */</span>
+<div class="highlight"><pre><span></span><code><span class="kt">char</span><span class="o">*</span><span class="w"> </span><span class="nf">genomicsqlite_version</span><span class="p">();</span><span class="w"></span>
+<span class="cm">/* result to be sqlite3_free() */</span><span class="w"></span>
 </code></pre></div>
-
 </div>
 </div>
                 
@@ -700,54 +720,58 @@
             </article>
           </div>
         </div>
+        
       </main>
       
         
 <footer class="md-footer">
   
-    <div class="md-footer-nav">
-      <nav class="md-footer-nav__inner md-grid" aria-label="Footer">
+    <nav class="md-footer__inner md-grid" aria-label="Footer">
+      
         
-          <a href="../guide_gri/" title="Genomic Range Indexing" class="md-footer-nav__link md-footer-nav__link--prev" rel="prev">
-            <div class="md-footer-nav__button md-icon">
-              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11h12z"/></svg>
+        <a href="../guide_gri/" class="md-footer__link md-footer__link--prev" aria-label="Previous: Genomic Range Indexing" rel="prev">
+          <div class="md-footer__button md-icon">
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11h12z"/></svg>
+          </div>
+          <div class="md-footer__title">
+            <div class="md-ellipsis">
+              <span class="md-footer__direction">
+                Previous
+              </span>
+              Genomic Range Indexing
             </div>
-            <div class="md-footer-nav__title">
-              <div class="md-ellipsis">
-                <span class="md-footer-nav__direction">
-                  Previous
-                </span>
-                Genomic Range Indexing
-              </div>
-            </div>
-          </a>
+          </div>
+        </a>
+      
+      
         
-        
-          <a href="../bindings/" title="Writing Language Bindings" class="md-footer-nav__link md-footer-nav__link--next" rel="next">
-            <div class="md-footer-nav__title">
-              <div class="md-ellipsis">
-                <span class="md-footer-nav__direction">
-                  Next
-                </span>
-                Writing Language Bindings
-              </div>
+        <a href="../bindings/" class="md-footer__link md-footer__link--next" aria-label="Next: Writing Language Bindings" rel="next">
+          <div class="md-footer__title">
+            <div class="md-ellipsis">
+              <span class="md-footer__direction">
+                Next
+              </span>
+              Writing Language Bindings
             </div>
-            <div class="md-footer-nav__button md-icon">
-              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M4 11v2h12l-5.5 5.5 1.42 1.42L19.84 12l-7.92-7.92L10.5 5.5 16 11H4z"/></svg>
-            </div>
-          </a>
-        
-      </nav>
-    </div>
+          </div>
+          <div class="md-footer__button md-icon">
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M4 11v2h12l-5.5 5.5 1.42 1.42L19.84 12l-7.92-7.92L10.5 5.5 16 11H4z"/></svg>
+          </div>
+        </a>
+      
+    </nav>
   
   <div class="md-footer-meta md-typeset">
     <div class="md-footer-meta__inner md-grid">
       <div class="md-footer-copyright">
         
-        Made with
-        <a href="https://squidfunk.github.io/mkdocs-material/" target="_blank" rel="noopener">
-          Material for MkDocs
-        </a>
+        
+          Made with
+          <a href="https://squidfunk.github.io/mkdocs-material/" target="_blank" rel="noopener">
+            Material for MkDocs
+          </a>
+        
+        
       </div>
       
     </div>
@@ -755,19 +779,13 @@
 </footer>
       
     </div>
+    <div class="md-dialog" data-md-component="dialog">
+      <div class="md-dialog__inner md-typeset"></div>
+    </div>
+    <script id="__config" type="application/json">{"base": "..", "features": [], "translations": {"clipboard.copy": "Copy to clipboard", "clipboard.copied": "Copied to clipboard", "search.config.lang": "en", "search.config.pipeline": "trimmer, stopWordFilter", "search.config.separator": "[\\s\\-]+", "search.placeholder": "Search", "search.result.placeholder": "Type to start searching", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.term.missing": "Missing", "select.version.title": "Select version"}, "search": "../assets/javascripts/workers/search.fcfe8b6d.min.js", "version": null}</script>
     
-      <script src="../assets/javascripts/vendor.d710d30a.min.js"></script>
-      <script src="../assets/javascripts/bundle.b39636ac.min.js"></script><script id="__lang" type="application/json">{"clipboard.copy": "Copy to clipboard", "clipboard.copied": "Copied to clipboard", "search.config.lang": "en", "search.config.pipeline": "trimmer, stopWordFilter", "search.config.separator": "[\\s\\-]+", "search.result.placeholder": "Type to start searching", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents"}</script>
-      
-      <script>
-        app = initialize({
-          base: "..",
-          features: [],
-          search: Object.assign({
-            worker: "../assets/javascripts/worker/search.a68abb33.min.js"
-          }, typeof search !== "undefined" && search)
-        })
-      </script>
+    
+      <script src="../assets/javascripts/bundle.b1047164.min.js"></script>
       
     
   </body>
