@@ -17,7 +17,7 @@ def test_gri_lvl():
     )
     for lvl in range(16):
         for ofs in (-2, -1, 0, 1):
-            featlen = 16 ** lvl + ofs
+            featlen = 16**lvl + ofs
             tup = (420, 420 + featlen, (0 - lvl if ofs < 1 else 0 - lvl - 1))
             con.execute("INSERT INTO features VALUES(42,?,?,?)", tup)
     con.executescript(
@@ -93,7 +93,7 @@ def test_abutment():
     pos0 = 10000000000
     for lvl in range(9):
         for ofs in (-1, 0, 1):
-            for tup in ((pos0 - 16 ** lvl, pos0 + ofs), (pos0 + 123 + ofs, pos0 + 123 + 16 ** 9)):
+            for tup in ((pos0 - 16**lvl, pos0 + ofs), (pos0 + 123 + ofs, pos0 + 123 + 16**9)):
                 con.execute("INSERT INTO features VALUES(42,?,?)", tup)
     con.executescript(
         genomicsqlite.create_genomic_range_index_sql(con, "features", "rid", "beg", "end")
@@ -431,7 +431,7 @@ def test_query_in_sql(tmp_path):
     results = list(
         con.execute("SELECT * FROM genomic_range_rowids('empty', 'chr17', 43044294, 43048294)")
     )
-    assert results == []
+    assert not results
 
 
 def _fill_exons(con, floor=None, table="exons", gri=True, len_gri=False):

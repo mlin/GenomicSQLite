@@ -1763,13 +1763,15 @@ static int register_genomicsqlite_functions(sqlite3 *db, const char **pzErrMsg,
     }
     // other extensions may return SQLITE_BUSY if another version is already loaded; that is
     // tolerable.
-    rc = genomicsqliteJson1Register(db);
-    if (rc != SQLITE_OK && rc != SQLITE_BUSY) {
-        if (pzErrMsg) {
-            *pzErrMsg =
-                sqlite3_mprintf("Genomics Extension %s failed to register JSON1", GIT_REVISION);
+    if (sqlite3_libversion_number() < 3038000) { // JSON1 is bundled in SQLite 3.38.0 & above
+        rc = genomicsqliteJson1Register(db);
+        if (rc != SQLITE_OK && rc != SQLITE_BUSY) {
+            if (pzErrMsg) {
+                *pzErrMsg =
+                    sqlite3_mprintf("Genomics Extension %s failed to register JSON1", GIT_REVISION);
+            }
+            return rc;
         }
-        return rc;
     }
     rc = genomicsqlite_uint_init(db);
     if (rc != SQLITE_OK && rc != SQLITE_BUSY) {
