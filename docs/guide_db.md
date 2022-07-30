@@ -249,6 +249,4 @@ The [Zstandard](https://facebook.github.io/zstd/)-based [compression layer](http
 
 The aforementioned zstd_level, threads, and page_size options all affect the compression time-space tradeoff, while enlarging the page cache can reduce decompression overhead (workload-dependent).
 
-If you plan to delete or overwrite a significant amount of data in an existing database, issue [`PRAGMA secure_delete=ON`](https://www.sqlite.org/pragma.html#pragma_secure_delete) beforehand to keep the compressed file as small as possible. This works by causing SQLite to overwrite unused database pages with all zeroes, which the compression layer can then reduce to a negligible size.
-
 With SQLite's row-major table [storage format](https://www.sqlite.org/fileformat.html), the first read of a lone cell usually entails decompressing at least its whole row, and there aren't any special column encodings for deltas, run lengths, etc. The "last mile" of optimization may therefore involve certain schema compromises, such as storing infrequently-accessed columns in a separate table to join when needed, or using application-layer encodings with [BLOB I/O](https://www.sqlite.org/c3ref/blob_open.html).

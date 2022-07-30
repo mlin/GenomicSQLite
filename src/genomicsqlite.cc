@@ -280,6 +280,7 @@ string GenomicSQLiteTuningSQL(const string &config_json, const string &schema = 
     map<string, string> pragmas;
     pragmas[schema_prefix + "cache_size"] = to_string(-960 * cfg.GetInt("$.page_cache_MiB"));
     pragmas[schema_prefix + "max_page_count"] = "2147483646";
+    pragmas[schema_prefix + "secure_delete"] = "ON"; // ensures empty space compresses to ~nothing
     if (schema_prefix.empty()) {
         int threads = cfg.GetInt("$.threads");
         pragmas["threads"] =
