@@ -9,7 +9,7 @@
       
       
       <link rel="icon" href="../assets/images/favicon.png">
-      <meta name="generator" content="mkdocs-1.3.1, mkdocs-material-8.3.9">
+      <meta name="generator" content="mkdocs-1.3.1, mkdocs-material-8.4.0">
     
     
       
@@ -17,7 +17,7 @@
       
     
     
-      <link rel="stylesheet" href="../assets/stylesheets/main.1d29e8d0.min.css">
+      <link rel="stylesheet" href="../assets/stylesheets/main.69437709.min.css">
       
         
         <link rel="stylesheet" href="../assets/stylesheets/palette.cbb835fc.min.css">
@@ -36,7 +36,7 @@
       
     
     
-    <script>__md_scope=new URL("..",location),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
+    <script>__md_scope=new URL("..",location),__md_hash=e=>[...e].reduce((e,_)=>(e<<5)-e+_.charCodeAt(0),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
     
       
 
@@ -436,19 +436,25 @@
 <h1 id="programming-guide-useful-routines">Programming Guide - Useful Routines</h1>
 <h3 id="dna-reverse-complement">DNA reverse complement</h3>
 <p>Reverse-complements a DNA text value (containing only characters from the set <code>AGCTagct</code>), preserving original case.</p>
-<div class="tabbed-set" data-tabs="1:1"><input checked="checked" id="__tabbed_1_1" name="__tabbed_1" type="radio" /><label for="__tabbed_1_1">SQL</label><div class="tabbed-content">
+<div class="tabbed-set tabbed-alternate" data-tabs="1:1"><input checked="checked" id="__tabbed_1_1" name="__tabbed_1" type="radio" /><div class="tabbed-labels"><label for="__tabbed_1_1">SQL</label></div>
+<div class="tabbed-content">
+<div class="tabbed-block">
 <div class="highlight"><pre><span></span><code><span class="k">SELECT</span><span class="w"> </span><span class="n">dna_revcomp</span><span class="p">(</span><span class="s1">&#39;AGCTagct&#39;</span><span class="p">)</span><span class="w">  </span><span class="c1">-- &#39;agctAGCT&#39;</span>
 </code></pre></div>
+</div>
 </div>
 </div>
 <p>Given NULL, returns NULL. Any other input is an error.</p>
 <h3 id="parse-genomic-range-text">Parse genomic range text</h3>
 <p>These SQL functions process a text value like <code>'chr1:2,345-6,789'</code> into its three parts (sequence/chromosome name, begin position, and end position).</p>
-<div class="tabbed-set" data-tabs="2:1"><input checked="checked" id="__tabbed_2_1" name="__tabbed_2" type="radio" /><label for="__tabbed_2_1">SQL</label><div class="tabbed-content">
+<div class="tabbed-set tabbed-alternate" data-tabs="2:1"><input checked="checked" id="__tabbed_2_1" name="__tabbed_2" type="radio" /><div class="tabbed-labels"><label for="__tabbed_2_1">SQL</label></div>
+<div class="tabbed-content">
+<div class="tabbed-block">
 <div class="highlight"><pre><span></span><code><span class="k">SELECT</span><span class="w"> </span><span class="n">parse_genomic_range_sequence</span><span class="p">(</span><span class="s1">&#39;chr1:2,345-6,789&#39;</span><span class="p">)</span><span class="w">  </span><span class="c1">-- &#39;chr1&#39;</span>
 <span class="k">SELECT</span><span class="w"> </span><span class="n">parse_genomic_range_begin</span><span class="p">(</span><span class="s1">&#39;chr1:2,345-6,789&#39;</span><span class="p">)</span><span class="w">     </span><span class="c1">-- 2344 (!)</span>
 <span class="k">SELECT</span><span class="w"> </span><span class="n">parse_genomic_range_end</span><span class="p">(</span><span class="s1">&#39;chr1:2,345-6,789&#39;</span><span class="p">)</span><span class="w">       </span><span class="c1">-- 6789</span>
 </code></pre></div>
+</div>
 </div>
 </div>
 <p>❗ Since such text ranges are conventionally one-based and closed, <code>parse_genomic_range_begin()</code> effectively converts them to zero-based and half-open by <a href="https://genome.ucsc.edu/FAQ/FAQtracks#tracks1">returning one less than the text begin position</a>.</p>
@@ -457,9 +463,12 @@
 <p>The extension supplies SQL functions to pack a DNA/RNA sequence TEXT value into a smaller BLOB value, using two bits per nucleotide. (Review <a href="https://www.sqlite.org/datatype3.html">SQLite Datatypes</a> on the important differences between TEXT and BLOB values &amp; columns.) Storing a large database of sequences using such BLOBs instead of TEXT can improve application I/O efficiency, with up to 4X more nucleotides cached in the same memory space. It is not, however, expected to greatly shrink the database file on disk, owing to the automatic storage compression.</p>
 <p>The encoding is case-insensitive and considers <code>T</code> and <code>U</code> equivalent.</p>
 <p><em>Encoding:</em></p>
-<div class="tabbed-set" data-tabs="3:1"><input checked="checked" id="__tabbed_3_1" name="__tabbed_3" type="radio" /><label for="__tabbed_3_1">SQL</label><div class="tabbed-content">
+<div class="tabbed-set tabbed-alternate" data-tabs="3:1"><input checked="checked" id="__tabbed_3_1" name="__tabbed_3" type="radio" /><div class="tabbed-labels"><label for="__tabbed_3_1">SQL</label></div>
+<div class="tabbed-content">
+<div class="tabbed-block">
 <div class="highlight"><pre><span></span><code><span class="k">SELECT</span><span class="w"> </span><span class="n">nucleotides_twobit</span><span class="p">(</span><span class="s1">&#39;TCAG&#39;</span><span class="p">)</span><span class="w"></span>
 </code></pre></div>
+</div>
 </div>
 </div>
 <p>Given a TEXT value consisting of characters from the set <code>ACGTUacgtu</code>, compute a two-bit-encoded BLOB value that can later be decoded using <code>twobit_dna()</code> or <code>twobit_rna()</code>. Given any other ASCII TEXT value (including empty), pass it through unchanged as TEXT. Given NULL, return NULL. Any other input is an error.</p>
@@ -468,7 +477,9 @@
 </code></pre></div>
 <p>This works even if some of the sequences contain <code>N</code>s or other characters, in which case those sequences are stored as the original TEXT values. Make sure the column has schema type <code>BLOB</code> to avoid spurious coercions, and by convention, the column should be named *_twobit.</p>
 <p><em>Decoding:</em></p>
-<div class="tabbed-set" data-tabs="4:1"><input checked="checked" id="__tabbed_4_1" name="__tabbed_4" type="radio" /><label for="__tabbed_4_1">SQL</label><div class="tabbed-content">
+<div class="tabbed-set tabbed-alternate" data-tabs="4:1"><input checked="checked" id="__tabbed_4_1" name="__tabbed_4" type="radio" /><div class="tabbed-labels"><label for="__tabbed_4_1">SQL</label></div>
+<div class="tabbed-content">
+<div class="tabbed-block">
 <div class="highlight"><pre><span></span><code><span class="k">SELECT</span><span class="w"> </span><span class="n">twobit_dna</span><span class="p">(</span><span class="n">nucleotides_twobit</span><span class="p">(</span><span class="s1">&#39;TCAG&#39;</span><span class="p">))</span><span class="w"></span>
 <span class="k">SELECT</span><span class="w"> </span><span class="n">twobit_rna</span><span class="p">(</span><span class="n">nucleotides_twobit</span><span class="p">(</span><span class="s1">&#39;UCAG&#39;</span><span class="p">))</span><span class="w"></span>
 <span class="k">SELECT</span><span class="w"> </span><span class="n">twobit_dna</span><span class="p">(</span><span class="n">nucleotides_twobit</span><span class="p">(</span><span class="s1">&#39;TCAG&#39;</span><span class="p">),</span><span class="n">Y</span><span class="p">,</span><span class="n">Z</span><span class="p">)</span><span class="w"></span>
@@ -476,13 +487,17 @@
 </code></pre></div>
 </div>
 </div>
+</div>
 <p>Given a two-bit-encoded BLOB value, decode the nucleotide sequence as uppercased TEXT, with <code>T</code>'s for <code>twobit_dna()</code> and <code>U</code>'s for <code>twobit_rna()</code>. Given a TEXT value, pass it through unchanged. Given NULL, return NULL. Any other first input is an error.</p>
 <p>The optional <code>Y</code> and <code>Z</code> arguments can be used to compute <a href="https://sqlite.org/lang_corefunc.html#substr"><code>substr(twobit_dna(X),Y,Z)</code></a> more efficiently, without decoding the whole sequence. <small>Unfortunately however, <a href="https://sqlite.org/forum/forumpost/756c1a1e48?t=h">SQLite internals</a> make this operation still liable to use time &amp; memory proportional to the full length of X, not Z. If frequent random access into long sequences is needed, then consider splitting them across multiple rows.</small></p>
 <p>Take care to only use BLOBs originally produced by <code>nucleotides_twobit()</code>, as other BLOBs may decode to spurious nucleotide sequences. If you <code>SELECT twobit_dna(C) FROM some_table</code> on a column with mixed BLOB and TEXT values as suggested above, note that the results actually stored as TEXT preserve their case and T/U letters, unlike decoded BLOBs.</p>
 <p><em>Length:</em></p>
-<div class="tabbed-set" data-tabs="5:1"><input checked="checked" id="__tabbed_5_1" name="__tabbed_5" type="radio" /><label for="__tabbed_5_1">SQL</label><div class="tabbed-content">
+<div class="tabbed-set tabbed-alternate" data-tabs="5:1"><input checked="checked" id="__tabbed_5_1" name="__tabbed_5" type="radio" /><div class="tabbed-labels"><label for="__tabbed_5_1">SQL</label></div>
+<div class="tabbed-content">
+<div class="tabbed-block">
 <div class="highlight"><pre><span></span><code><span class="k">SELECT</span><span class="w"> </span><span class="n">twobit_length</span><span class="p">(</span><span class="n">dna_twobit</span><span class="p">(</span><span class="s1">&#39;TCAG&#39;</span><span class="p">))</span><span class="w"></span>
 </code></pre></div>
+</div>
 </div>
 </div>
 <p>Given a two-bit-encoded BLOB value, return the length of the <em>decoded</em> sequence (without actually decoding it). This is <em>not</em> equal to <code>4*length(BLOB)</code> due to padding.</p>
@@ -492,7 +507,9 @@
 <p>The <a href="https://www.sqlite.org/uintcseq.html">UINT collating sequence</a> is also bundled. This can be useful to make e.g. <code>ORDER BY chromosome COLLATE UINT</code> put 'chr2' before 'chr10'.</p>
 <h3 id="attach-genomicsqlite-database">Attach GenomicSQLite database</h3>
 <p><strong>↪ GenomicSQLite Attach:</strong> <em>Generate a string</em> containing a series of SQL statements to execute on an existing database connection in order to <a href="https://www.sqlite.org/lang_attach.html">ATTACH</a> a GenomicSQLite database under a given schema name. The main connection may be a plain, uncompressed SQLite3 database, as long as (i) it was opened with the <code>SQLITE_OPEN_URI</code> flag or language equivalent and (ii) the Genomics Extension is loaded in the executing program.</p>
-<div class="tabbed-set" data-tabs="6:6"><input checked="checked" id="__tabbed_6_1" name="__tabbed_6" type="radio" /><label for="__tabbed_6_1">Python</label><div class="tabbed-content">
+<div class="tabbed-set tabbed-alternate" data-tabs="6:6"><input checked="checked" id="__tabbed_6_1" name="__tabbed_6" type="radio" /><input id="__tabbed_6_2" name="__tabbed_6" type="radio" /><input id="__tabbed_6_3" name="__tabbed_6" type="radio" /><input id="__tabbed_6_4" name="__tabbed_6" type="radio" /><input id="__tabbed_6_5" name="__tabbed_6" type="radio" /><input id="__tabbed_6_6" name="__tabbed_6" type="radio" /><div class="tabbed-labels"><label for="__tabbed_6_1">Python</label><label for="__tabbed_6_2">Java</label><label for="__tabbed_6_3">Rust</label><label for="__tabbed_6_4">SQLiteCpp</label><label for="__tabbed_6_5">C++</label><label for="__tabbed_6_6">C</label></div>
+<div class="tabbed-content">
+<div class="tabbed-block">
 <div class="highlight"><pre><span></span><code><span class="n">dbconn</span> <span class="o">=</span> <span class="n">sqlite3</span><span class="o">.</span><span class="n">connect</span><span class="p">(</span><span class="s1">&#39;any.db&#39;</span><span class="p">,</span> <span class="n">uri</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
 <span class="n">attach_sql</span> <span class="o">=</span> <span class="n">genomicsqlite</span><span class="o">.</span><span class="n">attach_sql</span><span class="p">(</span><span class="n">dbconn</span><span class="p">,</span> <span class="s1">&#39;compressed.db&#39;</span><span class="p">,</span> <span class="s1">&#39;db2&#39;</span><span class="p">)</span>
 <span class="c1"># attach_sql() also takes configuration keyword arguments like</span>
@@ -501,7 +518,7 @@
 <span class="c1"># compressed.db now attached as db2</span>
 </code></pre></div>
 </div>
-<input id="__tabbed_6_2" name="__tabbed_6" type="radio" /><label for="__tabbed_6_2">Java</label><div class="tabbed-content">
+<div class="tabbed-block">
 <div class="highlight"><pre><span></span><code><span class="c1">// If needed, no-op to trigger initial load of Genomics Extension:</span><span class="w"></span>
 <span class="n">DriverManager</span><span class="p">.</span><span class="na">getConnection</span><span class="p">(</span><span class="s">&quot;jdbc:genomicsqlite::memory:&quot;</span><span class="p">);</span><span class="w"></span>
 
@@ -512,7 +529,7 @@
 <span class="c1">// compressed.db now attached as db2</span><span class="w"></span>
 </code></pre></div>
 </div>
-<input id="__tabbed_6_3" name="__tabbed_6" type="radio" /><label for="__tabbed_6_3">Rust</label><div class="tabbed-content">
+<div class="tabbed-block">
 <div class="highlight"><pre><span></span><code><span class="kd">let</span><span class="w"> </span><span class="n">genomicsqlite_options</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">json</span>::<span class="n">object</span>::<span class="n">Object</span>::<span class="n">new</span><span class="p">();</span><span class="w"></span>
 <span class="c1">// If needed, trigger initial load of Genomics Extension prior to</span>
 <span class="c1">// opening other connections</span>
@@ -530,7 +547,7 @@
 <span class="c1">// compressed.db is now attached as db2</span>
 </code></pre></div>
 </div>
-<input id="__tabbed_6_4" name="__tabbed_6" type="radio" /><label for="__tabbed_6_4">SQLiteCpp</label><div class="tabbed-content">
+<div class="tabbed-block">
 <div class="highlight"><pre><span></span><code><span class="n">std</span><span class="o">::</span><span class="n">string</span><span class="w"> </span><span class="nf">GenomicSQLiteAttachSQL</span><span class="p">(</span><span class="w"></span>
 <span class="w">  </span><span class="k">const</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">string</span><span class="w"> </span><span class="o">&amp;</span><span class="n">dbfile</span><span class="p">,</span><span class="w"></span>
 <span class="w">  </span><span class="k">const</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">string</span><span class="w"> </span><span class="o">&amp;</span><span class="n">schema_name</span><span class="p">,</span><span class="w"></span>
@@ -543,7 +560,7 @@
 <span class="c1">// compressed.db now attached as db2</span>
 </code></pre></div>
 </div>
-<input id="__tabbed_6_5" name="__tabbed_6" type="radio" /><label for="__tabbed_6_5">C++</label><div class="tabbed-content">
+<div class="tabbed-block">
 <div class="highlight"><pre><span></span><code><span class="n">std</span><span class="o">::</span><span class="n">string</span><span class="w"> </span><span class="nf">GenomicSQLiteAttachSQL</span><span class="p">(</span><span class="w"></span>
 <span class="w">  </span><span class="k">const</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">string</span><span class="w"> </span><span class="o">&amp;</span><span class="n">dbfile</span><span class="p">,</span><span class="w"></span>
 <span class="w">  </span><span class="k">const</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">string</span><span class="w"> </span><span class="o">&amp;</span><span class="n">schema_name</span><span class="p">,</span><span class="w"></span>
@@ -560,7 +577,7 @@
 <span class="c1">// compressed.db now attached as db2</span>
 </code></pre></div>
 </div>
-<input id="__tabbed_6_6" name="__tabbed_6" type="radio" /><label for="__tabbed_6_6">C</label><div class="tabbed-content">
+<div class="tabbed-block">
 <div class="highlight"><pre><span></span><code><span class="kt">char</span><span class="o">*</span><span class="w"> </span><span class="nf">genomicsqlite_attach_sql</span><span class="p">(</span><span class="w"></span>
 <span class="w">  </span><span class="k">const</span><span class="w"> </span><span class="kt">char</span><span class="w"> </span><span class="o">*</span><span class="n">dbfile</span><span class="p">,</span><span class="w"></span>
 <span class="w">  </span><span class="k">const</span><span class="w"> </span><span class="kt">char</span><span class="w"> </span><span class="o">*</span><span class="n">schema_name</span><span class="p">,</span><span class="w"></span>
@@ -583,10 +600,13 @@
 </code></pre></div>
 </div>
 </div>
+</div>
 <p>❗ The file and schema names are textually pasted into a template SQL script. Take care to prevent SQL injection, if they're in any way determined by external input.</p>
 <h3 id="compress-existing-sqlite3-database">Compress existing SQLite3 database</h3>
 <p><strong>↪ GenomicSQLite Vacuum Into:</strong> <em>Generate a string</em> containing a series of SQL statements to execute on an existing database in order to copy it into a new compressed &amp; <a href="https://www.sqlite.org/lang_vacuum.html">defragmented</a> file. The source database may be a plain, uncompressed SQLite3 database, as long as (i) it was opened with the <code>SQLITE_OPEN_URI</code> flag or language equivalent and (ii) the Genomics Extension is loaded in the executing program.</p>
-<div class="tabbed-set" data-tabs="7:6"><input checked="checked" id="__tabbed_7_1" name="__tabbed_7" type="radio" /><label for="__tabbed_7_1">Python</label><div class="tabbed-content">
+<div class="tabbed-set tabbed-alternate" data-tabs="7:6"><input checked="checked" id="__tabbed_7_1" name="__tabbed_7" type="radio" /><input id="__tabbed_7_2" name="__tabbed_7" type="radio" /><input id="__tabbed_7_3" name="__tabbed_7" type="radio" /><input id="__tabbed_7_4" name="__tabbed_7" type="radio" /><input id="__tabbed_7_5" name="__tabbed_7" type="radio" /><input id="__tabbed_7_6" name="__tabbed_7" type="radio" /><div class="tabbed-labels"><label for="__tabbed_7_1">Python</label><label for="__tabbed_7_2">Java</label><label for="__tabbed_7_3">Rust</label><label for="__tabbed_7_4">SQLiteCpp</label><label for="__tabbed_7_5">C++</label><label for="__tabbed_7_6">C</label></div>
+<div class="tabbed-content">
+<div class="tabbed-block">
 <div class="highlight"><pre><span></span><code><span class="n">dbconn</span> <span class="o">=</span> <span class="n">sqlite3</span><span class="o">.</span><span class="n">connect</span><span class="p">(</span><span class="s1">&#39;existing.db&#39;</span><span class="p">,</span> <span class="n">uri</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
 <span class="n">vacuum_sql</span> <span class="o">=</span> <span class="n">genomicsqlite</span><span class="o">.</span><span class="n">vacuum_into_sql</span><span class="p">(</span><span class="n">dbconn</span><span class="p">,</span> <span class="s1">&#39;compressed.db&#39;</span><span class="p">)</span>
 <span class="c1"># vacuum_into_sql() also takes configuration keyword arguments like</span>
@@ -596,7 +616,7 @@
 <span class="n">dbconn2</span> <span class="o">=</span> <span class="n">genomicsqlite</span><span class="o">.</span><span class="n">connect</span><span class="p">(</span><span class="s1">&#39;compressed.db&#39;</span><span class="p">)</span>
 </code></pre></div>
 </div>
-<input id="__tabbed_7_2" name="__tabbed_7" type="radio" /><label for="__tabbed_7_2">Java</label><div class="tabbed-content">
+<div class="tabbed-block">
 <div class="highlight"><pre><span></span><code><span class="c1">// If needed, no-op to trigger initial load of Genomics Extension:</span><span class="w"></span>
 <span class="n">DriverManager</span><span class="p">.</span><span class="na">getConnection</span><span class="p">(</span><span class="s">&quot;jdbc:genomicsqlite::memory:&quot;</span><span class="p">);</span><span class="w"></span>
 
@@ -609,7 +629,7 @@
 <span class="p">);</span><span class="w"></span>
 </code></pre></div>
 </div>
-<input id="__tabbed_7_3" name="__tabbed_7" type="radio" /><label for="__tabbed_7_3">Rust</label><div class="tabbed-content">
+<div class="tabbed-block">
 <div class="highlight"><pre><span></span><code><span class="kd">let</span><span class="w"> </span><span class="n">genomicsqlite_options</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">json</span>::<span class="n">object</span>::<span class="n">Object</span>::<span class="n">new</span><span class="p">();</span><span class="w"></span>
 <span class="c1">// If needed, trigger initial load of Genomics Extension prior to</span>
 <span class="c1">// opening other connections</span>
@@ -631,7 +651,7 @@
 <span class="p">)</span><span class="o">?</span><span class="p">;</span><span class="w"></span>
 </code></pre></div>
 </div>
-<input id="__tabbed_7_4" name="__tabbed_7" type="radio" /><label for="__tabbed_7_4">SQLiteCpp</label><div class="tabbed-content">
+<div class="tabbed-block">
 <div class="highlight"><pre><span></span><code><span class="n">std</span><span class="o">::</span><span class="n">string</span><span class="w"> </span><span class="nf">GenomicSQLiteVacuumIntoSQL</span><span class="p">(</span><span class="w"></span>
 <span class="w">  </span><span class="k">const</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">string</span><span class="w"> </span><span class="o">&amp;</span><span class="n">dest_filename</span><span class="p">,</span><span class="w"></span>
 <span class="w">  </span><span class="k">const</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">string</span><span class="w"> </span><span class="o">&amp;</span><span class="n">config_json</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s">&quot;{}&quot;</span><span class="w"></span>
@@ -643,7 +663,7 @@
 <span class="k">auto</span><span class="w"> </span><span class="n">dbconn2</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">GenomicSQLiteOpen</span><span class="p">(</span><span class="s">&quot;compressed.db&quot;</span><span class="p">);</span><span class="w"></span>
 </code></pre></div>
 </div>
-<input id="__tabbed_7_5" name="__tabbed_7" type="radio" /><label for="__tabbed_7_5">C++</label><div class="tabbed-content">
+<div class="tabbed-block">
 <div class="highlight"><pre><span></span><code><span class="n">std</span><span class="o">::</span><span class="n">string</span><span class="w"> </span><span class="nf">GenomicSQLiteVacuumIntoSQL</span><span class="p">(</span><span class="w"></span>
 <span class="w">  </span><span class="k">const</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">string</span><span class="w"> </span><span class="o">&amp;</span><span class="n">dest_filename</span><span class="p">,</span><span class="w"></span>
 <span class="w">  </span><span class="k">const</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">string</span><span class="w"> </span><span class="o">&amp;</span><span class="n">config_json</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s">&quot;{}&quot;</span><span class="w"></span>
@@ -659,7 +679,7 @@
 <span class="c1">// rc = GenomicSQLiteOpen(&quot;compressed.db&quot;, ...);</span>
 </code></pre></div>
 </div>
-<input id="__tabbed_7_6" name="__tabbed_7" type="radio" /><label for="__tabbed_7_6">C</label><div class="tabbed-content">
+<div class="tabbed-block">
 <div class="highlight"><pre><span></span><code><span class="kt">char</span><span class="o">*</span><span class="w"> </span><span class="nf">genomicsqlite_vacuum_into_sql</span><span class="p">(</span><span class="w"></span>
 <span class="w">  </span><span class="k">const</span><span class="w"> </span><span class="kt">char</span><span class="w"> </span><span class="o">*</span><span class="n">dest_filename</span><span class="p">,</span><span class="w"></span>
 <span class="w">  </span><span class="k">const</span><span class="w"> </span><span class="kt">char</span><span class="w"> </span><span class="o">*</span><span class="n">config_json</span><span class="w"></span>
@@ -681,37 +701,46 @@
 </code></pre></div>
 </div>
 </div>
+</div>
 <h3 id="genomics-extension-version">Genomics Extension version</h3>
-<div class="tabbed-set" data-tabs="8:6"><input checked="checked" id="__tabbed_8_1" name="__tabbed_8" type="radio" /><label for="__tabbed_8_1">SQL</label><div class="tabbed-content">
+<div class="tabbed-set tabbed-alternate" data-tabs="8:6"><input checked="checked" id="__tabbed_8_1" name="__tabbed_8" type="radio" /><input id="__tabbed_8_2" name="__tabbed_8" type="radio" /><input id="__tabbed_8_3" name="__tabbed_8" type="radio" /><input id="__tabbed_8_4" name="__tabbed_8" type="radio" /><input id="__tabbed_8_5" name="__tabbed_8" type="radio" /><input id="__tabbed_8_6" name="__tabbed_8" type="radio" /><div class="tabbed-labels"><label for="__tabbed_8_1">SQL</label><label for="__tabbed_8_2">Python</label><label for="__tabbed_8_3">Java</label><label for="__tabbed_8_4">Rust</label><label for="__tabbed_8_5">C++</label><label for="__tabbed_8_6">C</label></div>
+<div class="tabbed-content">
+<div class="tabbed-block">
 <div class="highlight"><pre><span></span><code><span class="k">SELECT</span><span class="w"> </span><span class="n">genomicsqlite_version</span><span class="p">()</span><span class="w"></span>
 </code></pre></div>
 </div>
-<input id="__tabbed_8_2" name="__tabbed_8" type="radio" /><label for="__tabbed_8_2">Python</label><div class="tabbed-content">
+<div class="tabbed-block">
 <div class="highlight"><pre><span></span><code><span class="n">genomicsqlite</span><span class="o">.</span><span class="n">__version__</span>
 </code></pre></div>
 </div>
-<input id="__tabbed_8_3" name="__tabbed_8" type="radio" /><label for="__tabbed_8_3">Java</label><div class="tabbed-content">
+<div class="tabbed-block">
 <div class="highlight"><pre><span></span><code><span class="n">String</span><span class="w"> </span><span class="n">genomicsqliteVersion</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">GenomicSQLite</span><span class="p">.</span><span class="na">version</span><span class="p">(</span><span class="n">dbconn</span><span class="p">);</span><span class="w"></span>
 </code></pre></div>
 </div>
-<input id="__tabbed_8_4" name="__tabbed_8" type="radio" /><label for="__tabbed_8_4">Rust</label><div class="tabbed-content">
+<div class="tabbed-block">
 <div class="highlight"><pre><span></span><code><span class="kd">let</span><span class="w"> </span><span class="n">v</span>: <span class="nb">String</span> <span class="o">=</span><span class="w"> </span><span class="n">dbconn</span><span class="p">.</span><span class="n">genomicsqlite_version</span><span class="p">();</span><span class="w"></span>
 </code></pre></div>
 </div>
-<input id="__tabbed_8_5" name="__tabbed_8" type="radio" /><label for="__tabbed_8_5">C++</label><div class="tabbed-content">
+<div class="tabbed-block">
 <div class="highlight"><pre><span></span><code><span class="n">std</span><span class="o">::</span><span class="n">string</span><span class="w"> </span><span class="nf">GenomicSQLiteVersion</span><span class="p">();</span><span class="w"></span>
 </code></pre></div>
 </div>
-<input id="__tabbed_8_6" name="__tabbed_8" type="radio" /><label for="__tabbed_8_6">C</label><div class="tabbed-content">
+<div class="tabbed-block">
 <div class="highlight"><pre><span></span><code><span class="kt">char</span><span class="o">*</span><span class="w"> </span><span class="nf">genomicsqlite_version</span><span class="p">();</span><span class="w"></span>
 <span class="cm">/* result to be sqlite3_free() */</span><span class="w"></span>
 </code></pre></div>
 </div>
 </div>
+</div>
+
+
+
 
               
             </article>
             
+  <script>var tabs=__md_get("__tabs");if(Array.isArray(tabs))e:for(var set of document.querySelectorAll(".tabbed-set")){var tab,labels=set.querySelector(".tabbed-labels");for(tab of tabs)for(var label of labels.getElementsByTagName("label"))if(label.innerText.trim()===tab){var input=document.getElementById(label.htmlFor);input.checked=!0;continue e}}</script>
+
           </div>
         </div>
         
@@ -775,10 +804,11 @@
     <div class="md-dialog" data-md-component="dialog">
       <div class="md-dialog__inner md-typeset"></div>
     </div>
-    <script id="__config" type="application/json">{"base": "..", "features": [], "search": "../assets/javascripts/workers/search.b97dbffb.min.js", "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.config.lang": "en", "search.config.pipeline": "trimmer, stopWordFilter", "search.config.separator": "[\\s\\-]+", "search.placeholder": "Search", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version.title": "Select version"}}</script>
+    
+    <script id="__config" type="application/json">{"base": "..", "features": ["content.tabs.link"], "search": "../assets/javascripts/workers/search.ecf98df9.min.js", "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.config.lang": "en", "search.config.pipeline": "trimmer, stopWordFilter", "search.config.separator": "[\\s\\-]+", "search.placeholder": "Search", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version.title": "Select version"}}</script>
     
     
-      <script src="../assets/javascripts/bundle.6c7ad80a.min.js"></script>
+      <script src="../assets/javascripts/bundle.9c69f0bc.min.js"></script>
       
     
   </body>

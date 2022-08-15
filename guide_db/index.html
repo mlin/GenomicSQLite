@@ -9,7 +9,7 @@
       
       
       <link rel="icon" href="../assets/images/favicon.png">
-      <meta name="generator" content="mkdocs-1.3.1, mkdocs-material-8.3.9">
+      <meta name="generator" content="mkdocs-1.3.1, mkdocs-material-8.4.0">
     
     
       
@@ -17,7 +17,7 @@
       
     
     
-      <link rel="stylesheet" href="../assets/stylesheets/main.1d29e8d0.min.css">
+      <link rel="stylesheet" href="../assets/stylesheets/main.69437709.min.css">
       
         
         <link rel="stylesheet" href="../assets/stylesheets/palette.cbb835fc.min.css">
@@ -36,7 +36,7 @@
       
     
     
-    <script>__md_scope=new URL("..",location),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
+    <script>__md_scope=new URL("..",location),__md_hash=e=>[...e].reduce((e,_)=>(e<<5)-e+_.charCodeAt(0),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
     
       
 
@@ -522,17 +522,19 @@
 </ul>
 <p>First complete the <a href="..">installation instructions</a>.</p>
 <h2 id="loading-the-extension">Loading the extension</h2>
-<div class="tabbed-set" data-tabs="1:5"><input checked="checked" id="__tabbed_1_1" name="__tabbed_1" type="radio" /><label for="__tabbed_1_1">Python</label><div class="tabbed-content">
+<div class="tabbed-set tabbed-alternate" data-tabs="1:5"><input checked="checked" id="__tabbed_1_1" name="__tabbed_1" type="radio" /><input id="__tabbed_1_2" name="__tabbed_1" type="radio" /><input id="__tabbed_1_3" name="__tabbed_1" type="radio" /><input id="__tabbed_1_4" name="__tabbed_1" type="radio" /><input id="__tabbed_1_5" name="__tabbed_1" type="radio" /><div class="tabbed-labels"><label for="__tabbed_1_1">Python</label><label for="__tabbed_1_2">Java</label><label for="__tabbed_1_3">Rust</label><label for="__tabbed_1_4">C++</label><label for="__tabbed_1_5">C</label></div>
+<div class="tabbed-content">
+<div class="tabbed-block">
 <div class="highlight"><pre><span></span><code><span class="kn">import</span> <span class="nn">sqlite3</span>
 <span class="kn">import</span> <span class="nn">genomicsqlite</span>
 </code></pre></div>
 </div>
-<input id="__tabbed_1_2" name="__tabbed_1" type="radio" /><label for="__tabbed_1_2">Java</label><div class="tabbed-content">
+<div class="tabbed-block">
 <div class="highlight"><pre><span></span><code><span class="kn">import</span><span class="w"> </span><span class="nn">java.sql.*</span><span class="p">;</span><span class="w"></span>
 <span class="kn">import</span><span class="w"> </span><span class="nn">net.mlin.genomicsqlite.GenomicSQLite</span><span class="p">;</span><span class="w"></span>
 </code></pre></div>
 </div>
-<input id="__tabbed_1_3" name="__tabbed_1" type="radio" /><label for="__tabbed_1_3">Rust</label><div class="tabbed-content">
+<div class="tabbed-block">
 <div class="highlight"><pre><span></span><code><span class="k">use</span><span class="w"> </span><span class="n">genomicsqlite</span>::<span class="n">ConnectionMethods</span><span class="p">;</span><span class="w"></span>
 <span class="k">use</span><span class="w"> </span><span class="n">rusqlite</span>::<span class="p">{</span><span class="n">Connection</span><span class="p">,</span><span class="w"> </span><span class="n">OpenFlags</span><span class="p">,</span><span class="w"> </span><span class="n">params</span><span class="p">,</span><span class="w"> </span><span class="n">NO_PARAMS</span><span class="p">};</span><span class="w"></span>
 </code></pre></div>
@@ -540,7 +542,7 @@
 <code>rusqlite::Connection</code> (and <code>rusqlite::Transaction</code>). See <a href="https://docs.rs/genomicsqlite">rustdoc</a>
 for some extra details.</p>
 </div>
-<input id="__tabbed_1_4" name="__tabbed_1" type="radio" /><label for="__tabbed_1_4">C++</label><div class="tabbed-content">
+<div class="tabbed-block">
 <div class="highlight"><pre><span></span><code><span class="cp">#include</span><span class="w"> </span><span class="cpf">&lt;sqlite3.h&gt;</span><span class="cp"></span>
 <span class="cp">#include</span><span class="w"> </span><span class="cpf">&quot;SQLiteCpp/SQLiteCpp.h&quot;</span><span class="c1"> // optional</span><span class="cp"></span>
 <span class="cp">#include</span><span class="w"> </span><span class="cpf">&quot;genomicsqlite.h&quot;</span><span class="cp"></span>
@@ -565,7 +567,7 @@ function of this flag is explained in the libstdc++ docs on
 <code>libgenomicsqlite.so</code> from source, then the flag will not be needed.</p>
 <p>General note: GenomicSQLite C++ routines are liable to throw exceptions.</p>
 </div>
-<input id="__tabbed_1_5" name="__tabbed_1" type="radio" /><label for="__tabbed_1_5">C</label><div class="tabbed-content">
+<div class="tabbed-block">
 <div class="highlight"><pre><span></span><code><span class="cp">#include</span><span class="w"> </span><span class="cpf">&lt;sqlite3.h&gt;</span><span class="cp"></span>
 <span class="cp">#include</span><span class="w"> </span><span class="cpf">&quot;genomicsqlite.h&quot;</span><span class="cp"></span>
 
@@ -586,9 +588,12 @@ null byte followed immediately by a nonempty, null-terminated error message. <em
 the caller must free the string with <code>sqlite3_free()</code>. NULL is returned only if out of memory.</p>
 </div>
 </div>
+</div>
 <h2 id="opening-a-compressed-database">Opening a compressed database</h2>
 <p><strong>↪ GenomicSQLite Open:</strong> create or open a compressed database, returning a connection object with various settings pre-tuned for large datasets.</p>
-<div class="tabbed-set" data-tabs="2:6"><input checked="checked" id="__tabbed_2_1" name="__tabbed_2" type="radio" /><label for="__tabbed_2_1">Python</label><div class="tabbed-content">
+<div class="tabbed-set tabbed-alternate" data-tabs="2:6"><input checked="checked" id="__tabbed_2_1" name="__tabbed_2" type="radio" /><input id="__tabbed_2_2" name="__tabbed_2" type="radio" /><input id="__tabbed_2_3" name="__tabbed_2" type="radio" /><input id="__tabbed_2_4" name="__tabbed_2" type="radio" /><input id="__tabbed_2_5" name="__tabbed_2" type="radio" /><input id="__tabbed_2_6" name="__tabbed_2" type="radio" /><div class="tabbed-labels"><label for="__tabbed_2_1">Python</label><label for="__tabbed_2_2">Java</label><label for="__tabbed_2_3">Rust</label><label for="__tabbed_2_4">SQLiteCpp</label><label for="__tabbed_2_5">C++</label><label for="__tabbed_2_6">C</label></div>
+<div class="tabbed-content">
+<div class="tabbed-block">
 <div class="highlight"><pre><span></span><code><span class="n">dbconn</span> <span class="o">=</span> <span class="n">genomicsqlite</span><span class="o">.</span><span class="n">connect</span><span class="p">(</span>
   <span class="n">db_filename</span><span class="p">,</span>
   <span class="n">read_only</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
@@ -597,7 +602,7 @@ the caller must free the string with <code>sqlite3_free()</code>. NULL is return
 <span class="k">assert</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">dbconn</span><span class="p">,</span> <span class="n">sqlite3</span><span class="o">.</span><span class="n">Connection</span><span class="p">)</span>
 </code></pre></div>
 </div>
-<input id="__tabbed_2_2" name="__tabbed_2" type="radio" /><label for="__tabbed_2_2">Java</label><div class="tabbed-content">
+<div class="tabbed-block">
 <div class="highlight"><pre><span></span><code><span class="n">java</span><span class="p">.</span><span class="na">util</span><span class="p">.</span><span class="na">Properties</span><span class="w"> </span><span class="n">config</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="k">new</span><span class="w"> </span><span class="n">java</span><span class="p">.</span><span class="na">util</span><span class="p">.</span><span class="na">Properties</span><span class="p">();</span><span class="w"></span>
 <span class="n">config</span><span class="p">.</span><span class="na">setProperty</span><span class="p">(</span><span class="s">&quot;genomicsqlite.config_json&quot;</span><span class="p">,</span><span class="w"> </span><span class="s">&quot;{}&quot;</span><span class="p">);</span><span class="w"></span>
 <span class="c1">// Properties may originate from org.sqlite.SQLiteConfig.toProperties()</span><span class="w"></span>
@@ -609,7 +614,7 @@ the caller must free the string with <code>sqlite3_free()</code>. NULL is return
 <span class="p">);</span><span class="w"></span>
 </code></pre></div>
 </div>
-<input id="__tabbed_2_3" name="__tabbed_2" type="radio" /><label for="__tabbed_2_3">Rust</label><div class="tabbed-content">
+<div class="tabbed-block">
 <div class="highlight"><pre><span></span><code><span class="kd">let</span><span class="w"> </span><span class="n">dbconn</span>: <span class="nc">Connection</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">genomicsqlite</span>::<span class="n">open</span><span class="p">(</span><span class="w"></span>
 <span class="w">  </span><span class="n">db_filename</span><span class="p">,</span><span class="w"></span>
 <span class="w">  </span><span class="n">OpenFlags</span>::<span class="n">SQLITE_OPEN_CREATE</span><span class="w"> </span><span class="o">|</span><span class="w"> </span><span class="n">OpenFlags</span>::<span class="n">SQLITE_OPEN_READ_WRITE</span><span class="p">,</span><span class="w"></span>
@@ -617,7 +622,7 @@ the caller must free the string with <code>sqlite3_free()</code>. NULL is return
 <span class="p">)</span><span class="o">?</span><span class="p">;</span><span class="w"></span>
 </code></pre></div>
 </div>
-<input id="__tabbed_2_4" name="__tabbed_2" type="radio" /><label for="__tabbed_2_4">SQLiteCpp</label><div class="tabbed-content">
+<div class="tabbed-block">
 <div class="highlight"><pre><span></span><code><span class="n">std</span><span class="o">::</span><span class="n">unique_ptr</span><span class="o">&lt;</span><span class="n">SQLite</span><span class="o">::</span><span class="n">Database</span><span class="o">&gt;</span><span class="w"> </span><span class="n">GenomicSQLiteOpen</span><span class="p">(</span><span class="w"></span>
 <span class="w">  </span><span class="k">const</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">string</span><span class="w"> </span><span class="o">&amp;</span><span class="n">db_filename</span><span class="p">,</span><span class="w"></span>
 <span class="w">  </span><span class="kt">int</span><span class="w"> </span><span class="n">flags</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">0</span><span class="p">,</span><span class="w"></span>
@@ -625,7 +630,7 @@ the caller must free the string with <code>sqlite3_free()</code>. NULL is return
 <span class="p">);</span><span class="w"></span>
 </code></pre></div>
 </div>
-<input id="__tabbed_2_5" name="__tabbed_2" type="radio" /><label for="__tabbed_2_5">C++</label><div class="tabbed-content">
+<div class="tabbed-block">
 <div class="highlight"><pre><span></span><code><span class="kt">int</span><span class="w"> </span><span class="nf">GenomicSQLiteOpen</span><span class="p">(</span><span class="w"></span>
 <span class="w">  </span><span class="k">const</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">string</span><span class="w"> </span><span class="o">&amp;</span><span class="n">db_filename</span><span class="p">,</span><span class="w"></span>
 <span class="w">  </span><span class="n">sqlite3</span><span class="w"> </span><span class="o">**</span><span class="n">ppDb</span><span class="p">,</span><span class="w"></span>
@@ -635,7 +640,7 @@ the caller must free the string with <code>sqlite3_free()</code>. NULL is return
 <span class="p">)</span><span class="w"> </span><span class="k">noexcept</span><span class="p">;</span><span class="w"> </span><span class="c1">// returns sqlite3_open_v2() code</span>
 </code></pre></div>
 </div>
-<input id="__tabbed_2_6" name="__tabbed_2" type="radio" /><label for="__tabbed_2_6">C</label><div class="tabbed-content">
+<div class="tabbed-block">
 <div class="highlight"><pre><span></span><code><span class="kt">int</span><span class="w"> </span><span class="nf">genomicsqlite_open</span><span class="p">(</span><span class="w"></span>
 <span class="w">  </span><span class="k">const</span><span class="w"> </span><span class="kt">char</span><span class="w"> </span><span class="o">*</span><span class="n">db_filename</span><span class="p">,</span><span class="w"></span>
 <span class="w">  </span><span class="n">sqlite3</span><span class="w"> </span><span class="o">**</span><span class="n">ppDb</span><span class="p">,</span><span class="w"></span>
@@ -645,6 +650,7 @@ the caller must free the string with <code>sqlite3_free()</code>. NULL is return
 <span class="w">  </span><span class="k">const</span><span class="w"> </span><span class="kt">char</span><span class="w"> </span><span class="o">*</span><span class="n">config_json</span><span class="w"> </span><span class="cm">/* JSON text (may be null) */</span><span class="w"></span>
 <span class="p">);</span><span class="w"> </span><span class="cm">/* returns sqlite3_open_v2() code */</span><span class="w"></span>
 </code></pre></div>
+</div>
 </div>
 </div>
 <p>Afterwards, all the usual SQLite3 API operations are available through the returned connection object, which should finally be closed in the usual way. The <a href="https://github.com/mlin/sqlite_zstd_vfs">storage compression layer</a> operates transparently underneath.</p>
@@ -717,9 +723,14 @@ The default configuration (inner_page_KiB, outer_page_KiB) = (16,32) balances ra
 <p>The aforementioned zstd_level, threads, and page_size options all affect the compression time-space tradeoff, while enlarging the page cache can reduce decompression overhead (workload-dependent).</p>
 <p>With SQLite's row-major table <a href="https://www.sqlite.org/fileformat.html">storage format</a>, the first read of a lone cell usually entails decompressing at least its whole row, and there aren't any special column encodings for deltas, run lengths, etc. The "last mile" of optimization may therefore involve certain schema compromises, such as storing infrequently-accessed columns in a separate table to join when needed, or using application-layer encodings with <a href="https://www.sqlite.org/c3ref/blob_open.html">BLOB I/O</a>.</p>
 
+
+
+
               
             </article>
             
+  <script>var tabs=__md_get("__tabs");if(Array.isArray(tabs))e:for(var set of document.querySelectorAll(".tabbed-set")){var tab,labels=set.querySelector(".tabbed-labels");for(tab of tabs)for(var label of labels.getElementsByTagName("label"))if(label.innerText.trim()===tab){var input=document.getElementById(label.htmlFor);input.checked=!0;continue e}}</script>
+
           </div>
         </div>
         
@@ -783,10 +794,11 @@ The default configuration (inner_page_KiB, outer_page_KiB) = (16,32) balances ra
     <div class="md-dialog" data-md-component="dialog">
       <div class="md-dialog__inner md-typeset"></div>
     </div>
-    <script id="__config" type="application/json">{"base": "..", "features": [], "search": "../assets/javascripts/workers/search.b97dbffb.min.js", "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.config.lang": "en", "search.config.pipeline": "trimmer, stopWordFilter", "search.config.separator": "[\\s\\-]+", "search.placeholder": "Search", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version.title": "Select version"}}</script>
+    
+    <script id="__config" type="application/json">{"base": "..", "features": ["content.tabs.link"], "search": "../assets/javascripts/workers/search.ecf98df9.min.js", "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.config.lang": "en", "search.config.pipeline": "trimmer, stopWordFilter", "search.config.separator": "[\\s\\-]+", "search.placeholder": "Search", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version.title": "Select version"}}</script>
     
     
-      <script src="../assets/javascripts/bundle.6c7ad80a.min.js"></script>
+      <script src="../assets/javascripts/bundle.9c69f0bc.min.js"></script>
       
     
   </body>

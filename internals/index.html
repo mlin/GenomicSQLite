@@ -9,7 +9,7 @@
       
       
       <link rel="icon" href="../assets/images/favicon.png">
-      <meta name="generator" content="mkdocs-1.3.1, mkdocs-material-8.3.9">
+      <meta name="generator" content="mkdocs-1.3.1, mkdocs-material-8.4.0">
     
     
       
@@ -17,7 +17,7 @@
       
     
     
-      <link rel="stylesheet" href="../assets/stylesheets/main.1d29e8d0.min.css">
+      <link rel="stylesheet" href="../assets/stylesheets/main.69437709.min.css">
       
         
         <link rel="stylesheet" href="../assets/stylesheets/palette.cbb835fc.min.css">
@@ -36,7 +36,7 @@
       
     
     
-    <script>__md_scope=new URL("..",location),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
+    <script>__md_scope=new URL("..",location),__md_hash=e=>[...e].reduce((e,_)=>(e<<5)-e+_.charCodeAt(0),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
     
       
 
@@ -454,7 +454,9 @@
 <p>The <code>genomic_range_rowids()</code> SQL function implementation just executes a query like the above and streams results back to the caller, taking care to minimize overhead by reusing prepared SQLite statements.</p>
 <p>The extension also exposes the routine to generate the SQL subquery, which you can textually paste into your SQL in place of the <code>genomic_range_rowids()</code> invocation. This direct method is more efficient, given proper use of prepared statements, because everything compiles into one pure <a href="https://www.sqlite.org/opcode.html">SQLite bytecode program</a>, instead of context-switching into the extension for each result.</p>
 <p><strong>↪ Genomic Range Rowids SQL</strong>: <em>Generate a string</em> containing a parenthesized SELECT query on a GRI-indexed table, which <em>when executed</em> yields a rowid result set identifying the overlapping features. This is typically pasted as a subquery within a larger query that retrieves the result rows for further filtering/analysis.</p>
-<div class="tabbed-set" data-tabs="1:4"><input checked="checked" id="__tabbed_1_1" name="__tabbed_1" type="radio" /><label for="__tabbed_1_1">Python</label><div class="tabbed-content">
+<div class="tabbed-set tabbed-alternate" data-tabs="1:4"><input checked="checked" id="__tabbed_1_1" name="__tabbed_1" type="radio" /><input id="__tabbed_1_2" name="__tabbed_1" type="radio" /><input id="__tabbed_1_3" name="__tabbed_1" type="radio" /><input id="__tabbed_1_4" name="__tabbed_1" type="radio" /><div class="tabbed-labels"><label for="__tabbed_1_1">Python</label><label for="__tabbed_1_2">SQLiteCpp</label><label for="__tabbed_1_3">C++</label><label for="__tabbed_1_4">C</label></div>
+<div class="tabbed-content">
+<div class="tabbed-block">
 <div class="highlight"><pre><span></span><code><span class="n">query</span> <span class="o">=</span> <span class="p">(</span>
   <span class="s1">&#39;SELECT * FROM tableName WHERE tableName._rowid_ IN &#39;</span> <span class="o">+</span>
   <span class="n">genomicsqlite</span><span class="o">.</span><span class="n">genomic_range_rowids_sql</span><span class="p">(</span><span class="n">dbconn</span><span class="p">,</span> <span class="s1">&#39;tableName&#39;</span><span class="p">,</span>
@@ -465,7 +467,7 @@
 <span class="n">cursor</span> <span class="o">=</span> <span class="n">dbconn</span><span class="o">.</span><span class="n">execute</span><span class="p">(</span><span class="n">query</span><span class="p">,</span> <span class="p">(</span><span class="s1">&#39;chr12&#39;</span><span class="p">,</span><span class="mi">111803912</span><span class="p">,</span><span class="mi">111804012</span><span class="p">))</span>
 </code></pre></div>
 </div>
-<input id="__tabbed_1_2" name="__tabbed_1" type="radio" /><label for="__tabbed_1_2">SQLiteCpp</label><div class="tabbed-content">
+<div class="tabbed-block">
 <div class="highlight"><pre><span></span><code><span class="n">std</span><span class="o">::</span><span class="n">string</span><span class="w"> </span><span class="nf">GenomicRangeRowidsSQL</span><span class="p">(</span><span class="w"></span>
 <span class="w">  </span><span class="k">const</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">string</span><span class="w"> </span><span class="o">&amp;</span><span class="n">indexed_table</span><span class="p">,</span><span class="w"></span>
 <span class="w">  </span><span class="n">sqlite3</span><span class="w"> </span><span class="o">*</span><span class="n">dbconn</span><span class="p">,</span><span class="w"></span>
@@ -487,7 +489,7 @@
 <span class="p">}</span><span class="w"></span>
 </code></pre></div>
 </div>
-<input id="__tabbed_1_3" name="__tabbed_1" type="radio" /><label for="__tabbed_1_3">C++</label><div class="tabbed-content">
+<div class="tabbed-block">
 <div class="highlight"><pre><span></span><code><span class="n">std</span><span class="o">::</span><span class="n">string</span><span class="w"> </span><span class="nf">GenomicRangeRowidsSQL</span><span class="p">(</span><span class="w"></span>
 <span class="w">  </span><span class="k">const</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">string</span><span class="w"> </span><span class="o">&amp;</span><span class="n">indexed_table</span><span class="p">,</span><span class="w"></span>
 <span class="w">  </span><span class="n">sqlite3</span><span class="w"> </span><span class="o">*</span><span class="n">dbconn</span><span class="p">,</span><span class="w"></span>
@@ -507,7 +509,7 @@
 <span class="c1">// Step through results as usual with sqlite3_step()</span>
 </code></pre></div>
 </div>
-<input id="__tabbed_1_4" name="__tabbed_1" type="radio" /><label for="__tabbed_1_4">C</label><div class="tabbed-content">
+<div class="tabbed-block">
 <div class="highlight"><pre><span></span><code><span class="kt">char</span><span class="w"> </span><span class="o">*</span><span class="nf">genomic_range_rowids_sql</span><span class="p">(</span><span class="w"></span>
 <span class="w">  </span><span class="k">const</span><span class="w"> </span><span class="kt">char</span><span class="w"> </span><span class="o">*</span><span class="n">indexed_table</span><span class="p">,</span><span class="w"></span>
 <span class="w">  </span><span class="n">sqlite3</span><span class="w"> </span><span class="o">*</span><span class="n">dbconn</span><span class="p">,</span><span class="w"></span>
@@ -533,6 +535,7 @@
 </code></pre></div>
 </div>
 </div>
+</div>
 <p>Following the name of the indexed table <em>to be queried</em>, the routine takes three arguments supplying the desired range <em>to query it for</em> (queryChrom, queryBegin, queryEnd). These arguments default to <code>?1</code>, <code>?2</code>, and <code>?3</code>, sourcing the first three <a href="https://www.sqlite.org/c3ref/bind_blob.html">bound parameters</a> of the top-level SQL query. They can be overridden to:</p>
 <ol>
 <li>other numbered or named parameter placeholders</li>
@@ -545,9 +548,14 @@
 <p><strong>❗ If the generated SQL query will be reused on a table that may have changed in the meantime, then ceiling &amp; floor should be overidden based on the maximum and minimum possible feature length (ceiling=15 and floor=0 for full generality). </strong></p>
 <p>If your language bindings don't include a wrapper for this routine, you can use the database connection to get the text result of <code>SELECT genomic_range_rowids_sql(tableName[, qrid, qbeg, qend[, ceiling, floor]])</code>.</p>
 
+
+
+
               
             </article>
             
+  <script>var tabs=__md_get("__tabs");if(Array.isArray(tabs))e:for(var set of document.querySelectorAll(".tabbed-set")){var tab,labels=set.querySelector(".tabbed-labels");for(tab of tabs)for(var label of labels.getElementsByTagName("label"))if(label.innerText.trim()===tab){var input=document.getElementById(label.htmlFor);input.checked=!0;continue e}}</script>
+
           </div>
         </div>
         
@@ -596,10 +604,11 @@
     <div class="md-dialog" data-md-component="dialog">
       <div class="md-dialog__inner md-typeset"></div>
     </div>
-    <script id="__config" type="application/json">{"base": "..", "features": [], "search": "../assets/javascripts/workers/search.b97dbffb.min.js", "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.config.lang": "en", "search.config.pipeline": "trimmer, stopWordFilter", "search.config.separator": "[\\s\\-]+", "search.placeholder": "Search", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version.title": "Select version"}}</script>
+    
+    <script id="__config" type="application/json">{"base": "..", "features": ["content.tabs.link"], "search": "../assets/javascripts/workers/search.ecf98df9.min.js", "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.config.lang": "en", "search.config.pipeline": "trimmer, stopWordFilter", "search.config.separator": "[\\s\\-]+", "search.placeholder": "Search", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version.title": "Select version"}}</script>
     
     
-      <script src="../assets/javascripts/bundle.6c7ad80a.min.js"></script>
+      <script src="../assets/javascripts/bundle.9c69f0bc.min.js"></script>
       
     
   </body>

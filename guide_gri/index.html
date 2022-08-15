@@ -9,7 +9,7 @@
       
       
       <link rel="icon" href="../assets/images/favicon.png">
-      <meta name="generator" content="mkdocs-1.3.1, mkdocs-material-8.3.9">
+      <meta name="generator" content="mkdocs-1.3.1, mkdocs-material-8.4.0">
     
     
       
@@ -17,7 +17,7 @@
       
     
     
-      <link rel="stylesheet" href="../assets/stylesheets/main.1d29e8d0.min.css">
+      <link rel="stylesheet" href="../assets/stylesheets/main.69437709.min.css">
       
         
         <link rel="stylesheet" href="../assets/stylesheets/palette.cbb835fc.min.css">
@@ -36,7 +36,7 @@
       
     
     
-    <script>__md_scope=new URL("..",location),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
+    <script>__md_scope=new URL("..",location),__md_hash=e=>[...e].reduce((e,_)=>(e<<5)-e+_.charCodeAt(0),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
     
       
 
@@ -526,7 +526,9 @@
 </ul>
 <h3 id="create-gri">Create GRI</h3>
 <p><strong>↪ Create Genomic Range Index SQL:</strong> <em>Generate a string</em> containing a series of SQL statements which <em>when executed</em> create a GRI on an existing table. Executing them is left to the caller, perhaps after logging the contents. The statements should be executed within a transaction to succeed or fail atomically.</p>
-<div class="tabbed-set" data-tabs="1:6"><input checked="checked" id="__tabbed_1_1" name="__tabbed_1" type="radio" /><label for="__tabbed_1_1">Python</label><div class="tabbed-content">
+<div class="tabbed-set tabbed-alternate" data-tabs="1:6"><input checked="checked" id="__tabbed_1_1" name="__tabbed_1" type="radio" /><input id="__tabbed_1_2" name="__tabbed_1" type="radio" /><input id="__tabbed_1_3" name="__tabbed_1" type="radio" /><input id="__tabbed_1_4" name="__tabbed_1" type="radio" /><input id="__tabbed_1_5" name="__tabbed_1" type="radio" /><input id="__tabbed_1_6" name="__tabbed_1" type="radio" /><div class="tabbed-labels"><label for="__tabbed_1_1">Python</label><label for="__tabbed_1_2">Java</label><label for="__tabbed_1_3">Rust</label><label for="__tabbed_1_4">SQLiteCpp</label><label for="__tabbed_1_5">C++</label><label for="__tabbed_1_6">C</label></div>
+<div class="tabbed-content">
+<div class="tabbed-block">
 <div class="highlight"><pre><span></span><code><span class="n">create_gri_sql</span> <span class="o">=</span> <span class="n">genomicsqlite</span><span class="o">.</span><span class="n">create_genomic_range_index_sql</span><span class="p">(</span>
   <span class="n">dbconn</span><span class="p">,</span>
   <span class="s1">&#39;tableName&#39;</span><span class="p">,</span>
@@ -537,7 +539,7 @@
 <span class="n">dbconn</span><span class="o">.</span><span class="n">executescript</span><span class="p">(</span><span class="n">create_gri_sql</span><span class="p">)</span>
 </code></pre></div>
 </div>
-<input id="__tabbed_1_2" name="__tabbed_1" type="radio" /><label for="__tabbed_1_2">Java</label><div class="tabbed-content">
+<div class="tabbed-block">
 <div class="highlight"><pre><span></span><code><span class="n">String</span><span class="w"> </span><span class="n">griSql</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">GenomicSQLite</span><span class="p">.</span><span class="na">createGenomicRangeIndexSQL</span><span class="p">(</span><span class="w"></span>
 <span class="w">  </span><span class="n">dbconn</span><span class="p">,</span><span class="w"></span>
 <span class="w">  </span><span class="s">&quot;tableName&quot;</span><span class="p">,</span><span class="w"></span>
@@ -548,14 +550,14 @@
 <span class="n">dbconn</span><span class="p">.</span><span class="na">createStatement</span><span class="p">().</span><span class="na">executeUpdate</span><span class="p">(</span><span class="n">griSql</span><span class="p">);</span><span class="w"></span>
 </code></pre></div>
 </div>
-<input id="__tabbed_1_3" name="__tabbed_1" type="radio" /><label for="__tabbed_1_3">Rust</label><div class="tabbed-content">
+<div class="tabbed-block">
 <div class="highlight"><pre><span></span><code><span class="kd">let</span><span class="w"> </span><span class="n">gri_sql</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">dbconn</span><span class="w"></span>
 <span class="w">  </span><span class="p">.</span><span class="n">create_genomic_range_index_sql</span><span class="p">(</span><span class="s">&quot;tableName&quot;</span><span class="p">,</span><span class="w"> </span><span class="s">&quot;chromosome&quot;</span><span class="p">,</span><span class="w"></span>
 <span class="w">                                  </span><span class="s">&quot;beginPosition&quot;</span><span class="p">,</span><span class="w"> </span><span class="s">&quot;endPosition&quot;</span><span class="p">)</span><span class="o">?</span><span class="p">;</span><span class="w"></span>
 <span class="n">dbconn</span><span class="p">.</span><span class="n">execute_batch</span><span class="p">(</span><span class="o">&amp;</span><span class="n">gri_sql</span><span class="p">)</span><span class="o">?</span><span class="p">;</span><span class="w"></span>
 </code></pre></div>
 </div>
-<input id="__tabbed_1_4" name="__tabbed_1" type="radio" /><label for="__tabbed_1_4">SQLiteCpp</label><div class="tabbed-content">
+<div class="tabbed-block">
 <div class="highlight"><pre><span></span><code><span class="n">std</span><span class="o">::</span><span class="n">string</span><span class="w"> </span><span class="nf">CreateGenomicRangeIndexSQL</span><span class="p">(</span><span class="w"></span>
 <span class="w">  </span><span class="k">const</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">string</span><span class="w"> </span><span class="o">&amp;</span><span class="n">table</span><span class="p">,</span><span class="w"></span>
 <span class="w">  </span><span class="k">const</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">string</span><span class="w"> </span><span class="o">&amp;</span><span class="n">rid</span><span class="p">,</span><span class="w"></span>
@@ -571,7 +573,7 @@
 <span class="n">dbconn</span><span class="o">-&gt;</span><span class="n">exec</span><span class="p">(</span><span class="n">create_gri_sql</span><span class="p">);</span><span class="w"></span>
 </code></pre></div>
 </div>
-<input id="__tabbed_1_5" name="__tabbed_1" type="radio" /><label for="__tabbed_1_5">C++</label><div class="tabbed-content">
+<div class="tabbed-block">
 <div class="highlight"><pre><span></span><code><span class="n">std</span><span class="o">::</span><span class="n">string</span><span class="w"> </span><span class="nf">CreateGenomicRangeIndexSQL</span><span class="p">(</span><span class="w"></span>
 <span class="w">  </span><span class="k">const</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">string</span><span class="w"> </span><span class="o">&amp;</span><span class="n">table</span><span class="p">,</span><span class="w"></span>
 <span class="w">  </span><span class="k">const</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">string</span><span class="w"> </span><span class="o">&amp;</span><span class="n">rid</span><span class="p">,</span><span class="w"></span>
@@ -589,7 +591,7 @@
 <span class="c1">// check rc, free errmsg</span>
 </code></pre></div>
 </div>
-<input id="__tabbed_1_6" name="__tabbed_1" type="radio" /><label for="__tabbed_1_6">C</label><div class="tabbed-content">
+<div class="tabbed-block">
 <div class="highlight"><pre><span></span><code><span class="kt">char</span><span class="o">*</span><span class="w"> </span><span class="nf">create_genomic_range_index_sql</span><span class="p">(</span><span class="w"></span>
 <span class="w">  </span><span class="k">const</span><span class="w"> </span><span class="kt">char</span><span class="o">*</span><span class="w"> </span><span class="n">table</span><span class="p">,</span><span class="w"></span>
 <span class="w">  </span><span class="k">const</span><span class="w"> </span><span class="kt">char</span><span class="o">*</span><span class="w"> </span><span class="n">rid</span><span class="p">,</span><span class="w"></span>
@@ -617,6 +619,7 @@
 <span class="p">}</span><span class="w"></span>
 <span class="n">sqlite3_free</span><span class="p">(</span><span class="n">create_gri_sql</span><span class="p">);</span><span class="w"></span>
 </code></pre></div>
+</div>
 </div>
 </div>
 <p>The three arguments following the table name tell the indexing procedure how to read the feature coordinates from each table row.</p>
@@ -693,27 +696,29 @@
 <li><code>gri_refseq_meta_json TEXT DEFAULT '{}'</code> JSON object with arbitrary metadata</li>
 </ol>
 <p><strong>↪ Put Reference Assembly SQL:</strong> <em>Generate a string</em> containing a series of SQL statements which <em>when executed</em> creates <code>_gri_refseq</code> and populates it with information about a reference assembly whose details are bundled into the extension.</p>
-<div class="tabbed-set" data-tabs="2:6"><input checked="checked" id="__tabbed_2_1" name="__tabbed_2" type="radio" /><label for="__tabbed_2_1">Python</label><div class="tabbed-content">
+<div class="tabbed-set tabbed-alternate" data-tabs="2:6"><input checked="checked" id="__tabbed_2_1" name="__tabbed_2" type="radio" /><input id="__tabbed_2_2" name="__tabbed_2" type="radio" /><input id="__tabbed_2_3" name="__tabbed_2" type="radio" /><input id="__tabbed_2_4" name="__tabbed_2" type="radio" /><input id="__tabbed_2_5" name="__tabbed_2" type="radio" /><input id="__tabbed_2_6" name="__tabbed_2" type="radio" /><div class="tabbed-labels"><label for="__tabbed_2_1">Python</label><label for="__tabbed_2_2">Java</label><label for="__tabbed_2_3">Rust</label><label for="__tabbed_2_4">SQLiteCpp</label><label for="__tabbed_2_5">C++</label><label for="__tabbed_2_6">C</label></div>
+<div class="tabbed-content">
+<div class="tabbed-block">
 <div class="highlight"><pre><span></span><code><span class="n">refseq_sql</span> <span class="o">=</span> <span class="n">genomicsqlite</span><span class="o">.</span><span class="n">put_reference_assembly_sql</span><span class="p">(</span>
   <span class="n">dbconn</span><span class="p">,</span> <span class="s1">&#39;GRCh38_no_alt_analysis_set&#39;</span>
 <span class="p">)</span>
 <span class="n">dbconn</span><span class="o">.</span><span class="n">executescript</span><span class="p">(</span><span class="n">refseq_sql</span><span class="p">)</span>
 </code></pre></div>
 </div>
-<input id="__tabbed_2_2" name="__tabbed_2" type="radio" /><label for="__tabbed_2_2">Java</label><div class="tabbed-content">
+<div class="tabbed-block">
 <div class="highlight"><pre><span></span><code><span class="n">String</span><span class="w"> </span><span class="n">refSql</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">GenomicSQLite</span><span class="p">.</span><span class="na">putReferenceAssemblySQL</span><span class="p">(</span><span class="w"></span>
 <span class="w">  </span><span class="n">dbconn</span><span class="p">,</span><span class="w"> </span><span class="s">&quot;GRCh38_no_alt_analysis_set&quot;</span><span class="w"></span>
 <span class="p">);</span><span class="w"></span>
 <span class="n">dbconn</span><span class="p">.</span><span class="na">createStatement</span><span class="p">().</span><span class="na">executeUpdate</span><span class="p">(</span><span class="n">refSql</span><span class="p">);</span><span class="w"></span>
 </code></pre></div>
 </div>
-<input id="__tabbed_2_3" name="__tabbed_2" type="radio" /><label for="__tabbed_2_3">Rust</label><div class="tabbed-content">
+<div class="tabbed-block">
 <div class="highlight"><pre><span></span><code><span class="kd">let</span><span class="w"> </span><span class="n">ref_sql</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">dbconn</span><span class="w"></span>
 <span class="w">  </span><span class="p">.</span><span class="n">put_reference_assembly_sql</span><span class="p">(</span><span class="s">&quot;GRCh38_no_alt_analysis_set&quot;</span><span class="p">)</span><span class="o">?</span><span class="p">;</span><span class="w"></span>
 <span class="n">dbconn</span><span class="p">.</span><span class="n">execute_batch</span><span class="p">(</span><span class="o">&amp;</span><span class="n">ref_sql</span><span class="p">)</span><span class="o">?</span><span class="p">;</span><span class="w"></span>
 </code></pre></div>
 </div>
-<input id="__tabbed_2_4" name="__tabbed_2" type="radio" /><label for="__tabbed_2_4">SQLiteCpp</label><div class="tabbed-content">
+<div class="tabbed-block">
 <div class="highlight"><pre><span></span><code><span class="n">std</span><span class="o">::</span><span class="n">string</span><span class="w"> </span><span class="nf">PutGenomicReferenceAssemblySQL</span><span class="p">(</span><span class="w"></span>
 <span class="w">  </span><span class="k">const</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">string</span><span class="w"> </span><span class="o">&amp;</span><span class="n">assembly</span><span class="p">,</span><span class="w"></span>
 <span class="w">  </span><span class="k">const</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">string</span><span class="w"> </span><span class="o">&amp;</span><span class="n">attached_schema</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s">&quot;&quot;</span><span class="w"></span>
@@ -723,7 +728,7 @@
 <span class="n">dbconn</span><span class="o">-&gt;</span><span class="n">exec</span><span class="p">(</span><span class="n">PutGenomicReferenceAssemblySQL</span><span class="p">(</span><span class="s">&quot;GRCh38_no_alt_analysis_set&quot;</span><span class="p">));</span><span class="w"></span>
 </code></pre></div>
 </div>
-<input id="__tabbed_2_5" name="__tabbed_2" type="radio" /><label for="__tabbed_2_5">C++</label><div class="tabbed-content">
+<div class="tabbed-block">
 <div class="highlight"><pre><span></span><code><span class="n">std</span><span class="o">::</span><span class="n">string</span><span class="w"> </span><span class="nf">PutGenomicReferenceAssemblySQL</span><span class="p">(</span><span class="w"></span>
 <span class="w">  </span><span class="k">const</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">string</span><span class="w"> </span><span class="o">&amp;</span><span class="n">assembly</span><span class="p">,</span><span class="w"></span>
 <span class="w">  </span><span class="k">const</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">string</span><span class="w"> </span><span class="o">&amp;</span><span class="n">attached_schema</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s">&quot;&quot;</span><span class="w"></span>
@@ -738,7 +743,7 @@
 <span class="c1">// check rc, free errmsg</span>
 </code></pre></div>
 </div>
-<input id="__tabbed_2_6" name="__tabbed_2" type="radio" /><label for="__tabbed_2_6">C</label><div class="tabbed-content">
+<div class="tabbed-block">
 <div class="highlight"><pre><span></span><code><span class="kt">char</span><span class="o">*</span><span class="w"> </span><span class="nf">put_genomic_reference_assembly_sql</span><span class="p">(</span><span class="w"></span>
 <span class="w">  </span><span class="k">const</span><span class="w"> </span><span class="kt">char</span><span class="w"> </span><span class="o">*</span><span class="n">assembly</span><span class="p">,</span><span class="w"></span>
 <span class="w">  </span><span class="k">const</span><span class="w"> </span><span class="kt">char</span><span class="w"> </span><span class="o">*</span><span class="n">attached_schema</span><span class="w"></span>
@@ -759,12 +764,15 @@
 </code></pre></div>
 </div>
 </div>
+</div>
 <p>Available assemblies:</p>
 <ul>
 <li><code>GRCh38_no_alt_analysis_set</code></li>
 </ul>
 <p><strong>↪ Put Reference Sequence SQL:</strong> <em>Generate a string</em> containing a series of SQL statements which <em>when executed</em> creates <code>_gri_refseq</code> (if it doesn't exist) and adds <em>one</em> reference sequence with supplied attributes.</p>
-<div class="tabbed-set" data-tabs="3:6"><input checked="checked" id="__tabbed_3_1" name="__tabbed_3" type="radio" /><label for="__tabbed_3_1">Python</label><div class="tabbed-content">
+<div class="tabbed-set tabbed-alternate" data-tabs="3:6"><input checked="checked" id="__tabbed_3_1" name="__tabbed_3" type="radio" /><input id="__tabbed_3_2" name="__tabbed_3" type="radio" /><input id="__tabbed_3_3" name="__tabbed_3" type="radio" /><input id="__tabbed_3_4" name="__tabbed_3" type="radio" /><input id="__tabbed_3_5" name="__tabbed_3" type="radio" /><input id="__tabbed_3_6" name="__tabbed_3" type="radio" /><div class="tabbed-labels"><label for="__tabbed_3_1">Python</label><label for="__tabbed_3_2">Java</label><label for="__tabbed_3_3">Rust</label><label for="__tabbed_3_4">SQLiteCpp</label><label for="__tabbed_3_5">C++</label><label for="__tabbed_3_6">C</label></div>
+<div class="tabbed-content">
+<div class="tabbed-block">
 <div class="highlight"><pre><span></span><code><span class="n">refseq_sql</span> <span class="o">=</span> <span class="n">genomicsqlite</span><span class="o">.</span><span class="n">put_reference_sequence_sql</span><span class="p">(</span>
   <span class="n">dbconn</span><span class="p">,</span> <span class="s1">&#39;chr17&#39;</span><span class="p">,</span> <span class="mi">83257441</span>
   <span class="c1"># optional: assembly, refget_id, meta (dict), rid</span>
@@ -772,7 +780,7 @@
 <span class="n">dbconn</span><span class="o">.</span><span class="n">executescript</span><span class="p">(</span><span class="n">refseq_sql</span><span class="p">)</span>
 </code></pre></div>
 </div>
-<input id="__tabbed_3_2" name="__tabbed_3" type="radio" /><label for="__tabbed_3_2">Java</label><div class="tabbed-content">
+<div class="tabbed-block">
 <div class="highlight"><pre><span></span><code><span class="n">String</span><span class="w"> </span><span class="n">refSql</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">GenomicSQLite</span><span class="p">.</span><span class="na">putReferenceSequenceSQL</span><span class="p">(</span><span class="w"></span>
 <span class="w">  </span><span class="n">dbconn</span><span class="p">,</span><span class="w"> </span><span class="s">&quot;chr17&quot;</span><span class="p">,</span><span class="w"> </span><span class="mi">83257441L</span><span class="w"></span>
 <span class="w">  </span><span class="c1">// optional overloads:</span><span class="w"></span>
@@ -781,7 +789,7 @@
 <span class="n">dbconn</span><span class="p">.</span><span class="na">createStatement</span><span class="p">().</span><span class="na">executeUpdate</span><span class="p">(</span><span class="n">refSql</span><span class="p">);</span><span class="w"></span>
 </code></pre></div>
 </div>
-<input id="__tabbed_3_3" name="__tabbed_3" type="radio" /><label for="__tabbed_3_3">Rust</label><div class="tabbed-content">
+<div class="tabbed-block">
 <div class="highlight"><pre><span></span><code><span class="kd">let</span><span class="w"> </span><span class="n">chr17</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">genomicsqlite</span>::<span class="n">RefSeq</span><span class="w"> </span><span class="p">{</span><span class="w"></span>
 <span class="w">  </span><span class="n">rid</span>: <span class="o">-</span><span class="mi">1</span><span class="p">,</span><span class="w">           </span><span class="c1">// -1 = automatic</span>
 <span class="w">  </span><span class="n">name</span>: <span class="s">&quot;chr17&quot;</span><span class="p">,</span><span class="w"></span>
@@ -794,7 +802,7 @@
 <span class="n">dbconn</span><span class="p">.</span><span class="n">execute_batch</span><span class="p">(</span><span class="o">&amp;</span><span class="n">ref_sql</span><span class="p">)</span><span class="o">?</span><span class="p">;</span><span class="w"></span>
 </code></pre></div>
 </div>
-<input id="__tabbed_3_4" name="__tabbed_3" type="radio" /><label for="__tabbed_3_4">SQLiteCpp</label><div class="tabbed-content">
+<div class="tabbed-block">
 <div class="highlight"><pre><span></span><code><span class="n">std</span><span class="o">::</span><span class="n">string</span><span class="w"> </span><span class="nf">PutGenomicReferenceSequenceSQL</span><span class="p">(</span><span class="w"></span>
 <span class="w">  </span><span class="k">const</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">string</span><span class="w"> </span><span class="o">&amp;</span><span class="n">name</span><span class="p">,</span><span class="w"></span>
 <span class="w">  </span><span class="n">sqlite3_int64</span><span class="w"> </span><span class="n">length</span><span class="p">,</span><span class="w"></span>
@@ -809,7 +817,7 @@
 <span class="n">dbconn</span><span class="o">-&gt;</span><span class="n">exec</span><span class="p">(</span><span class="n">PutGenomicReferenceSequenceSQL</span><span class="p">(</span><span class="s">&quot;chr17&quot;</span><span class="p">,</span><span class="w"> </span><span class="mi">83257441</span><span class="p">));</span><span class="w"></span>
 </code></pre></div>
 </div>
-<input id="__tabbed_3_5" name="__tabbed_3" type="radio" /><label for="__tabbed_3_5">C++</label><div class="tabbed-content">
+<div class="tabbed-block">
 <div class="highlight"><pre><span></span><code><span class="n">std</span><span class="o">::</span><span class="n">string</span><span class="w"> </span><span class="nf">PutGenomicReferenceSequenceSQL</span><span class="p">(</span><span class="w"></span>
 <span class="w">  </span><span class="k">const</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">string</span><span class="w"> </span><span class="o">&amp;</span><span class="n">name</span><span class="p">,</span><span class="w"></span>
 <span class="w">  </span><span class="n">sqlite3_int64</span><span class="w"> </span><span class="n">length</span><span class="p">,</span><span class="w"></span>
@@ -829,7 +837,7 @@
 <span class="c1">// check rc, free errmsg</span>
 </code></pre></div>
 </div>
-<input id="__tabbed_3_6" name="__tabbed_3" type="radio" /><label for="__tabbed_3_6">C</label><div class="tabbed-content">
+<div class="tabbed-block">
 <div class="highlight"><pre><span></span><code><span class="kt">char</span><span class="o">*</span><span class="w"> </span><span class="nf">put_genomic_reference_sequence_sql</span><span class="p">(</span><span class="w"></span>
 <span class="w">  </span><span class="k">const</span><span class="w"> </span><span class="kt">char</span><span class="w"> </span><span class="o">*</span><span class="n">name</span><span class="p">,</span><span class="w"></span>
 <span class="w">  </span><span class="n">sqlite3_int64</span><span class="w"> </span><span class="n">length</span><span class="p">,</span><span class="w"></span>
@@ -855,9 +863,12 @@
 </code></pre></div>
 </div>
 </div>
+</div>
 <p>If the <code>rid</code> argument is omitted or -1 then it will be assigned automatically upon insertion.</p>
 <p><strong>↪ Get Reference Sequences by Rid:</strong> create an in-memory lookup table of the previously-stored reference information, keyed by rid integer. Assumes the stored information is read-only by this point. This table is for the application code's convenience to read tables that use the rid convention. Such uses can be also be served by SQL join on the <code>_gri_refseq</code> table (see Cookbook).</p>
-<div class="tabbed-set" data-tabs="4:6"><input checked="checked" id="__tabbed_4_1" name="__tabbed_4" type="radio" /><label for="__tabbed_4_1">Python</label><div class="tabbed-content">
+<div class="tabbed-set tabbed-alternate" data-tabs="4:6"><input checked="checked" id="__tabbed_4_1" name="__tabbed_4" type="radio" /><input id="__tabbed_4_2" name="__tabbed_4" type="radio" /><input id="__tabbed_4_3" name="__tabbed_4" type="radio" /><input id="__tabbed_4_4" name="__tabbed_4" type="radio" /><input id="__tabbed_4_5" name="__tabbed_4" type="radio" /><input id="__tabbed_4_6" name="__tabbed_4" type="radio" /><div class="tabbed-labels"><label for="__tabbed_4_1">Python</label><label for="__tabbed_4_2">Java</label><label for="__tabbed_4_3">Rust</label><label for="__tabbed_4_4">SQLiteCpp</label><label for="__tabbed_4_5">C++</label><label for="__tabbed_4_6">C</label></div>
+<div class="tabbed-content">
+<div class="tabbed-block">
 <div class="highlight"><pre><span></span><code><span class="k">class</span> <span class="nc">ReferenceSequence</span><span class="p">(</span><span class="n">NamedTuple</span><span class="p">):</span>
   <span class="n">rid</span><span class="p">:</span> <span class="nb">int</span>
   <span class="n">name</span><span class="p">:</span> <span class="nb">str</span>
@@ -870,7 +881,7 @@
 <span class="c1"># refseq_by_rid: Dict[int, ReferenceSequence]</span>
 </code></pre></div>
 </div>
-<input id="__tabbed_4_2" name="__tabbed_4" type="radio" /><label for="__tabbed_4_2">Java</label><div class="tabbed-content">
+<div class="tabbed-block">
 <div class="highlight"><pre><span></span><code><span class="kn">import</span><span class="w"> </span><span class="nn">java.util.HashMap</span><span class="p">;</span><span class="w"></span>
 <span class="kn">import</span><span class="w"> </span><span class="nn">net.mlin.genomicsqlite.ReferenceSequence</span><span class="p">;</span><span class="w"></span>
 <span class="cm">/*</span>
@@ -883,7 +894,7 @@
 <span class="w">  </span><span class="o">=</span><span class="w"> </span><span class="n">GenomicSQLite</span><span class="p">.</span><span class="na">getReferenceSequencesByRid</span><span class="p">(</span><span class="n">dbconn</span><span class="p">);</span><span class="w"></span>
 </code></pre></div>
 </div>
-<input id="__tabbed_4_3" name="__tabbed_4" type="radio" /><label for="__tabbed_4_3">Rust</label><div class="tabbed-content">
+<div class="tabbed-block">
 <div class="highlight"><pre><span></span><code><span class="cm">/*</span>
 <span class="cm">struct RefSeq {</span>
 <span class="cm">    rid: i64,</span>
@@ -898,7 +909,7 @@
 <span class="w">  </span><span class="p">.</span><span class="n">get_reference_sequences_by_rid</span><span class="p">()</span><span class="o">?</span><span class="p">;</span><span class="w"></span>
 </code></pre></div>
 </div>
-<input id="__tabbed_4_4" name="__tabbed_4" type="radio" /><label for="__tabbed_4_4">SQLiteCpp</label><div class="tabbed-content">
+<div class="tabbed-block">
 <div class="highlight"><pre><span></span><code><span class="k">struct</span><span class="w"> </span><span class="nc">gri_refseq_t</span><span class="w"> </span><span class="p">{</span><span class="w"></span>
 <span class="w">  </span><span class="kt">long</span><span class="w"> </span><span class="kt">long</span><span class="w"> </span><span class="n">rid</span><span class="p">,</span><span class="w"> </span><span class="n">length</span><span class="p">;</span><span class="w"></span>
 <span class="w">  </span><span class="n">std</span><span class="o">::</span><span class="n">string</span><span class="w"> </span><span class="n">name</span><span class="p">,</span><span class="w"> </span><span class="n">assembly</span><span class="p">,</span><span class="w"> </span><span class="n">refget_id</span><span class="p">,</span><span class="w"> </span><span class="n">meta_json</span><span class="p">;</span><span class="w"></span>
@@ -913,7 +924,7 @@
 <span class="k">auto</span><span class="w"> </span><span class="n">refseq_by_rid</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">GetGenomicReferenceSequencesByRid</span><span class="p">(</span><span class="n">dbconn</span><span class="o">-&gt;</span><span class="n">getHandle</span><span class="p">());</span><span class="w"></span>
 </code></pre></div>
 </div>
-<input id="__tabbed_4_5" name="__tabbed_4" type="radio" /><label for="__tabbed_4_5">C++</label><div class="tabbed-content">
+<div class="tabbed-block">
 <div class="highlight"><pre><span></span><code><span class="k">struct</span><span class="w"> </span><span class="nc">gri_refseq_t</span><span class="w"> </span><span class="p">{</span><span class="w"></span>
 <span class="w">  </span><span class="kt">long</span><span class="w"> </span><span class="kt">long</span><span class="w"> </span><span class="n">rid</span><span class="p">,</span><span class="w"> </span><span class="n">length</span><span class="p">;</span><span class="w"></span>
 <span class="w">  </span><span class="n">std</span><span class="o">::</span><span class="n">string</span><span class="w"> </span><span class="n">name</span><span class="p">,</span><span class="w"> </span><span class="n">assembly</span><span class="p">,</span><span class="w"> </span><span class="n">refget_id</span><span class="p">,</span><span class="w"> </span><span class="n">meta_json</span><span class="p">;</span><span class="w"></span>
@@ -928,14 +939,17 @@
 <span class="k">auto</span><span class="w"> </span><span class="n">refseq_by_rid</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">GetGenomicReferenceSequencesByRid</span><span class="p">(</span><span class="n">dbconn</span><span class="p">);</span><span class="w"></span>
 </code></pre></div>
 </div>
-<input id="__tabbed_4_6" name="__tabbed_4" type="radio" /><label for="__tabbed_4_6">C</label><div class="tabbed-content">
+<div class="tabbed-block">
 <div class="highlight"><pre><span></span><code><span class="cm">/* Omitted for want of idiomatic map type; pull requests welcome! */</span><span class="w"></span>
 </code></pre></div>
 </div>
 </div>
+</div>
 <p>The optional <code>assembly</code> argument restricts the retrieved sequences to those with matching <code>gri_assembly</code> value. However, mixing different assemblies in <code>_gri_refseq</code> is not recommended.</p>
 <p><strong>↪ Get Reference Sequences by Name:</strong> create an in-memory lookup table of the previously-stored reference information, keyed by sequence name. Assumes the stored information is read-only by this point. This table is for the application code's convenience to translate name to rid whilst formulating queries or inserting features from a text source.</p>
-<div class="tabbed-set" data-tabs="5:6"><input checked="checked" id="__tabbed_5_1" name="__tabbed_5" type="radio" /><label for="__tabbed_5_1">Python</label><div class="tabbed-content">
+<div class="tabbed-set tabbed-alternate" data-tabs="5:6"><input checked="checked" id="__tabbed_5_1" name="__tabbed_5" type="radio" /><input id="__tabbed_5_2" name="__tabbed_5" type="radio" /><input id="__tabbed_5_3" name="__tabbed_5" type="radio" /><input id="__tabbed_5_4" name="__tabbed_5" type="radio" /><input id="__tabbed_5_5" name="__tabbed_5" type="radio" /><input id="__tabbed_5_6" name="__tabbed_5" type="radio" /><div class="tabbed-labels"><label for="__tabbed_5_1">Python</label><label for="__tabbed_5_2">Java</label><label for="__tabbed_5_3">Rust</label><label for="__tabbed_5_4">SQLiteCpp</label><label for="__tabbed_5_5">C++</label><label for="__tabbed_5_6">C</label></div>
+<div class="tabbed-content">
+<div class="tabbed-block">
 <div class="highlight"><pre><span></span><code><span class="k">class</span> <span class="nc">ReferenceSequence</span><span class="p">(</span><span class="n">NamedTuple</span><span class="p">):</span>
   <span class="n">rid</span><span class="p">:</span> <span class="nb">int</span>
   <span class="n">name</span><span class="p">:</span> <span class="nb">str</span>
@@ -948,7 +962,7 @@
 <span class="c1"># refseq_by_name: Dict[str, ReferenceSequence]</span>
 </code></pre></div>
 </div>
-<input id="__tabbed_5_2" name="__tabbed_5" type="radio" /><label for="__tabbed_5_2">Java</label><div class="tabbed-content">
+<div class="tabbed-block">
 <div class="highlight"><pre><span></span><code><span class="kn">import</span><span class="w"> </span><span class="nn">java.util.HashMap</span><span class="p">;</span><span class="w"></span>
 <span class="kn">import</span><span class="w"> </span><span class="nn">net.mlin.genomicsqlite.ReferenceSequence</span><span class="p">;</span><span class="w"></span>
 <span class="cm">/*</span>
@@ -961,7 +975,7 @@
 <span class="w">  </span><span class="o">=</span><span class="w"> </span><span class="n">GenomicSQLite</span><span class="p">.</span><span class="na">getReferenceSequencesByName</span><span class="p">(</span><span class="n">dbconn</span><span class="p">);</span><span class="w"></span>
 </code></pre></div>
 </div>
-<input id="__tabbed_5_3" name="__tabbed_5" type="radio" /><label for="__tabbed_5_3">Rust</label><div class="tabbed-content">
+<div class="tabbed-block">
 <div class="highlight"><pre><span></span><code><span class="cm">/*</span>
 <span class="cm">struct RefSeq {</span>
 <span class="cm">    rid: i64,</span>
@@ -976,7 +990,7 @@
 <span class="w">  </span><span class="p">.</span><span class="n">get_reference_sequences_by_name</span><span class="p">()</span><span class="o">?</span><span class="p">;</span><span class="w"></span>
 </code></pre></div>
 </div>
-<input id="__tabbed_5_4" name="__tabbed_5" type="radio" /><label for="__tabbed_5_4">SQLiteCpp</label><div class="tabbed-content">
+<div class="tabbed-block">
 <div class="highlight"><pre><span></span><code><span class="k">struct</span><span class="w"> </span><span class="nc">gri_refseq_t</span><span class="w"> </span><span class="p">{</span><span class="w"></span>
 <span class="w">  </span><span class="kt">long</span><span class="w"> </span><span class="kt">long</span><span class="w"> </span><span class="n">rid</span><span class="p">,</span><span class="w"> </span><span class="n">length</span><span class="p">;</span><span class="w"></span>
 <span class="w">  </span><span class="n">std</span><span class="o">::</span><span class="n">string</span><span class="w"> </span><span class="n">name</span><span class="p">,</span><span class="w"> </span><span class="n">assembly</span><span class="p">,</span><span class="w"> </span><span class="n">refget_id</span><span class="p">,</span><span class="w"> </span><span class="n">meta_json</span><span class="p">;</span><span class="w"></span>
@@ -991,7 +1005,7 @@
 <span class="k">auto</span><span class="w"> </span><span class="n">refseq_by_name</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">GetGenomicReferenceSequencesByName</span><span class="p">(</span><span class="n">dbconn</span><span class="o">-&gt;</span><span class="n">getHandle</span><span class="p">());</span><span class="w"></span>
 </code></pre></div>
 </div>
-<input id="__tabbed_5_5" name="__tabbed_5" type="radio" /><label for="__tabbed_5_5">C++</label><div class="tabbed-content">
+<div class="tabbed-block">
 <div class="highlight"><pre><span></span><code><span class="k">struct</span><span class="w"> </span><span class="nc">gri_refseq_t</span><span class="w"> </span><span class="p">{</span><span class="w"></span>
 <span class="w">  </span><span class="kt">long</span><span class="w"> </span><span class="kt">long</span><span class="w"> </span><span class="n">rid</span><span class="p">,</span><span class="w"> </span><span class="n">length</span><span class="p">;</span><span class="w"></span>
 <span class="w">  </span><span class="n">std</span><span class="o">::</span><span class="n">string</span><span class="w"> </span><span class="n">name</span><span class="p">,</span><span class="w"> </span><span class="n">assembly</span><span class="p">,</span><span class="w"> </span><span class="n">refget_id</span><span class="p">,</span><span class="w"> </span><span class="n">meta_json</span><span class="p">;</span><span class="w"></span>
@@ -1006,9 +1020,10 @@
 <span class="k">auto</span><span class="w"> </span><span class="n">refseq_by_name</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">GetGenomicReferenceSequencesByName</span><span class="p">(</span><span class="n">dbconn</span><span class="p">);</span><span class="w"></span>
 </code></pre></div>
 </div>
-<input id="__tabbed_5_6" name="__tabbed_5" type="radio" /><label for="__tabbed_5_6">C</label><div class="tabbed-content">
+<div class="tabbed-block">
 <div class="highlight"><pre><span></span><code><span class="cm">/* Omitted for want of idiomatic map type; pull requests welcome! */</span><span class="w"></span>
 </code></pre></div>
+</div>
 </div>
 </div>
 <h3 id="cookbook">Cookbook</h3>
@@ -1054,9 +1069,14 @@
 </ol>
 <p>But this plan strongly depends on the contiguity assumption.</p>
 
+
+
+
               
             </article>
             
+  <script>var tabs=__md_get("__tabs");if(Array.isArray(tabs))e:for(var set of document.querySelectorAll(".tabbed-set")){var tab,labels=set.querySelector(".tabbed-labels");for(tab of tabs)for(var label of labels.getElementsByTagName("label"))if(label.innerText.trim()===tab){var input=document.getElementById(label.htmlFor);input.checked=!0;continue e}}</script>
+
           </div>
         </div>
         
@@ -1120,10 +1140,11 @@
     <div class="md-dialog" data-md-component="dialog">
       <div class="md-dialog__inner md-typeset"></div>
     </div>
-    <script id="__config" type="application/json">{"base": "..", "features": [], "search": "../assets/javascripts/workers/search.b97dbffb.min.js", "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.config.lang": "en", "search.config.pipeline": "trimmer, stopWordFilter", "search.config.separator": "[\\s\\-]+", "search.placeholder": "Search", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version.title": "Select version"}}</script>
+    
+    <script id="__config" type="application/json">{"base": "..", "features": ["content.tabs.link"], "search": "../assets/javascripts/workers/search.ecf98df9.min.js", "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.config.lang": "en", "search.config.pipeline": "trimmer, stopWordFilter", "search.config.separator": "[\\s\\-]+", "search.placeholder": "Search", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version.title": "Select version"}}</script>
     
     
-      <script src="../assets/javascripts/bundle.6c7ad80a.min.js"></script>
+      <script src="../assets/javascripts/bundle.9c69f0bc.min.js"></script>
       
     
   </body>
