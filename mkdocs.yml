@@ -6,8 +6,12 @@ nav:
     - Useful Routines: guide_helpers.md
     - Writing Language Bindings: bindings.md
     - Internals: internals.md
-theme: material
+theme:
+    name: material
+    features:
+    - content.tabs.link
 markdown_extensions:
     - codehilite
-    - pymdownx.tabbed
     - pymdownx.superfences
+    - pymdownx.tabbed:
+        alternate_style: true
