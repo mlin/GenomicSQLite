@@ -129,6 +129,10 @@ def main():
             results == control_results
         ), "discrepancy between genomic_range_rowids_sql() and control results"
 
+        for expl in dbconn.execute("EXPLAIN " + query):
+            if expl[1] in {"OpenRead", "OpenPseudo", "Column"}:
+                print("  " + str(expl))
+
         if gri_constraints != 3:
             print("GRI query opcodes:")
             for expl in dbconn.execute("EXPLAIN " + query):

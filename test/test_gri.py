@@ -56,9 +56,9 @@ def test_indexing():
 
     # The query should be covered by the index except for one final fetch of exons.id
     opcodes = list(con.execute("EXPLAIN " + query, ("chr17", 43044294, 43048294)))
-    # for expl in opcodes:
-    #    if expl[1] in {"OpenRead", "OpenPseudo", "Column"}:
-    #        print(expl)
+    for expl in opcodes:
+       if expl[1] in {"OpenRead", "OpenPseudo", "Column"}:
+           print(expl)
     accessed_cursors = list(opcode[2] for opcode in opcodes if opcode[1] == "Column")
     table_rootpages = set(
         row[0] for row in con.execute("SELECT rootpage FROM sqlite_master WHERE type='table'")
