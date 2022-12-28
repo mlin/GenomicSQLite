@@ -21,6 +21,7 @@ First complete the [installation instructions](index.md).
 === "Java"
     ```java
     import java.sql.*;
+    import org.sqlite.SQLiteConfig;
     import net.mlin.genomicsqlite.GenomicSQLite;
     ```
 
@@ -102,14 +103,14 @@ First complete the [installation instructions](index.md).
 
 === "Java"
     ```java
-    java.util.Properties config = new java.util.Properties();
-    config.setProperty("genomicsqlite.config_json", "{}");
-    // Properties may originate from org.sqlite.SQLiteConfig.toProperties()
-    // with genomicsqlite.config_json added in.
+    SQLiteConfig config = new SQLiteConfig();
+    // config.setReadOnly(true)
+    // (or other sqlite-jdbc settings as needed)
+    java.util.Properties props = config.toProperties();
+    props.setProperty("genomicsqlite.config_json", "{}");
 
     Connection dbconn = DriverManager.getConnection(
-      "jdbc:genomicsqlite:" + dbfileName,
-      config
+      "jdbc:genomicsqlite:" + dbfileName, props
     );
     ```
 

@@ -65,7 +65,23 @@ It's usually easiest to obtain the extension as a pre-compiled shared library (L
       </dependency>
     </dependencies>
     ```
-    Or, download the JAR from [GitHub Releases](https://github.com/mlin/GenomicSQLite/releases) and place it in your classpath, along with [sqlite-jdbc](https://github.com/xerial/sqlite-jdbc)'s JAR which is also required. The package loads a bundled shared library by default. To override the bundled file, set environment variable `LIBGENOMICSQLITE` to a filename.
+
+    Or to your `build.gradle`:
+    ```groovy
+    repositories {
+      maven {
+        url 'https://raw.githubusercontent.com/wiki/mlin/GenomicSQLite/mvn-repo/'
+      }
+    }
+
+    dependencies {
+      compile group: 'net.mlin', name: 'genomicsqlite-jdbc', version: 'vX.Y.Z'
+    }
+    ```
+
+    Alternatively, download the JAR from [GitHub Releases](https://github.com/mlin/GenomicSQLite/releases) and place it in your classpath, along with [sqlite-jdbc](https://github.com/xerial/sqlite-jdbc)'s JAR which is also required. The package loads a bundled shared library by default. To override the bundled file, set environment variable `LIBGENOMICSQLITE` to a filename.
+
+    To bundle GenomicSQLite and sqlite-jdbc inside an "Uber JAR" for your application, you may need to enable the [ServicesResourceTransformer for Maven Shade](https://maven.apache.org/plugins/maven-shade-plugin/examples/resource-transformers.html#ServicesResourceTransformer) or [mergeServiceFiles() for Gradle Shadow](https://stackoverflow.com/questions/32887966/shadow-plugin-gradle-what-does-mergeservicefiles-do), to ensure the JDBC drivers will be registered automatically when the "Uber JAR" loads.
 
     Recommendation: *also* install the Python package, which includes a useful command-line shell and smoke-test script.
 
