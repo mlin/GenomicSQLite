@@ -105,9 +105,10 @@ First complete the [installation instructions](index.md).
     ```java
     SQLiteConfig config = new SQLiteConfig();
     // config.setReadOnly(true)
-    // (or other sqlite-jdbc settings as needed)
+    // (or other sqlite-jdbc options as needed)
     java.util.Properties props = config.toProperties();
     props.setProperty("genomicsqlite.config_json", "{}");
+    // GenomicSQLite tuning options as JSON text   ^^^^
 
     Connection dbconn = DriverManager.getConnection(
       "jdbc:genomicsqlite:" + dbfileName, props
@@ -129,7 +130,7 @@ First complete the [installation instructions](index.md).
     std::unique_ptr<SQLite::Database> GenomicSQLiteOpen(
       const std::string &db_filename,
       int flags = 0,
-      const std::string &config_json = "{}"
+      const std::string &config_json = "{}"  // tuning options as JSON text
     );
     ```
 
@@ -140,7 +141,7 @@ First complete the [installation instructions](index.md).
       sqlite3 **ppDb,
       std::string &errmsg_out,
       int flags = 0,  // as sqlite3_open_v2() e.g. SQLITE_OPEN_READONLY
-      const std::string &config_json = "{}"
+      const std::string &config_json = "{}"  // tuning options as JSON text
     ) noexcept; // returns sqlite3_open_v2() code
     ```
 
@@ -152,7 +153,7 @@ First complete the [installation instructions](index.md).
       char **pzErrMsg, /* if nonnull and an error occurs, set to error message
                         * which caller should sqlite3_free() */
       int flags,              /* as sqlite3_open_v2() e.g. SQLITE_OPEN_READONLY */
-      const char *config_json /* JSON text (may be null) */
+      const char *config_json /* tuning options as JSON text (may be null) */
     ); /* returns sqlite3_open_v2() code */
     ```
 
