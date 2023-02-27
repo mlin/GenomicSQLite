@@ -172,10 +172,10 @@ string GenomicSQLiteURI(const string &dbfile, const string &config_json = "") {
 
     bool web = dbfile.substr(0, 5) == "http:" || dbfile.substr(0, 6) == "https:";
     ostringstream uri;
-    uri << "file:" << (web ? "/__web__" : SQLiteNested::urlencode(dbfile, true)) << "?vfs=zstd";
+    uri << "file:" << (web ? "/__web__" : SQLiteNested::urlencode(dbfile, true)) << "?vfs=zstd"
+        << "&vfs_log=" << cfg.GetInt("$.vfs_log");
     if (web) {
-        uri << "&mode=ro&immutable=1&web_url=" << SQLiteNested::urlencode(dbfile)
-            << "&vfs_log=" << cfg.GetInt("$.vfs_log");
+        uri << "&mode=ro&immutable=1&web_url=" << SQLiteNested::urlencode(dbfile);
         if (cfg.GetBool("$.web_insecure")) {
             uri << "&web_insecure=1";
         }
