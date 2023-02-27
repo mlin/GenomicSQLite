@@ -5,7 +5,7 @@ import genomicsqlite
 
 def test_parse_genomic_range():
     con = genomicsqlite.connect(":memory:")
-    for (txt, chrom, begin_pos, end_pos) in [
+    for txt, chrom, begin_pos, end_pos in [
         ("chr1:2,345-06,789", "chr1", 2344, 6789),
         ("π:1-9,223,372,036,854,775,799", "π", 0, 9223372036854775799),
     ]:

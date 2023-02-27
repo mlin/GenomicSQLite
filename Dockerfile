@@ -4,8 +4,8 @@
 FROM centos:7 as builder
 
 ARG CMAKE_VERSION=3.17.3
-ARG SQLITE_VERSION=3390400
-ARG ZSTD_VERSION=1.5.2
+ARG SQLITE_VERSION=3410000
+ARG ZSTD_VERSION=1.5.4
 ARG CPU_ARCH=ivybridge
 ENV CFLAGS="-march=${CPU_ARCH} -O3"
 ENV CXXFLAGS=${CFLAGS}
@@ -35,7 +35,7 @@ RUN mkdir -p /work/GenomicSQLite
 
 # SQLite
 WORKDIR /work
-RUN wget -nv http://www.sqlite.org/2022/sqlite-amalgamation-${SQLITE_VERSION}.zip \
+RUN wget -nv http://www.sqlite.org/2023/sqlite-amalgamation-${SQLITE_VERSION}.zip \
         && unzip -o sqlite-amalgamation-${SQLITE_VERSION}.zip
 WORKDIR /work/sqlite-amalgamation-${SQLITE_VERSION}
 RUN bash -c "scl enable devtoolset-8 'gcc -shared -o libsqlite3.so.0 -fPIC -shared -Wl,-soname,libsqlite3.so.0 -g ${CFLAGS} ${SQLITE_CFLAGS} sqlite3.c' & pid=$? \

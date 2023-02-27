@@ -85,7 +85,7 @@ def main():
     print(f"\ntest database: {dbfile}")
     try:
         dbconn = genomicsqlite.connect(dbfile)
-        for (table, bed) in (("exons1", _EXONS1), ("exons2", _EXONS2)):
+        for table, bed in (("exons1", _EXONS1), ("exons2", _EXONS2)):
             dbconn.execute(
                 f"CREATE TABLE {table}(chrom TEXT, pos INTEGER, end INTEGER, id TEXT PRIMARY KEY)"
             )

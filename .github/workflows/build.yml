@@ -3,7 +3,7 @@ on: [push, pull_request]
 
 env:
   APT_DEPS: libzstd-dev samtools tabix libhts-dev pigz python3-pip libcurl4-openssl-dev
-  BREW_DEPS: python@3.8 zstd samtools pigz coreutils
+  BREW_DEPS: python@3.8 zstd samtools pigz coreutils sqlite
   PIP_DEPS: pytest pytest-xdist
 
 jobs:
@@ -126,11 +126,6 @@ jobs:
         for dep in $BREW_DEPS ; do
           brew install $dep || brew upgrade $dep
         done
-
-        # FIXME 2022-12-27: pin sqlite 3.39.4 due to query plan regression in 3.40.0
-        #                   https://sqlite.org/forum/forumpost/07b36e3899a9ae21
-        wget https://raw.githubusercontent.com/Homebrew/homebrew-core/fc08979e0cc7c580a2feba5447d9a518dc518826/Formula/sqlite.rb
-        brew reinstall -s sqlite.rb
 
         /usr/local/bin/pip3 install $PIP_DEPS
     - name: rust toolchain
