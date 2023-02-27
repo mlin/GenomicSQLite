@@ -205,7 +205,7 @@ The **GenomicSQLite Open** routine and the `genomicsqlite` shell also accept htt
 Under the hood, the extension uses [libcurl](https://curl.se/libcurl/) to send web requests for necessary portions of the database file as queries proceed, with adaptive batching & prefetching to balance the number and size of these requests. This works well for point lookups and queries that scan largely-contiguous slices of tables and indexes (and a modest number thereof). It's less suitable for big multi-way joins and other aggressively random access patterns; in such cases, it'd be better to download the database file upfront to open locally.
 
 * Reading large databases over the web, budget an additional ~600MiB of memory for HTTP prefetch buffers.
-* The HTTP driver writes log messages to standard error when requests fail or had to be retried, which can be disabled by setting configuration web_log = 0 or environment SQLITE_WEB_LOG=0; or increased up to 5 to log every request and other details.
+* The HTTP driver writes log messages to standard error when requests fail or had to be retried, which can be disabled by setting configuration vfs_log = 0 or environment SQLITE_VFS_LOG=0; or increased up to 5 for extensive debug logging.
 * To disable TLS certificate and hostname verification, set web_insecure = true in the GenomicSQLite configuration, or SQLITE_WEB_INSECURE=1 in the environment.
 * The above-described `genomicsqlite DB_FILENAME --compact` optimizes a database for web access by making the request pattern more contiguous.
 
