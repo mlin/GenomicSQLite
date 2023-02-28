@@ -68,7 +68,7 @@ std::string GenomicSQLiteDefaultConfigJSON() {
     "zstd_level": 6,
     "inner_page_KiB": 16,
     "outer_page_KiB": 32,
-    "vfs_log": 2,
+    "vfs_log": -1,
     "web_insecure": false,
     "web_dbi_url": "",
     "web_nodbi": false,
@@ -172,8 +172,10 @@ string GenomicSQLiteURI(const string &dbfile, const string &config_json = "") {
 
     bool web = dbfile.substr(0, 5) == "http:" || dbfile.substr(0, 6) == "https:";
     ostringstream uri;
-    uri << "file:" << (web ? "/__web__" : SQLiteNested::urlencode(dbfile, true)) << "?vfs=zstd"
-        << "&vfs_log=" << cfg.GetInt("$.vfs_log");
+    uri << "file:" << (web ? "/__web__" : SQLiteNested::urlencode(dbfile, true)) << "?vfs=zstd";
+    if (cfg.GetInt("$.vfs_log") >= 0) {
+        uri << "&vfs_log=" << cfg.GetInt("$.vfs_log");
+    }
     if (web) {
         uri << "&mode=ro&immutable=1&web_url=" << SQLiteNested::urlencode(dbfile);
         if (cfg.GetBool("$.web_insecure")) {
