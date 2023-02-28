@@ -18,7 +18,7 @@ endif()
 FetchContent_Declare(
     sqlite_zstd_vfs
     GIT_REPOSITORY  https://github.com/mlin/sqlite_zstd_vfs.git
-    GIT_TAG         ee43a97
+    GIT_TAG         b1d1721
 )
 FetchContent_MakeAvailable(sqlite_zstd_vfs)
 FetchContent_MakeAvailable(sqlitecpp)
