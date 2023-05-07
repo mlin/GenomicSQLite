@@ -130,7 +130,7 @@ jobs:
           brew install $dep || brew upgrade $dep
         done
 
-        /usr/local/bin/pip3 install $PIP_DEPS
+        pip install $PIP_DEPS
     - name: rust toolchain
       uses: actions-rs/toolchain@v1
       with:
