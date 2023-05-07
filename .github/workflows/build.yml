@@ -114,7 +114,7 @@ jobs:
         path: libsqlite3.so.0
 
   macOS-x86-64-dylib:
-    runs-on: macOS-10.15
+    runs-on: macOS-11
     steps:
     - uses: actions/checkout@v2
       with:
