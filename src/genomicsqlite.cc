@@ -1552,9 +1552,12 @@ const unsigned char dna_complement_table[] = {
     0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF};
 
 extern "C" int dna_revcomp(const char *dna, size_t len, char *out) {
-    for (; len; --len, ++out)
-        if ((*out = dna_complement_table[(unsigned char)dna[len - 1]]) == 0xFF)
+    for (; len; --len, ++out) {
+        unsigned char c = dna_complement_table[(unsigned char)dna[len - 1]];
+        if (c == 0xFF)
             return -1;
+        *out = c;
+    }
     *out = 0;
     return 0;
 }

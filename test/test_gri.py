@@ -37,6 +37,9 @@ def test_gri_lvl():
     )
 
 
+@pytest.mark.skipif(
+    sqlite3.sqlite_version in ("3.40.0", "3.40.1"), reason="SQLite query planning regression"
+)
 def test_indexing():
     con = sqlite3.connect(":memory:")
     _fill_exons(con)
@@ -271,7 +274,7 @@ def test_connect(tmp_path):
     con.executescript(genomicsqlite.put_reference_assembly_sql(con, "GRCh38_no_alt_analysis_set"))
     _fill_exons(con)
     con.commit()
-    del con
+    con.close()
 
     con = genomicsqlite.connect(dbfile, read_only=True)
     query = (
