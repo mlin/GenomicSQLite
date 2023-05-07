@@ -135,9 +135,9 @@ jobs:
         default: true
     - name: build environment
       run: |
-        echo "PATH=$(brew --prefix)/opt/python/libexec/bin:$(brew --prefix)/opt/sqlite/bin:${PATH}" >> $GITHUB_ENV
-        echo "CFLAGS=-I$(brew --prefix)/include -I$(brew --prefix)/opt/sqlite/include -march=sandybridge" >> $GITHUB_ENV
-        echo "CXXFLAGS=-I$(brew --prefix)/include -I$(brew --prefix)/opt/sqlite/include -march=sandybridge" >> $GITHUB_ENV
+        echo "PATH=$(brew --prefix)/opt/python@3.8/bin:$(brew --prefix)/opt/python/libexec/bin:$(brew --prefix)/opt/sqlite/bin:${PATH}" >> $GITHUB_ENV
+        echo "CFLAGS=-I$(brew --prefix)/include -I$(brew --prefix)/opt/sqlite/include -march=ivybridge" >> $GITHUB_ENV
+        echo "CXXFLAGS=-I$(brew --prefix)/include -I$(brew --prefix)/opt/sqlite/include -march=ivybridge" >> $GITHUB_ENV
         echo "LDFLAGS=-L$(brew --prefix)/lib -L$(brew --prefix)/opt/sqlite/lib" >> $GITHUB_ENV
         # used by rusqlite:
         echo "SQLITE3_INCLUDE_DIR=$(brew --prefix)/opt/sqlite/include" >> $GITHUB_ENV
