@@ -22,7 +22,7 @@ Our **[Colab notebook](https://colab.research.google.com/drive/1OlHPOcRQBhDmEnS1
 
 **Start Here 👉 [full documentation site](https://mlin.github.io/GenomicSQLite/)**
 
-We supply the extension [prepackaged](https://github.com/mlin/GenomicSQLite/releases) for Linux x86-64 and macOS Catalina. An up-to-date version of SQLite itself is also required, as specified in the docs.
+We supply the extension [prepackaged](https://github.com/mlin/GenomicSQLite/releases) for Linux and macOS on x86-64. An up-to-date version of SQLite itself is also required, as specified in the docs.
 
 Programming language support:
 

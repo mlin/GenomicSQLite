@@ -1,5 +1,7 @@
 import os
+import sqlite3
 import subprocess
+import pytest
 import genomicsqlite
 
 HERE = os.path.dirname(__file__)
@@ -18,6 +20,9 @@ def vcf_into_sqlite(infilename, outfilename, *options):
     print(outfilename)
 
 
+@pytest.mark.skipif(
+    sqlite3.sqlite_version in ("3.40.0", "3.40.1"), reason="SQLite query planning regression"
+)
 def test_gnomad_sites_small(tmp_path):
     dbfile = str(tmp_path / "test.gsql")
 

@@ -110,11 +110,11 @@ def test_dna_revcomp():
     assert next(con.execute("SELECT dna_revcomp('')"))[0] == ""
     assert next(con.execute("SELECT dna_revcomp(NULL)"))[0] is None
 
-    with pytest.raises(sqlite3.OperationalError):
+    with pytest.raises(sqlite3.OperationalError, match="non-DNA input to dna_revcomp()"):
         con.execute("SELECT dna_revcomp('GATTACAb')")
 
-    with pytest.raises(sqlite3.OperationalError):
+    with pytest.raises(sqlite3.OperationalError, match="non-DNA input to dna_revcomp()"):
         con.execute("SELECT dna_revcomp('GATTACA ')")
 
-    with pytest.raises(sqlite3.OperationalError):
+    with pytest.raises(sqlite3.OperationalError, match="argument #1 type mismatch"):
         con.execute("SELECT dna_revcomp(42)")
