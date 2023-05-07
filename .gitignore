@@ -35,3 +35,5 @@ build/
 __pycache__
 .vscode/
 site/
+venv/
+.venv/
