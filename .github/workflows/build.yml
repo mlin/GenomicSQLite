@@ -3,7 +3,7 @@ on: [push, pull_request]
 
 env:
   APT_DEPS: libzstd-dev samtools tabix libhts-dev pigz python3-pip libcurl4-openssl-dev
-  BREW_DEPS: python@3.8 zstd samtools pigz coreutils sqlite
+  BREW_DEPS: zstd samtools pigz coreutils sqlite
   PIP_DEPS: pytest pytest-xdist
 
 jobs:
@@ -119,6 +119,9 @@ jobs:
     - uses: actions/checkout@v2
       with:
         fetch-depth: 0
+    - uses: actions/setup-python@v4
+      with:
+        python-version: '3.8'
     - name: dependencies
       run: |
         rm -f /usr/local/bin/2to3  # https://github.com/pypa/pipenv/issues/3831
@@ -135,7 +138,7 @@ jobs:
         default: true
     - name: build environment
       run: |
-        echo "PATH=$(brew --prefix)/opt/python@3.8/bin:$(brew --prefix)/opt/python/libexec/bin:$(brew --prefix)/opt/sqlite/bin:${PATH}" >> $GITHUB_ENV
+        echo "PATH=$(brew --prefix)/bin:$(brew --prefix)/opt/sqlite/bin:${PATH}" >> $GITHUB_ENV
         echo "CFLAGS=-I$(brew --prefix)/include -I$(brew --prefix)/opt/sqlite/include -march=ivybridge" >> $GITHUB_ENV
         echo "CXXFLAGS=-I$(brew --prefix)/include -I$(brew --prefix)/opt/sqlite/include -march=ivybridge" >> $GITHUB_ENV
         echo "LDFLAGS=-L$(brew --prefix)/lib -L$(brew --prefix)/opt/sqlite/lib" >> $GITHUB_ENV
