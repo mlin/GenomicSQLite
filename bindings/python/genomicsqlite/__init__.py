@@ -291,7 +291,7 @@ def _cli(argv=None):
         # interactive mode:
         cmd += [
             "-cmd",
-            'SELECT "GenomicSQLite " || genomicsqlite_version()',
+            "SELECT 'GenomicSQLite ' || genomicsqlite_version()",
             "-cmd",
             ".headers on",
         ]
