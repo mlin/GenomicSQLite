@@ -179,15 +179,15 @@ jobs:
     steps:
     - uses: actions/checkout@v2
     - name: fetch libgenomicsqlite.so
-      uses: actions/download-artifact@v2
+      uses: actions/download-artifact@v4.1.7
       with:
         name: libgenomicsqlite.so
     - name: fetch libsqlite3.so.0
-      uses: actions/download-artifact@v2
+      uses: actions/download-artifact@v4.1.7
       with:
         name: libsqlite3.so.0
     - name: fetch libgenomicsqlite.dylib
-      uses: actions/download-artifact@v2
+      uses: actions/download-artifact@v4.1.7
       with:
         name: libgenomicsqlite.dylib
     - name: detect GIT_REVISION
