@@ -43,6 +43,10 @@
   </distributionManagement>
 
   <properties>
+    <!-- default for the CI-friendly ${revision} version placeholder above;
+         release builds may override with -Drevision=... (Maven >= 3.9.10
+         refuses to even read the POM when the property is undefined) -->
+    <revision>0.9.4-SNAPSHOT</revision>
     <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
     <maven.compiler.source>1.8</maven.compiler.source>
     <maven.compiler.target>1.8</maven.compiler.target>
