@@ -253,6 +253,7 @@ def _cli(argv=None):
         sys.exit(1)
 
     import shutil
+    import tempfile
 
     if not shutil.which("sqlite3"):
         print(
@@ -272,30 +273,36 @@ def _cli(argv=None):
     uri = _execute1(_MEMCONN, "SELECT genomicsqlite_uri(?,?)", (argv[1], cfg))
     tuning_sql = _execute1(_MEMCONN, "SELECT genomicsqlite_tuning_sql(?)", (cfg,))
 
-    cmd = [
-        "sqlite3",
-        "-bail",
-        "-cmd",
+    # Assemble the shell startup commands into a temporary -init file, instead of passing them
+    # as -cmd arguments: since SQLite 3.52, the shell quits immediately (with a success exit
+    # code, without reading any input) whenever -bail is combined with an SQL -cmd argument,
+    # which silently disabled this wrapper. os.execvp() below replaces this process, so the
+    # file can't be unlinked afterwards; leave it for the OS temp reaper.
+    tuning_sql = tuning_sql.strip()
+    if not tuning_sql.endswith(";"):
+        # in -init file context, an unterminated statement would absorb the following line
+        tuning_sql += ";"
+    init_lines = [
         f".load {_DLL}",
-        "-cmd",
         f".open {uri}",
-        "-cmd",
         ".once /dev/null",
-        "-cmd",
         tuning_sql,
-        "-cmd",
         '.prompt "GenomicSQLite> "',
     ]
     if sys.stdout.isatty() and not next(
         (arg for arg in argv[2:] if not arg.startswith("-")), False
     ):
-        # interactive mode:
-        cmd += [
-            "-cmd",
-            "SELECT 'GenomicSQLite ' || genomicsqlite_version()",
-            "-cmd",
+        # interactive mode: print version banner, then turn on column headers
+        init_lines += [
+            "SELECT 'GenomicSQLite ' || genomicsqlite_version();",
             ".headers on",
         ]
+    with tempfile.NamedTemporaryFile(
+        "w", prefix="genomicsqlite-init-", suffix=".sql", delete=False
+    ) as init_file:
+        init_file.write("\n".join(init_lines) + "\n")
+
+    cmd = ["sqlite3", "-bail", "-init", init_file.name]
     cmd.append(":memory:")  # placeholder so remaining positional args are recognized as such
     cmd += argv[2:]
 
