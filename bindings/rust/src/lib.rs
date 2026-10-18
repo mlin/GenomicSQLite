@@ -53,11 +53,7 @@ fn bundle_libgenomicsqlite() -> Option<(String, TempDir)> {
     None
 }
 
-#[cfg(all(
-    feature = "bundle_libgenomicsqlite",
-    target_os = "linux",
-    target_arch = "x86_64"
-))]
+#[cfg(all(feature = "bundle_libgenomicsqlite", target_os = "linux"))]
 fn bundle_libgenomicsqlite() -> Option<(String, TempDir)> {
     Some(extract_libgenomicsqlite(
         include_bytes!("../libgenomicsqlite.so"),
@@ -65,11 +61,7 @@ fn bundle_libgenomicsqlite() -> Option<(String, TempDir)> {
     ))
 }
 
-#[cfg(all(
-    feature = "bundle_libgenomicsqlite",
-    target_os = "macos",
-    target_arch = "x86_64"
-))]
+#[cfg(all(feature = "bundle_libgenomicsqlite", target_os = "macos"))]
 fn bundle_libgenomicsqlite() -> Option<(String, TempDir)> {
     Some(extract_libgenomicsqlite(
         include_bytes!("../libgenomicsqlite.dylib"),
