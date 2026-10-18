@@ -125,7 +125,7 @@ pub fn open<P: AsRef<Path>>(path: P, flags: OpenFlags, config: &Object) -> Resul
         let memconn = Connection::open_in_memory().unwrap();
         unsafe {
             let _guard = LoadExtensionGuard::new(&memconn).unwrap();
-            match memconn.load_extension(libgenomicsqlite.clone(), None) {
+            match memconn.load_extension(libgenomicsqlite.clone(), None::<&str>) {
                 Err(err) => panic!(
                     "genomicsqlite failed to load_extension(\"{}\"): {}",
                     libgenomicsqlite, err
