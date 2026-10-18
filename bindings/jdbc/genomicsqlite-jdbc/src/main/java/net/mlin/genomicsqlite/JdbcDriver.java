@@ -40,7 +40,9 @@ public class JdbcDriver extends org.sqlite.JDBC {
     }
   }
 
-  /** @see java.sql.Driver#acceptsURL(java.lang.String) */
+  /**
+   * @see java.sql.Driver#acceptsURL(java.lang.String)
+   */
   @Override
   public boolean acceptsURL(String url) {
     return isValidURL(url);
@@ -56,7 +58,9 @@ public class JdbcDriver extends org.sqlite.JDBC {
     return url != null && url.toLowerCase().startsWith(PREFIX);
   }
 
-  /** @see java.sql.Driver#connect(java.lang.String, java.util.Properties) */
+  /**
+   * @see java.sql.Driver#connect(java.lang.String, java.util.Properties)
+   */
   @Override
   public Connection connect(String url, Properties info) throws SQLException {
     return createConnection(url, info);
