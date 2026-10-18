@@ -48,7 +48,6 @@ import re
 import subprocess
 import sys
 
-
 RELEASE_VERSION_FILE = "RELEASE-VERSION"
 
 # http://www.python.org/dev/peps/pep-0386/

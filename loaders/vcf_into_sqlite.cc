@@ -67,8 +67,7 @@ string schemaDDL(const string &table_prefix, vector<map<string, string>> &info_h
         }
 
         // add SQL comment with original metadata
-        out << "  --  "
-            << "Number=" << hrec["Number"] << ",Type=" << hrec["Type"];
+        out << "  --  " << "Number=" << hrec["Number"] << ",Type=" << hrec["Type"];
         auto desc = hrec.find("Description");
         if (desc != hrec.end() && !desc->second.empty()) {
             out << ",Description=" << desc->second;
@@ -109,8 +108,7 @@ string schemaDDL(const string &table_prefix, vector<map<string, string>> &info_h
                 }
 
                 // add SQL comment with original metadata
-                out << "  --  "
-                    << "Number=" << hrec["Number"] << ",Type=" << hrec["Type"];
+                out << "  --  " << "Number=" << hrec["Number"] << ",Type=" << hrec["Type"];
                 auto desc = hrec.find("Description");
                 if (desc != hrec.end() && !desc->second.empty()) {
                     out << ",Description=" << desc->second;

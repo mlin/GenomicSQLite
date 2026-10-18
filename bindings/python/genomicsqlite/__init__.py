@@ -2,6 +2,7 @@
 """
 GenomicSQLite Python binding
 """
+
 import os
 import sys
 import platform

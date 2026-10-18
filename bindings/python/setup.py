@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 from os import path
-from setuptools import setup, find_packages
+from setuptools import setup, find_packages  # pylint: disable=import-error
 from version import get_version
 
 HERE = path.abspath(path.dirname(__file__))

@@ -12,7 +12,7 @@ HERE = os.path.dirname(__file__)
 def txdb(tmp_path):
     ans = str(tmp_path / "TxDb.Hsapiens.UCSC.hg38.knownGene.sqlite")
     subprocess.run(
-        f"pigz -dc {HERE+'/data/TxDb.Hsapiens.UCSC.hg38.knownGene.sqlite.gz'} > {ans}",
+        f"pigz -dc {HERE + '/data/TxDb.Hsapiens.UCSC.hg38.knownGene.sqlite.gz'} > {ans}",
         shell=True,
         check=True,
     )

@@ -3,6 +3,7 @@
 Display platform, environment, & version info for debugging GenomicSQLite installation. Load a
 small test database and check GRI query plan on it.
 """
+
 import sys
 import time
 import os
