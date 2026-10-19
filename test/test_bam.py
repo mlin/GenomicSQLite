@@ -55,10 +55,12 @@ def test_bam(tmp_path):
     count = next(con.execute("SELECT COUNT(DISTINCT qname) FROM NA12878_reads_seqs"))[0]
     assert count == 299205
 
-    mq_hist = dict(con.execute("""
+    mq_hist = dict(
+        con.execute("""
             SELECT mq, COUNT(*) as count FROM
                 (SELECT ifnull(json_extract(tags_json, '$.MQ'),0) AS mq
                 FROM NA12878_reads NATURAL JOIN NA12878_reads_tags WHERE (flag & 3840) = 0)
             GROUP BY mq ORDER BY mq DESC
-            """))
+            """)
+    )
     assert (mq_hist[0], mq_hist[60]) == (2734, 520522)

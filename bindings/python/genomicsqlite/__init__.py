@@ -174,9 +174,9 @@ def get_reference_sequences_by_rid(
         params = (assembly,)
     ans = {}
     for row in con.execute(sql, params):
-        assert (
-            isinstance(row[0], int) and row[0] not in ans
-        ), "genomicsqlite: invalid or duplicate reference sequence rid"
+        assert isinstance(row[0], int) and row[0] not in ans, (
+            "genomicsqlite: invalid or duplicate reference sequence rid"
+        )
         ans[row[0]] = ReferenceSequence(
             rid=row[0],
             name=row[1],

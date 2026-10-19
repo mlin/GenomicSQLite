@@ -88,8 +88,8 @@ The [UINT collating sequence](https://www.sqlite.org/uintcseq.html) is also bund
 
 === "Python"
     ``` python3
-    dbconn = sqlite3.connect('any.db', uri=True)
-    attach_sql = genomicsqlite.attach_sql(dbconn, 'compressed.db', 'db2')
+    dbconn = sqlite3.connect("any.db", uri=True)
+    attach_sql = genomicsqlite.attach_sql(dbconn, "compressed.db", "db2")
     # attach_sql() also takes configuration keyword arguments like
     # genomicsqlite.connect()
     dbconn.executescript(attach_sql)
@@ -190,13 +190,13 @@ The [UINT collating sequence](https://www.sqlite.org/uintcseq.html) is also bund
 
 === "Python"
     ``` python3
-    dbconn = sqlite3.connect('existing.db', uri=True)
-    vacuum_sql = genomicsqlite.vacuum_into_sql(dbconn, 'compressed.db')
+    dbconn = sqlite3.connect("existing.db", uri=True)
+    vacuum_sql = genomicsqlite.vacuum_into_sql(dbconn, "compressed.db")
     # vacuum_into_sql() also takes configuration keyword arguments like
     # genomicsqlite.connect() to control compression level & page sizes
 
     dbconn.executescript(vacuum_sql)
-    dbconn2 = genomicsqlite.connect('compressed.db')
+    dbconn2 = genomicsqlite.connect("compressed.db")
     ```
 
 === "Java"

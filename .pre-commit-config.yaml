@@ -17,25 +17,12 @@ repos:
     verbose: true
     entry: cppcheck
     args: [-q,--std=c++11]
-  - id: black
-    name: black
-    language: system
-    files: \.py$
+- repo: https://github.com/astral-sh/ruff-pre-commit
+  rev: v0.17.1
+  hooks:
+  - id: ruff-check
+    name: ruff-check
     verbose: true
-    entry: black
-    args: [-l,'100']
-  - id: flake8
-    name: flake8
-    language: system
-    files: \.py$
+  - id: ruff-format
+    name: ruff-format
     verbose: true
-    entry: flake8
-    args: [--max-line-length, "100", "--ignore=E501,W503,E722"]
-  - id: pylint
-    name: pylint
-    language: system
-    files: \.py$
-    exclude: version\.py
-    verbose: true
-    entry: env PYTHONPATH=bindings/python pylint
-    args: [-d, "global-statement,missing-docstring,missing-module-docstring,line-too-long,too-many-arguments,too-many-positional-arguments,duplicate-code,redefined-outer-name,too-many-locals,bare-except,broad-except,import-outside-toplevel,protected-access,too-many-statements,too-many-branches,unspecified-encoding"]

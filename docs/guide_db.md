@@ -94,9 +94,9 @@ First complete the [installation instructions](index.md).
 === "Python"
     ``` python3
     dbconn = genomicsqlite.connect(
-      db_filename,
-      read_only=False,
-      **kwargs  #  genomicsqlite + sqlite3.connect() arguments
+        db_filename,
+        read_only=False,
+        **kwargs,  #  genomicsqlite + sqlite3.connect() arguments
     )
     assert isinstance(dbconn, sqlite3.Connection)
     ```

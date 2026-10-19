@@ -76,7 +76,7 @@ def read_git_version():
         return None
     match = re.search(_GIT_DESCRIPTION_RE, ver)
     if not match:
-        sys.stderr.write("version: git description (%s) is invalid, " "ignoring\n" % ver)
+        sys.stderr.write("version: git description (%s) is invalid, ignoring\n" % ver)
         return None
 
     commits = int(match.group("commits"))
@@ -90,9 +90,7 @@ def read_release_version():
         with open(RELEASE_VERSION_FILE) as infile:
             ver = infile.readline().strip()
         if not re.search(_PEP386_VERSION_RE, ver):
-            sys.stderr.write(
-                "version: release version (%s) is invalid, " "will use it anyway\n" % ver
-            )
+            sys.stderr.write("version: release version (%s) is invalid, will use it anyway\n" % ver)
         return ver
     except:
         return None
