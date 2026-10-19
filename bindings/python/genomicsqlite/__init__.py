@@ -15,13 +15,39 @@ _YES = ("1", "true", "t", "yes", "y")
 
 # Module initialization -- locate shared library file
 _DLL = os.environ.get("LIBGENOMICSQLITE", "").strip()  # use env var if present
-if not _DLL and platform.machine() == "x86_64":
-    # select platform-appropriate library bundled with this package
-    _DLL = {"Linux": ".so", "Darwin": ".dylib"}.get(platform.system(), None)
-    if _DLL:
-        _DLL = os.path.join(_HERE, "libgenomicsqlite") + _DLL
-        if not os.path.isfile(_DLL):
-            _DLL = None
+if not _DLL:
+    # select the platform-appropriate library bundled with this package, which
+    # the release pipeline ships under an architecture-qualified name (the same
+    # naming the Rust crate uses). Selection is exact-match on OS + CPU: an
+    # Intel machine never selects the ARM build, nor vice versa.
+    _BUNDLED_NAME = {
+        ("Linux", "x86_64"): "libgenomicsqlite-linux-x86_64.so",
+        ("Linux", "aarch64"): "libgenomicsqlite-linux-aarch64.so",
+        ("Darwin", "x86_64"): "libgenomicsqlite-macos-x86_64.dylib",
+        ("Darwin", "arm64"): "libgenomicsqlite-macos-aarch64.dylib",
+    }.get((platform.system(), platform.machine()))
+    if _BUNDLED_NAME:
+        _bundled_path = os.path.join(_HERE, _BUNDLED_NAME)
+        if os.path.isfile(_bundled_path):
+            # SQLite derives the extension entry point
+            # (sqlite3_genomicsqlite_init) from the name of the file it's asked
+            # to load, so the bundled library must be staged under the plain
+            # basename before loading (the Rust crate extracts its embedded
+            # copy the same way). Stage a hardlink (falling back to a copy) in
+            # a temp directory, removed at interpreter exit; _DLL must name an
+            # existing file for the process lifetime because the CLI entry
+            # point later execs the sqlite3 shell with .load on this path.
+            import atexit
+            import shutil
+            import tempfile
+
+            _STAGE_DIR = tempfile.mkdtemp(prefix="genomicsqlite-")
+            _DLL = os.path.join(_STAGE_DIR, "libgenomicsqlite" + os.path.splitext(_BUNDLED_NAME)[1])
+            try:
+                os.link(_bundled_path, _DLL)
+            except OSError:
+                shutil.copyfile(_bundled_path, _DLL)
+            atexit.register(shutil.rmtree, _STAGE_DIR, ignore_errors=True)
 if not _DLL:
     # otherwise, let SQLite use dlopen() to look for it
     _DLL = "libgenomicsqlite"
@@ -273,18 +299,27 @@ def _cli(argv=None):
     uri = _execute1(_MEMCONN, "SELECT genomicsqlite_uri(?,?)", (argv[1], cfg))
     tuning_sql = _execute1(_MEMCONN, "SELECT genomicsqlite_tuning_sql(?)", (cfg,))
 
-    # Assemble the shell startup commands into a temporary -init file, instead of passing them
-    # as -cmd arguments: since SQLite 3.52, the shell quits immediately (with a success exit
-    # code, without reading any input) whenever -bail is combined with an SQL -cmd argument,
-    # which silently disabled this wrapper. os.execvp() below replaces this process, so the
-    # file can't be unlinked afterwards; leave it for the OS temp reaper.
+    # Assemble the shell startup commands, then replay them inside the shell via
+    # "-cmd .read /dev/fd/N" on an anonymous temporary file whose descriptor is
+    # inherited across exec:
+    #   * Since SQLite 3.52, the shell quits immediately (with a success exit code,
+    #     without reading any input) whenever -bail is combined with an SQL -cmd
+    #     argument, which silently disabled this wrapper when the startup commands
+    #     were passed as -cmd arguments directly. A dot-command -cmd does not take
+    #     that code path.
+    #   * The anonymous TemporaryFile leaves nothing behind in the temp directory
+    #     (unlike a named -init file, which os.execvp() would strand there).
+    #   * The single -init slot stays free, so a user-supplied -init in argv
+    #     composes with -- instead of displacing -- this startup sequence.
     tuning_sql = tuning_sql.strip()
     if not tuning_sql.endswith(";"):
-        # in -init file context, an unterminated statement would absorb the following line
+        # in script context, an unterminated statement would absorb the following line
         tuning_sql += ";"
     init_lines = [
-        f".load {_DLL}",
-        f".open {uri}",
+        # quoted: the shell's dot-command tokenizer splits on unquoted whitespace,
+        # so paths containing spaces would otherwise truncate at the first space
+        f'.load "{_DLL}"',
+        f'.open "{uri}"',
         ".once /dev/null",
         tuning_sql,
         '.prompt "GenomicSQLite> "',
@@ -297,28 +332,34 @@ def _cli(argv=None):
             "SELECT 'GenomicSQLite ' || genomicsqlite_version();",
             ".headers on",
         ]
-    with tempfile.NamedTemporaryFile(
-        "w", prefix="genomicsqlite-init-", suffix=".sql", delete=False
-    ) as init_file:
+
+    with tempfile.TemporaryFile("w+") as init_file:
         init_file.write("\n".join(init_lines) + "\n")
+        init_file.flush()
+        # rewind: on some platforms (notably macOS) reading /dev/fd/N shares this
+        # descriptor's file offset, so the shell must inherit it positioned at 0
+        os.lseek(init_file.fileno(), 0, os.SEEK_SET)
+        # Python file objects are non-inheritable by default (PEP 446); the
+        # descriptor must survive the os.execvp() below
+        os.set_inheritable(init_file.fileno(), True)
 
-    cmd = ["sqlite3", "-bail", "-init", init_file.name]
-    cmd.append(":memory:")  # placeholder so remaining positional args are recognized as such
-    cmd += argv[2:]
+        cmd = ["sqlite3", "-bail", "-cmd", f".read /dev/fd/{init_file.fileno()}"]
+        cmd.append(":memory:")  # placeholder so remaining positional args are recognized as such
+        cmd += argv[2:]
 
-    if "DEBUG" in os.environ:
-        print(
-            " ".join(
-                (
+        if "DEBUG" in os.environ:
+            print(
+                " ".join(
                     (
-                        (arg if " " not in arg else f"'{arg}'")
-                        + (" \\\n    " if len(arg) > 50 else "")
+                        (
+                            (arg if " " not in arg else f"'{arg}'")
+                            + (" \\\n    " if len(arg) > 50 else "")
+                        )
+                        for arg in cmd
                     )
-                    for arg in cmd
                 )
             )
-        )
-    os.execvp("sqlite3", cmd)
+        os.execvp("sqlite3", cmd)
 
 
 def _compact(dbfilename, argv):

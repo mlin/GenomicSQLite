@@ -4,14 +4,7 @@
 set -e
 cd `dirname $0`
 
-revision="$(git describe --tags --dirty 2>/dev/null || true)"
-if [ -z "$revision" ]; then
-    # Tag-less checkout (e.g. actions/checkout fetches no tags): fall back to the
-    # latest release version with the short commit SHA as a prerelease suffix,
-    # keeping the generated crate version valid semver. (Update the release
-    # version here when cutting a new release.)
-    revision="0.9.4-$(git rev-parse --short HEAD)"
-fi
+revision="$(git describe --tags --dirty)"
 revision="${revision#v}"  # strip 'v' prefix
 >&2 echo "$revision"
 

@@ -74,8 +74,11 @@ RUN sqlite3 -cmd '.load build/libgenomicsqlite.so' :memory: 'select sqlite_versi
 
 ###################################################################################################
 # Run-up in fresh almalinux:8, to confirm no dependencies crept into the .so's
+# NOTE: this stage is a test stage -- nothing in the final stage depends on it,
+# so CI builds it explicitly with `docker build --target alma-smoke-test`
+# (BuildKit would otherwise skip it silently).
 
-FROM almalinux:8
+FROM almalinux:8 AS alma-smoke-test
 
 COPY --from=builder /usr/local/bin/sqlite3 /usr/local/bin/
 COPY --from=builder /usr/local/include/sqlite3.h /usr/local/include/
@@ -102,8 +105,8 @@ RUN mv lib/{libgenomicsqlite.so,libsqlite3.so.0} . && rm -rf lib
 RUN ./genomicsqlite_capi_smoke_test
         # ^ we didn't need LD_LIBRARY_PATH even though the .so's aren't at their linktime locations
 
-# test rust bindings too
-FROM almalinux:8
+# test rust bindings too (also a test stage: CI builds --target rust-smoke-test)
+FROM almalinux:8 AS rust-smoke-test
 
 RUN yum install -y -q gcc git
 ADD https://sh.rustup.rs /usr/local/bin/rustup-init.sh
@@ -120,9 +123,10 @@ COPY --from=builder /work/GenomicSQLite/build/libgenomicsqlite.so ./rust/libgeno
 RUN SQLITE_WEB_LOG=99 LD_LIBRARY_PATH=$(pwd)/lib LIBRARY_PATH=$(pwd)/lib rust/cargo test --release
 
 ###################################################################################################
-# Run-up in ubuntu 20.04
+# Run-up in ubuntu 20.04 (final stage: the default docker build target, and the
+# image the CI workflow copies the portable libraries out of)
 
-FROM ubuntu:20.04
+FROM ubuntu:20.04 AS ubuntu-smoke-test
 
 COPY --from=builder /usr/local/bin/sqlite3 /usr/local/bin/
 COPY --from=builder /usr/local/include/sqlite3.h /usr/local/include/

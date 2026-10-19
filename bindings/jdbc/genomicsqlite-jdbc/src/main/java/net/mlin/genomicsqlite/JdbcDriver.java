@@ -160,7 +160,13 @@ public class JdbcDriver extends org.sqlite.JDBC {
           String tempDirpath =
               Files.createTempDirectory("genomicsqlite-jdbc-").toAbsolutePath().toString();
           (new File(tempDirpath)).deleteOnExit();
-          File extracted = new File(tempDirpath, basename);
+          // Extract under the PLAIN basename: SQLite derives the extension
+          // entry point (sqlite3_genomicsqlite_init) from the name of the file
+          // it's asked to load, so loading the extracted copy under its
+          // architecture-qualified resource name would look up a mangled entry
+          // point and fail.
+          String plainBasename = "libgenomicsqlite" + basename.substring(basename.lastIndexOf('.'));
+          File extracted = new File(tempDirpath, plainBasename);
           FileOutputStream writer = new FileOutputStream(extracted.getAbsolutePath());
           extracted.deleteOnExit();
           byte[] buffer = new byte[65536];
@@ -179,18 +185,27 @@ public class JdbcDriver extends org.sqlite.JDBC {
   }
 
   static String getLibraryBasename() {
+    // Resource name of the bundled library for this OS + CPU, in the
+    // architecture-qualified form the release pipeline packs into the JAR (the
+    // same naming the Rust crate uses). Matching is exact: an Intel JVM never
+    // selects the ARM build, nor vice versa. If the JAR carries no resource
+    // under the returned name (a platform the release doesn't bundle), the
+    // caller falls back to the system library search.
     String arch = System.getProperty("os.arch", "unknown").toLowerCase(Locale.ENGLISH);
+    String archTok = null;
     if (arch.equals("amd64") || arch.equals("x86_64")) {
-      String os = System.getProperty("os.name", "unknown").toLowerCase(Locale.ENGLISH);
-      String ext = null;
-      if (os.indexOf("mac") >= 0 || os.indexOf("darwin") >= 0) {
-        ext = "dylib";
-      } else if (os.indexOf("nux") >= 0) {
-        ext = "so";
-      }
-      if (ext != null) {
-        return "libgenomicsqlite." + ext;
-      }
+      archTok = "x86_64";
+    } else if (arch.equals("aarch64") || arch.equals("arm64")) {
+      archTok = "aarch64";
+    }
+    if (archTok == null) {
+      return null;
+    }
+    String os = System.getProperty("os.name", "unknown").toLowerCase(Locale.ENGLISH);
+    if (os.indexOf("mac") >= 0 || os.indexOf("darwin") >= 0) {
+      return "libgenomicsqlite-macos-" + archTok + ".dylib";
+    } else if (os.indexOf("nux") >= 0) {
+      return "libgenomicsqlite-linux-" + archTok + ".so";
     }
     return null;
   }

@@ -7,9 +7,9 @@ use json::object::Object;
 use rusqlite::{params, Connection, LoadExtensionGuard, OpenFlags, Result};
 use std::collections::HashMap;
 use std::env;
-#[cfg(all(feature = "bundle_libgenomicsqlite", bundled_target))]
+#[cfg(feature = "bundle_libgenomicsqlite")]
 use std::fs::File;
-#[cfg(all(feature = "bundle_libgenomicsqlite", bundled_target))]
+#[cfg(feature = "bundle_libgenomicsqlite")]
 use std::io::prelude::*;
 use std::path::Path;
 use std::sync::Once;
@@ -18,7 +18,7 @@ use tempfile::TempDir;
 /* Helper functions for bundling libgenomicsqlite.{so,dylib} into the compilation unit */
 
 // extract slice into basename under a temp directory
-#[cfg(all(feature = "bundle_libgenomicsqlite", bundled_target))]
+#[cfg(feature = "bundle_libgenomicsqlite")]
 fn extract_libgenomicsqlite_impl(
     bytes: &[u8],
     basename: &str,
@@ -40,7 +40,7 @@ fn extract_libgenomicsqlite_impl(
     Ok((libpath, tmp))
 }
 
-#[cfg(all(feature = "bundle_libgenomicsqlite", bundled_target))]
+#[cfg(feature = "bundle_libgenomicsqlite")]
 fn extract_libgenomicsqlite(bytes: &[u8], filename: &str) -> (String, TempDir) {
     match extract_libgenomicsqlite_impl(bytes, filename) {
         Ok(ans) => ans,
@@ -50,57 +50,31 @@ fn extract_libgenomicsqlite(bytes: &[u8], filename: &str) -> (String, TempDir) {
 
 /* Bundled libgenomicsqlite selection.
  *
- * With the bundle_libgenomicsqlite feature, the crate may embed a prebuilt
- * libgenomicsqlite for its target, in a per-OS/architecture file next to
- * Cargo.toml:
- *     libgenomicsqlite-linux-x86_64.so
- *     libgenomicsqlite-linux-aarch64.so
- *     libgenomicsqlite-macos-aarch64.dylib
- * macOS x86_64 is deliberately not bundled (macOS CI builds ARM-only);
- * it takes the fallback path below like any other unsupported target.
- * build.rs inventories which of these files the package actually contains
- * and sets a matching bundled_* cfg for each one present, so an arm below is
- * compiled only when its file exists. On any other target -- or when the
- * target's file isn't bundled -- bundle_libgenomicsqlite() returns None and
- * open() falls back to the normal library search.
+ * With the bundle_libgenomicsqlite feature, build.rs selects the one bundled
+ * library matching the compilation target (OS + CPU + libc ABI), validates
+ * that it's present in the package, and names it in the
+ * GENOMICSQLITE_BUNDLED_LIB environment variable (see build.rs for the
+ * supported-target table and the build-time contract). The single
+ * include_bytes! below embeds exactly that file -- the bundled_lib cfg is set
+ * by build.rs only when a file was selected. On any other target
+ * bundle_libgenomicsqlite() returns None and open() falls back to the normal
+ * library search.
  */
 
-#[cfg(all(
-    feature = "bundle_libgenomicsqlite",
-    target_os = "linux",
-    target_arch = "x86_64",
-    bundled_linux_x86_64
-))]
+#[cfg(all(feature = "bundle_libgenomicsqlite", bundled_lib))]
 fn bundle_libgenomicsqlite() -> Option<(String, TempDir)> {
     Some(extract_libgenomicsqlite(
-        include_bytes!("../libgenomicsqlite-linux-x86_64.so"),
-        "libgenomicsqlite.so",
-    ))
-}
-
-#[cfg(all(
-    feature = "bundle_libgenomicsqlite",
-    target_os = "linux",
-    target_arch = "aarch64",
-    bundled_linux_aarch64
-))]
-fn bundle_libgenomicsqlite() -> Option<(String, TempDir)> {
-    Some(extract_libgenomicsqlite(
-        include_bytes!("../libgenomicsqlite-linux-aarch64.so"),
-        "libgenomicsqlite.so",
-    ))
-}
-
-#[cfg(all(
-    feature = "bundle_libgenomicsqlite",
-    target_os = "macos",
-    target_arch = "aarch64",
-    bundled_macos_aarch64
-))]
-fn bundle_libgenomicsqlite() -> Option<(String, TempDir)> {
-    Some(extract_libgenomicsqlite(
-        include_bytes!("../libgenomicsqlite-macos-aarch64.dylib"),
-        "libgenomicsqlite.dylib",
+        include_bytes!(concat!("../", env!("GENOMICSQLITE_BUNDLED_LIB"))),
+        // SQLite derives the extension entry point (sqlite3_genomicsqlite_init)
+        // from the name of the file it's asked to load, so the extracted copy
+        // must carry the plain library basename -- loading a file under its
+        // arch-qualified package name looks for a mangled entry point
+        // (sqlite3_genomicsqlitelinuxx_init) and fails.
+        if env!("GENOMICSQLITE_BUNDLED_LIB").ends_with(".dylib") {
+            "libgenomicsqlite.dylib"
+        } else {
+            "libgenomicsqlite.so"
+        },
     ))
 }
 
@@ -109,11 +83,10 @@ fn bundle_libgenomicsqlite() -> Option<(String, TempDir)> {
     None
 }
 
-// Feature on, but no bundled library for this target (another OS, an
-// architecture the release didn't bundle, or the target's file absent from
-// the package -- build.rs sets bundled_target exactly when one of the
-// bundled arms above applies): fall back to the normal library search.
-#[cfg(all(feature = "bundle_libgenomicsqlite", not(bundled_target)))]
+// Feature on, but no bundled library for this target (an OS/architecture/ABI
+// the release doesn't bundle -- build.rs sets bundled_lib exactly when it
+// selected a file): fall back to the normal library search.
+#[cfg(all(feature = "bundle_libgenomicsqlite", not(bundled_lib)))]
 fn bundle_libgenomicsqlite() -> Option<(String, TempDir)> {
     None
 }

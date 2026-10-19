@@ -27,7 +27,7 @@ test:
   imports:
     - genomicsqlite
   commands:
-    - 'ldd -v -r ${CONDA_PREFIX}/lib/python3.*/site-packages/genomicsqlite/libgenomicsqlite.so'  # [linux64]
+    - 'ldd -v -r ${CONDA_PREFIX}/lib/python3.*/site-packages/genomicsqlite/libgenomicsqlite-linux-x86_64.so'  # [linux64]
     - 'wget -nv -O - https://raw.githubusercontent.com/mlin/GenomicSQLite/release/test/genomicsqlite_smoke_test.py | python3 -'  # [linux64]
     - which genomicsqlite
 
