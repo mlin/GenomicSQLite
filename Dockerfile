@@ -60,7 +60,13 @@ RUN ldconfig
 ADD . /work/GenomicSQLite
 WORKDIR /work/GenomicSQLite
 RUN rm -rf build
-RUN cmake -DCMAKE_BUILD_TYPE=Release -DZSTD_WHOLE_ARCHIVE=true -B build . && cmake --build build --target genomicsqlite -j $(nproc)
+# _GLIBCXX_USE_CXX11_ABI=0: the header's C++ API passes std::string across the
+# library boundary, so the .so's C++ ABI is part of its public contract. Keep the
+# pre-C++11 libstdc++ ABI -- the artifact's historical ABI (the old CentOS
+# devtoolset toolchain defaulted to it) and the ABI the CI workflow compiles the
+# loader/test executables with. Stock AlmaLinux GCC defaults to ABI=1, which
+# silently changes the exported symbols and breaks those executables.
+RUN cmake -DCMAKE_BUILD_TYPE=Release -DCMAKE_CXX_FLAGS="${CXXFLAGS} -D_GLIBCXX_USE_CXX11_ABI=0" -DZSTD_WHOLE_ARCHIVE=true -B build . && cmake --build build --target genomicsqlite -j $(nproc)
 RUN sqlite3 -cmd '.load build/libgenomicsqlite.so' :memory: 'select sqlite_version(); select genomicsqlite_version()'
 
 
