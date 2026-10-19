@@ -43,9 +43,13 @@
   </distributionManagement>
 
   <properties>
+    <!-- default for the CI-friendly ${revision} version placeholder above;
+         release builds may override with -Drevision=... (Maven >= 3.9.10
+         refuses to even read the POM when the property is undefined) -->
+    <revision>0.9.4-SNAPSHOT</revision>
     <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
-    <maven.compiler.source>1.7</maven.compiler.source>
-    <maven.compiler.target>1.7</maven.compiler.target>
+    <maven.compiler.source>1.8</maven.compiler.source>
+    <maven.compiler.target>1.8</maven.compiler.target>
   </properties>
 
   <dependencies>
@@ -110,7 +114,7 @@
         <plugin>
           <groupId>com.diffplug.spotless</groupId>
           <artifactId>spotless-maven-plugin</artifactId>
-          <version>2.3.1</version>
+          <version>3.10.4</version>
           <configuration>
             <java>
               <includes>
