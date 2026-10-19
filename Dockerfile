@@ -4,7 +4,7 @@
 FROM almalinux:8 as builder
 
 ARG CMAKE_VERSION=3.17.3
-ARG SQLITE_VERSION=3410200
+ARG SQLITE_VERSION=3540100
 ARG ZSTD_VERSION=1.5.5
 ARG CPU_ARCH=ivybridge
 ENV CFLAGS="-march=${CPU_ARCH} -O3"
@@ -34,7 +34,7 @@ RUN mkdir -p /work/GenomicSQLite
 
 # SQLite
 WORKDIR /work
-RUN wget -nv http://www.sqlite.org/2023/sqlite-amalgamation-${SQLITE_VERSION}.zip \
+RUN wget -nv http://www.sqlite.org/2026/sqlite-amalgamation-${SQLITE_VERSION}.zip \
         && unzip -o sqlite-amalgamation-${SQLITE_VERSION}.zip
 WORKDIR /work/sqlite-amalgamation-${SQLITE_VERSION}
 RUN bash -c "gcc -shared -o libsqlite3.so.0 -fPIC -shared -Wl,-soname,libsqlite3.so.0 -g ${CFLAGS} ${SQLITE_CFLAGS} sqlite3.c & pid=$? \
