@@ -110,7 +110,7 @@ COPY --from=builder /usr/local/lib/libsqlite3.so.0 ./lib/
 RUN ln -s libsqlite3.so.0 lib/libsqlite3.so
 ADD ./.git ./.git
 ADD ./bindings/rust ./rust
-COPY --from=builder /work/GenomicSQLite/build/libgenomicsqlite.so ./rust/
+COPY --from=builder /work/GenomicSQLite/build/libgenomicsqlite.so ./rust/libgenomicsqlite-linux-x86_64.so
 RUN SQLITE_WEB_LOG=99 LD_LIBRARY_PATH=$(pwd)/lib LIBRARY_PATH=$(pwd)/lib rust/cargo test --release
 
 ###################################################################################################
