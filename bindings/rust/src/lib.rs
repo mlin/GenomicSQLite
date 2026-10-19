@@ -53,8 +53,11 @@ fn extract_libgenomicsqlite(bytes: &[u8], filename: &str) -> (String, TempDir) {
  * With the bundle_libgenomicsqlite feature, the crate may embed a prebuilt
  * libgenomicsqlite for its target, in a per-OS/architecture file next to
  * Cargo.toml:
- *     libgenomicsqlite-linux-x86_64.so    libgenomicsqlite-linux-aarch64.so
- *     libgenomicsqlite-macos-x86_64.dylib libgenomicsqlite-macos-aarch64.dylib
+ *     libgenomicsqlite-linux-x86_64.so
+ *     libgenomicsqlite-linux-aarch64.so
+ *     libgenomicsqlite-macos-aarch64.dylib
+ * macOS x86_64 is deliberately not bundled (macOS CI builds ARM-only);
+ * it takes the fallback path below like any other unsupported target.
  * build.rs inventories which of these files the package actually contains
  * and sets a matching bundled_* cfg for each one present, so an arm below is
  * compiled only when its file exists. On any other target -- or when the
@@ -85,19 +88,6 @@ fn bundle_libgenomicsqlite() -> Option<(String, TempDir)> {
     Some(extract_libgenomicsqlite(
         include_bytes!("../libgenomicsqlite-linux-aarch64.so"),
         "libgenomicsqlite.so",
-    ))
-}
-
-#[cfg(all(
-    feature = "bundle_libgenomicsqlite",
-    target_os = "macos",
-    target_arch = "x86_64",
-    bundled_macos_x86_64
-))]
-fn bundle_libgenomicsqlite() -> Option<(String, TempDir)> {
-    Some(extract_libgenomicsqlite(
-        include_bytes!("../libgenomicsqlite-macos-x86_64.dylib"),
-        "libgenomicsqlite.dylib",
     ))
 }
 

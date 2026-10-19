@@ -3,8 +3,12 @@
 //
 // A bundled library is embedded into the compilation unit only for the
 // target it was built for, under a per-OS/architecture file name:
-//     libgenomicsqlite-linux-x86_64.so    libgenomicsqlite-linux-aarch64.so
-//     libgenomicsqlite-macos-x86_64.dylib libgenomicsqlite-macos-aarch64.dylib
+//     libgenomicsqlite-linux-x86_64.so
+//     libgenomicsqlite-linux-aarch64.so
+//     libgenomicsqlite-macos-aarch64.dylib
+// macOS x86_64 is deliberately not a bundled target (macOS CI builds
+// ARM-only), so it falls back to the runtime library search like any
+// other unsupported target.
 // For each candidate file that actually exists in the package, this script
 // sets a rustc cfg (bundled_linux_x86_64 etc.) gating the corresponding
 // include_bytes! arm in src/lib.rs. A missing file therefore degrades to
@@ -26,12 +30,6 @@ const CANDIDATES: &[(&str, &str, &str, &str)] = &[
         "aarch64",
         "libgenomicsqlite-linux-aarch64.so",
         "bundled_linux_aarch64",
-    ),
-    (
-        "macos",
-        "x86_64",
-        "libgenomicsqlite-macos-x86_64.dylib",
-        "bundled_macos_x86_64",
     ),
     (
         "macos",
