@@ -7,9 +7,9 @@ use json::object::Object;
 use rusqlite::{params, Connection, LoadExtensionGuard, OpenFlags, Result};
 use std::collections::HashMap;
 use std::env;
-#[cfg(feature = "bundle_libgenomicsqlite")]
+#[cfg(all(feature = "bundle_libgenomicsqlite", bundled_target))]
 use std::fs::File;
-#[cfg(feature = "bundle_libgenomicsqlite")]
+#[cfg(all(feature = "bundle_libgenomicsqlite", bundled_target))]
 use std::io::prelude::*;
 use std::path::Path;
 use std::sync::Once;
@@ -18,7 +18,7 @@ use tempfile::TempDir;
 /* Helper functions for bundling libgenomicsqlite.{so,dylib} into the compilation unit */
 
 // extract slice into basename under a temp directory
-#[cfg(feature = "bundle_libgenomicsqlite")]
+#[cfg(all(feature = "bundle_libgenomicsqlite", bundled_target))]
 fn extract_libgenomicsqlite_impl(
     bytes: &[u8],
     basename: &str,
@@ -40,7 +40,7 @@ fn extract_libgenomicsqlite_impl(
     Ok((libpath, tmp))
 }
 
-#[cfg(feature = "bundle_libgenomicsqlite")]
+#[cfg(all(feature = "bundle_libgenomicsqlite", bundled_target))]
 fn extract_libgenomicsqlite(bytes: &[u8], filename: &str) -> (String, TempDir) {
     match extract_libgenomicsqlite_impl(bytes, filename) {
         Ok(ans) => ans,
@@ -48,25 +48,84 @@ fn extract_libgenomicsqlite(bytes: &[u8], filename: &str) -> (String, TempDir) {
     }
 }
 
+/* Bundled libgenomicsqlite selection.
+ *
+ * With the bundle_libgenomicsqlite feature, the crate may embed a prebuilt
+ * libgenomicsqlite for its target, in a per-OS/architecture file next to
+ * Cargo.toml:
+ *     libgenomicsqlite-linux-x86_64.so    libgenomicsqlite-linux-aarch64.so
+ *     libgenomicsqlite-macos-x86_64.dylib libgenomicsqlite-macos-aarch64.dylib
+ * build.rs inventories which of these files the package actually contains
+ * and sets a matching bundled_* cfg for each one present, so an arm below is
+ * compiled only when its file exists. On any other target -- or when the
+ * target's file isn't bundled -- bundle_libgenomicsqlite() returns None and
+ * open() falls back to the normal library search.
+ */
+
+#[cfg(all(
+    feature = "bundle_libgenomicsqlite",
+    target_os = "linux",
+    target_arch = "x86_64",
+    bundled_linux_x86_64
+))]
+fn bundle_libgenomicsqlite() -> Option<(String, TempDir)> {
+    Some(extract_libgenomicsqlite(
+        include_bytes!("../libgenomicsqlite-linux-x86_64.so"),
+        "libgenomicsqlite.so",
+    ))
+}
+
+#[cfg(all(
+    feature = "bundle_libgenomicsqlite",
+    target_os = "linux",
+    target_arch = "aarch64",
+    bundled_linux_aarch64
+))]
+fn bundle_libgenomicsqlite() -> Option<(String, TempDir)> {
+    Some(extract_libgenomicsqlite(
+        include_bytes!("../libgenomicsqlite-linux-aarch64.so"),
+        "libgenomicsqlite.so",
+    ))
+}
+
+#[cfg(all(
+    feature = "bundle_libgenomicsqlite",
+    target_os = "macos",
+    target_arch = "x86_64",
+    bundled_macos_x86_64
+))]
+fn bundle_libgenomicsqlite() -> Option<(String, TempDir)> {
+    Some(extract_libgenomicsqlite(
+        include_bytes!("../libgenomicsqlite-macos-x86_64.dylib"),
+        "libgenomicsqlite.dylib",
+    ))
+}
+
+#[cfg(all(
+    feature = "bundle_libgenomicsqlite",
+    target_os = "macos",
+    target_arch = "aarch64",
+    bundled_macos_aarch64
+))]
+fn bundle_libgenomicsqlite() -> Option<(String, TempDir)> {
+    Some(extract_libgenomicsqlite(
+        include_bytes!("../libgenomicsqlite-macos-aarch64.dylib"),
+        "libgenomicsqlite.dylib",
+    ))
+}
+
 #[cfg(not(feature = "bundle_libgenomicsqlite"))]
 fn bundle_libgenomicsqlite() -> Option<(String, TempDir)> {
     None
 }
 
-#[cfg(all(feature = "bundle_libgenomicsqlite", target_os = "linux"))]
+// Feature on, but no bundled library for this target (another OS, an
+// architecture the release didn't bundle, or the target's file absent from
+// the package -- build.rs sets bundled_target exactly when one of the
+// bundled arms above applies): fall back to the normal library search.
+#[cfg(all(feature = "bundle_libgenomicsqlite", not(bundled_target)))]
 fn bundle_libgenomicsqlite() -> Option<(String, TempDir)> {
-    Some(extract_libgenomicsqlite(
-        include_bytes!("../libgenomicsqlite.so"),
-        &"libgenomicsqlite.so",
-    ))
-}
-
-#[cfg(all(feature = "bundle_libgenomicsqlite", target_os = "macos"))]
-fn bundle_libgenomicsqlite() -> Option<(String, TempDir)> {
-    Some(extract_libgenomicsqlite(
-        include_bytes!("../libgenomicsqlite.dylib"),
-        "libgenomicsqlite.dylib",
-    ))
+    None
 }
 
 // helper for simple queries
@@ -104,14 +163,20 @@ pub fn open<P: AsRef<Path>>(path: P, flags: OpenFlags, config: &Object) -> Resul
     // once: load libgenomicsqlite extension
     START.call_once(|| {
         let mut _tmpdir;
-        let libgenomicsqlite = match env::var("LIBGENOMICSQLITE") {
-            Ok(v) => v,
+        // Decide where to load libgenomicsqlite from, remembering how it was
+        // obtained, so a load failure can say exactly what was tried.
+        let (libgenomicsqlite, libgenomicsqlite_source) = match env::var("LIBGENOMICSQLITE") {
+            Ok(v) => (v, "path from the LIBGENOMICSQLITE environment variable"),
             Err(_) => match bundle_libgenomicsqlite() {
                 Some((ans, td)) => {
                     _tmpdir = td;
-                    ans
+                    (ans, "copy bundled into the genomicsqlite crate")
                 }
-                None => "libgenomicsqlite".to_string(),
+                None => (
+                    "libgenomicsqlite".to_string(),
+                    "bare library name, to be searched by the system loader \
+                     (no bundled copy available for this target)",
+                ),
             },
         };
         let memconn = Connection::open_in_memory().unwrap();
@@ -119,8 +184,11 @@ pub fn open<P: AsRef<Path>>(path: P, flags: OpenFlags, config: &Object) -> Resul
             let _guard = LoadExtensionGuard::new(&memconn).unwrap();
             match memconn.load_extension(libgenomicsqlite.clone(), None::<&str>) {
                 Err(err) => panic!(
-                    "genomicsqlite failed to load_extension(\"{}\"): {}",
-                    libgenomicsqlite, err
+                    "genomicsqlite: failed to load_extension(\"{}\") [{}]: {}\n\
+                     genomicsqlite needs a loadable libgenomicsqlite shared library. To provide one:\n\
+                     - set the LIBGENOMICSQLITE environment variable to the path of a locally built libgenomicsqlite, or\n\
+                     - install libgenomicsqlite where the system library loader can find it.",
+                    libgenomicsqlite, libgenomicsqlite_source, err
                 ),
                 Ok(()) => (),
             }
