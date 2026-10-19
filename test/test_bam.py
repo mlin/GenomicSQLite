@@ -1,6 +1,7 @@
 import os
-import subprocess
 import sqlite3
+import subprocess
+
 import genomicsqlite
 
 HERE = os.path.dirname(__file__)

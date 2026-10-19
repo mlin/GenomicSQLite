@@ -4,13 +4,13 @@ Display platform, environment, & version info for debugging GenomicSQLite instal
 small test database and check GRI query plan on it.
 """
 
-import sys
-import time
 import os
-import subprocess
-import traceback
 import platform
+import subprocess
+import sys
 import textwrap
+import time
+import traceback
 
 
 def main():

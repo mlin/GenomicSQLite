@@ -1,9 +1,10 @@
 import os
-import sys
-import subprocess
 import random
-import pytest
+import subprocess
+import sys
+
 import genomicsqlite
+import pytest
 
 HERE = os.path.dirname(__file__)
 

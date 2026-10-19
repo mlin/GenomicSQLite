@@ -3,12 +3,12 @@
 GenomicSQLite Python binding
 """
 
-import os
-import sys
-import platform
 import json
+import os
+import platform
 import sqlite3
-from typing import Optional, NamedTuple, Dict, Any
+import sys
+from typing import Any, Dict, NamedTuple, Optional
 
 _HERE = os.path.dirname(__file__)
 _YES = ("1", "true", "t", "yes", "y")
