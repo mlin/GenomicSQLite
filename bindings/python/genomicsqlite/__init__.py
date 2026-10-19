@@ -29,32 +29,26 @@ if not _DLL:
     if _BUNDLED_NAME:
         _bundled_path = os.path.join(_HERE, _BUNDLED_NAME)
         if os.path.isfile(_bundled_path):
-            # SQLite derives the extension entry point
-            # (sqlite3_genomicsqlite_init) from the name of the file it's asked
-            # to load, so the bundled library must be staged under the plain
-            # basename before loading (the Rust crate extracts its embedded
-            # copy the same way). Stage a hardlink (falling back to a copy) in
-            # a temp directory, removed at interpreter exit; _DLL must name an
-            # existing file for the process lifetime because the CLI entry
-            # point later execs the sqlite3 shell with .load on this path.
-            import atexit
-            import shutil
-            import tempfile
-
-            _STAGE_DIR = tempfile.mkdtemp(prefix="genomicsqlite-")
-            _DLL = os.path.join(_STAGE_DIR, "libgenomicsqlite" + os.path.splitext(_BUNDLED_NAME)[1])
-            try:
-                os.link(_bundled_path, _DLL)
-            except OSError:
-                shutil.copyfile(_bundled_path, _DLL)
-            atexit.register(shutil.rmtree, _STAGE_DIR, ignore_errors=True)
+            # Load the bundled library directly from its qualified name.
+            # SQLite normally derives the extension entry point
+            # (sqlite3_genomicsqlite_init) from the name of the file it's
+            # asked to load, which the qualified name would defeat; the loads
+            # therefore name the entry point explicitly -- the second
+            # argument of the load_extension() SQL function below, and of the
+            # shell's .load command in the CLI entry point. (An earlier
+            # version instead staged a copy under the plain basename in a
+            # temp directory, but the CLI's os.execvp() never ran the atexit
+            # cleanup, leaking one staged directory per CLI call.)
+            _DLL = _bundled_path
 if not _DLL:
     # otherwise, let SQLite use dlopen() to look for it
     _DLL = "libgenomicsqlite"
 # open a dummy connection to :memory: just for loading the extension.
+# SELECT load_extension(?,?) is the parameterized form; unlike
+# Connection.load_extension() it takes the entry point as an argument.
 _MEMCONN = sqlite3.connect(":memory:")
 _MEMCONN.enable_load_extension(True)
-_MEMCONN.load_extension(_DLL)
+_MEMCONN.execute("SELECT load_extension(?,?)", (_DLL, "sqlite3_genomicsqlite_init"))
 # now that it's been loaded, the extension will automatically enable itself on any new connections.
 
 
@@ -317,8 +311,11 @@ def _cli(argv=None):
         tuning_sql += ";"
     init_lines = [
         # quoted: the shell's dot-command tokenizer splits on unquoted whitespace,
-        # so paths containing spaces would otherwise truncate at the first space
-        f'.load "{_DLL}"',
+        # so paths containing spaces would otherwise truncate at the first space.
+        # The entry point is named explicitly because _DLL may be the bundled
+        # library's architecture-qualified filename, from which the shell could
+        # not derive it.
+        f'.load "{_DLL}" sqlite3_genomicsqlite_init',
         f'.open "{uri}"',
         ".once /dev/null",
         tuning_sql,

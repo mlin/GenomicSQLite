@@ -120,6 +120,10 @@ RUN ln -s libsqlite3.so.0 lib/libsqlite3.so
 ADD ./.git ./.git
 ADD ./bindings/rust ./rust
 COPY --from=builder /work/GenomicSQLite/build/libgenomicsqlite.so ./rust/libgenomicsqlite-linux-x86_64.so
+# git in the cargo wrapper must accept the context's .git even if the build
+# host checked it out under a different uid than root; the wrapper itself
+# tolerates a tag-less .git
+RUN git config --global --add safe.directory /work
 RUN SQLITE_WEB_LOG=99 LD_LIBRARY_PATH=$(pwd)/lib LIBRARY_PATH=$(pwd)/lib rust/cargo test --release
 
 ###################################################################################################
