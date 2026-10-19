@@ -1,7 +1,7 @@
-# Builds libgenomicsqlite.so in CentOS 7 (+ devtoolset-8) to maximize compatibility. Bakes in
-# Zstandard, and also builds a compatible libsqlite3.so.0 for users unable/unwilling to upgrade
-# their host's.
-FROM centos:7 as builder
+# Builds libgenomicsqlite.so in AlmaLinux 8 (glibc 2.28, the manylinux_2_28 baseline) to
+# maximize compatibility. Bakes in Zstandard, and also builds a compatible libsqlite3.so.0
+# for users unable/unwilling to upgrade their host's.
+FROM almalinux:8 as builder
 
 ARG CMAKE_VERSION=3.17.3
 ARG SQLITE_VERSION=3410200
@@ -28,8 +28,7 @@ ENV SQLITE_CFLAGS="\
         -DSQLITE_ENABLE_SESSION \
 "
 
-RUN yum install -y -q wget unzip rsync git libcurl-devel centos-release-scl
-RUN yum install -y -q devtoolset-8-gcc devtoolset-8-gcc-c++ devtoolset-8-make
+RUN dnf install -y -q wget unzip rsync git libcurl-devel gcc gcc-c++ make
 
 RUN mkdir -p /work/GenomicSQLite
 
@@ -38,8 +37,8 @@ WORKDIR /work
 RUN wget -nv http://www.sqlite.org/2023/sqlite-amalgamation-${SQLITE_VERSION}.zip \
         && unzip -o sqlite-amalgamation-${SQLITE_VERSION}.zip
 WORKDIR /work/sqlite-amalgamation-${SQLITE_VERSION}
-RUN bash -c "scl enable devtoolset-8 'gcc -shared -o libsqlite3.so.0 -fPIC -shared -Wl,-soname,libsqlite3.so.0 -g ${CFLAGS} ${SQLITE_CFLAGS} sqlite3.c' & pid=$? \
-             scl enable devtoolset-8 'gcc -o sqlite3 -g ${CFLAGS} ${SQLITE_CFLAGS} sqlite3.c shell.c -lpthread -ldl -lm' && wait $pid"
+RUN bash -c "gcc -shared -o libsqlite3.so.0 -fPIC -shared -Wl,-soname,libsqlite3.so.0 -g ${CFLAGS} ${SQLITE_CFLAGS} sqlite3.c & pid=$? \
+             gcc -o sqlite3 -g ${CFLAGS} ${SQLITE_CFLAGS} sqlite3.c shell.c -lpthread -ldl -lm && wait $pid"
 RUN cp libsqlite3.so.0 /usr/local/lib && cp *.h /usr/local/include && cp sqlite3 /usr/local/bin
 RUN ln -s /usr/local/lib/libsqlite3.so.0 /usr/local/lib/libsqlite3.so
 
@@ -47,7 +46,7 @@ RUN ln -s /usr/local/lib/libsqlite3.so.0 /usr/local/lib/libsqlite3.so
 WORKDIR /work
 RUN wget -nv -O - https://github.com/facebook/zstd/releases/download/v${ZSTD_VERSION}/zstd-${ZSTD_VERSION}.tar.gz | tar zx
 WORKDIR /work/zstd-${ZSTD_VERSION}
-RUN scl enable devtoolset-8 "CFLAGS='${CFLAGS} -fPIC' make install -j $(nproc)"
+RUN CFLAGS="${CFLAGS} -fPIC" make install -j $(nproc)
 
 # CMake
 WORKDIR /work
@@ -61,21 +60,21 @@ RUN ldconfig
 ADD . /work/GenomicSQLite
 WORKDIR /work/GenomicSQLite
 RUN rm -rf build
-RUN scl enable devtoolset-8 "cmake -DCMAKE_BUILD_TYPE=Release -DZSTD_WHOLE_ARCHIVE=true -B build . && cmake --build build --target genomicsqlite -j $(nproc)"
+RUN cmake -DCMAKE_BUILD_TYPE=Release -DZSTD_WHOLE_ARCHIVE=true -B build . && cmake --build build --target genomicsqlite -j $(nproc)
 RUN sqlite3 -cmd '.load build/libgenomicsqlite.so' :memory: 'select sqlite_version(); select genomicsqlite_version()'
 
 
 
 
 ###################################################################################################
-# Run-up in fresh centos:7, to confirm no dependencies crept into the .so's
+# Run-up in fresh almalinux:8, to confirm no dependencies crept into the .so's
 
-FROM centos:7
+FROM almalinux:8
 
 COPY --from=builder /usr/local/bin/sqlite3 /usr/local/bin/
 COPY --from=builder /usr/local/include/sqlite3.h /usr/local/include/
 
-# NOTE: /usr/local/lib is NOT a default ld path in CentOS -- https://unix.stackexchange.com/q/356624
+# NOTE: /usr/local/lib is NOT a default ld path in AlmaLinux -- https://unix.stackexchange.com/q/356624
 RUN mkdir -p /work/lib
 WORKDIR /work
 COPY --from=builder /usr/local/lib/libsqlite3.so.0 ./lib/
@@ -98,7 +97,7 @@ RUN ./genomicsqlite_capi_smoke_test
         # ^ we didn't need LD_LIBRARY_PATH even though the .so's aren't at their linktime locations
 
 # test rust bindings too
-FROM centos:7
+FROM almalinux:8
 
 RUN yum install -y -q gcc git
 ADD https://sh.rustup.rs /usr/local/bin/rustup-init.sh
@@ -115,9 +114,9 @@ COPY --from=builder /work/GenomicSQLite/build/libgenomicsqlite.so ./rust/
 RUN SQLITE_WEB_LOG=99 LD_LIBRARY_PATH=$(pwd)/lib LIBRARY_PATH=$(pwd)/lib rust/cargo test --release
 
 ###################################################################################################
-# Run-up in ubuntu 16.04
+# Run-up in ubuntu 20.04
 
-FROM ubuntu:16.04
+FROM ubuntu:20.04
 
 COPY --from=builder /usr/local/bin/sqlite3 /usr/local/bin/
 COPY --from=builder /usr/local/include/sqlite3.h /usr/local/include/
