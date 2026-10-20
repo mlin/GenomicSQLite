@@ -1,0 +1,94 @@
+# Ruff configuration -- Python formatting and linting for this repo.
+# Adopted 2026-10, replacing black (formatting) and flake8 + pylint
+# (linting), as a tool swap at equal enforcement: every check the old
+# tools enforced is either carried below or named in the migration
+# record (ops/phase2-deps-audit-2026-10-18.md) as having no ruff
+# counterpart.
+# Line length matches the former `black -l 100` / flake8
+# --max-line-length 100 settings.
+line-length = 100
+
+[lint]
+select = [
+    # The flake8 rule families (E/F/W), as configured for this project,
+    # plus ruff's Pylint family (PL), which carries most of the checks
+    # pylint enforced here.
+    "E", "F", "W", "PL",
+    # Individual rules from other ruff families, each carrying one
+    # specific check pylint enforced here (pylint code in parentheses):
+    "ARG001", "ARG002", "ARG003", "ARG004", "ARG005", # unused-argument (W0613)
+    "A001", "A002", "A003", # redefined-builtin (W0622)
+    "B006", "B008", # dangerous-default-value (W0102)
+    "B018", # pointless-statement (W0104)
+    "B023", # cell-var-from-loop (W0640)
+    "B025", # duplicate-except (W0705)
+    "B904", # raise-missing-from (W0707)
+    "G001", "G002", "G003", "G004", # logging-not-lazy / -format-interpolation / -fstring-interpolation (W1201-W1203)
+    "ISC001", "ISC002", "ISC004", # implicit-str-concat (W1404)
+    "I001", # unsorted-imports (isort): the counterpart of pylint's
+            # wrong-import-order (C0411) and ungrouped-imports (C0412).
+            # Deliberately not adopted in the initial tool swap (ruff's
+            # grouping is stricter than pylint's); adopted on Mike's
+            # ruling, 2026-10-18, as a low-risk cleanup.
+    "S102", "S307", # exec-used (W0122), eval-used (W0123)
+    "T100", # forgotten-debug-statement (W1515)
+    "SIM115", # consider-using-with (R1732), the open() case
+]
+ignore = [
+    # E501 (line too long): line length is policed by `ruff format`,
+    # not the linter; long strings/comments may legitimately exceed
+    # it. Carried over from the flake8 --ignore list; also ports the
+    # pylint line-too-long (C0301) disable.
+    "E501",
+    # E722 (bare except): tolerated in this codebase. Carried over
+    # from the flake8 --ignore list; also ports the pylint
+    # bare-except (W0702) disable.
+    "E722",
+    # The flake8 --ignore list also named W503 (line break before
+    # binary operator). Ruff removed W503/W504 entirely (they
+    # conflict with the formatter); it was a relaxation, not an
+    # enforced check, so nothing is lost.
+    #
+    # Ports of this repo's pylint disable list (formerly the -d list
+    # in .pre-commit-config.yaml), one per entry:
+    "PLW0603", # global-statement
+    "PLR0913", # too-many-arguments
+    "PLR0917", # too-many-positional-arguments (round-4 ruling: the
+               # positional split-out of the too-many-arguments
+               # family; the flagged functions are public API)
+    "PLR0914", # too-many-locals
+    "PLR0912", # too-many-branches
+    "PLR0915", # too-many-statements
+    "PLC0415", # import-outside-toplevel
+    "PLW1514", # unspecified-encoding
+    # The remaining pylint disables have no selector to port:
+    # missing-docstring / missing-module-docstring are not selected
+    # (ruff's pydocstyle D rules stay off, as under pylint);
+    # duplicate-code (R0801), redefined-outer-name (W0621) and
+    # protected-access (W0212) have no ruff counterpart at all;
+    # broad-except's counterpart (BLE001) is not selected.
+    #
+    # Ruff PL rules whose pylint counterparts were NOT part of this
+    # repo's enforced pylint gate (not enabled under the repo's
+    # pylint configuration) -- ignored to hold the swap at equal
+    # enforcement:
+    "PLC1901", # compare-to-empty-string
+    "PLC2701", # import-private-name
+    "PLR2004", # magic-value-comparison
+    "PLR2044", # empty-comment
+    "PLR5501", # collapsible-else-if
+    "PLR6104", # non-augmented-assignment
+    "PLR6201", # literal-membership
+    "PLR6301", # no-self-use
+    "PLW0717", # too-many-statements-in-try-clause
+    "PLW1641", # eq-without-hash
+    "PLW2901", # redefined-loop-name
+    "PLW3201", # bad-dunder-method-name
+]
+
+[lint.per-file-ignores]
+# The pylint hook excluded version.py (generated version-stamping
+# helper); black and flake8 still applied to it. Port that split:
+# version.py is exempt from the pylint-derived rule families below,
+# and still checked by E/F/W and formatted like everything else.
+"**/version.py" = ["PL", "ARG", "A", "B", "G", "ISC", "S", "T100", "SIM"]
