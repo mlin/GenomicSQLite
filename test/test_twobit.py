@@ -1,8 +1,9 @@
-import random
 import math
+import random
 import sqlite3
-import pytest
+
 import genomicsqlite
+import pytest
 
 
 def test_twobit_random():

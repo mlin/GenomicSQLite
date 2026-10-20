@@ -1,8 +1,9 @@
 import os
-import sqlite3
 import random
-import pytest
+import sqlite3
+
 import genomicsqlite
+import pytest
 
 HERE = os.path.dirname(__file__)
 BUILD = os.path.abspath(os.path.join(HERE, "..", "build"))

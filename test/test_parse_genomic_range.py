@@ -1,6 +1,7 @@
 import sqlite3
-import pytest
+
 import genomicsqlite
+import pytest
 
 
 def test_parse_genomic_range():
