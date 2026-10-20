@@ -51,14 +51,18 @@ def test_indexing():
 
     # The query should only search the relevant GRI levels
     indexed = 0
-    for expl in con.execute("EXPLAIN QUERY PLAN " + query, ("chr17", 43044294, 43048294)):
+    for expl in con.execute(
+        "EXPLAIN QUERY PLAN " + query, {"qrid": "chr17", "qbeg": 43044294, "qend": 43048294}
+    ):
         print(expl[3])
         if "USING INDEX exons__gri" in expl[3]:
             indexed += 1
     assert indexed == 3
 
     # The query should be covered by the index except for one final fetch of exons.id
-    opcodes = list(con.execute("EXPLAIN " + query, ("chr17", 43044294, 43048294)))
+    opcodes = list(
+        con.execute("EXPLAIN " + query, {"qrid": "chr17", "qbeg": 43044294, "qend": 43048294})
+    )
     # for expl in opcodes:
     #    if expl[1] in {"OpenRead", "OpenPseudo", "Column"}:
     #        print(expl)
@@ -79,7 +83,9 @@ def test_indexing():
     for _ in range(50000):
         beg = random.randint(43044294 - 10000, 43044294 + 10000)
         end = beg + random.randint(1, random.choice([10, 100, 1000, 10000]))
-        ids = list(row[0] for row in con.execute(query, ("chr17", beg, end)))
+        ids = list(
+            row[0] for row in con.execute(query, {"qrid": "chr17", "qbeg": beg, "qend": end})
+        )
         control_ids = list(row[0] for row in con.execute(control_query, ("chr17", beg, end)))
         assert ids == control_ids
         total_results += len(control_ids)
@@ -121,7 +127,9 @@ def test_level_detection():
     def fanout(query):
         return sum(
             1
-            for expl in con.execute("EXPLAIN QUERY PLAN " + query, (None, None, None))
+            for expl in con.execute(
+                "EXPLAIN QUERY PLAN " + query, {"qrid": None, "qbeg": None, "qend": None}
+            )
             if "((_gri_rid,_gri_lvl,_gri_beg)>(?,?,?) AND (_gri_rid,_gri_lvl,_gri_beg)<(?,?,?))"
             in expl[3]
         )
@@ -133,7 +141,10 @@ def test_level_detection():
     )
     assert fanout(genomicsqlite.genomic_range_rowids_sql(con, "features")[1:-1]) == 16
     assert not list(
-        con.execute(genomicsqlite.genomic_range_rowids_sql(con, "features")[1:-1], (None, 123, 456))
+        con.execute(
+            genomicsqlite.genomic_range_rowids_sql(con, "features")[1:-1],
+            {"qrid": None, "qbeg": 123, "qend": 456},
+        )
     )
 
     con.executescript("INSERT INTO features VALUES(42, 1048568, 1048584)")
@@ -142,7 +153,8 @@ def test_level_detection():
     assert "-1" in query and "-0x10)" in query
     assert not list(
         con.execute(
-            genomicsqlite.genomic_range_rowids_sql(con, "features")[1:-1], (42, None, 1048584)
+            genomicsqlite.genomic_range_rowids_sql(con, "features")[1:-1],
+            {"qrid": 42, "qbeg": None, "qend": 1048584},
         )
     )
 
@@ -186,8 +198,8 @@ def test_level_detection():
         """)
     query = genomicsqlite.genomic_range_rowids_sql(con, "features")[1:-1]
     assert fanout(query) == 10
-    assert len(list(con.execute(query, (43, 32, 33)))) == 4
-    assert len(list(con.execute(query, (43, 33, 33)))) == 3
+    assert len(list(con.execute(query, {"qrid": 43, "qbeg": 32, "qend": 33}))) == 4
+    assert len(list(con.execute(query, {"qrid": 43, "qbeg": 33, "qend": 33}))) == 3
 
 
 def test_refseq():
@@ -222,7 +234,9 @@ def test_refseq():
     )
     print("\n" + query)
     assert len([line for line in query.split("\n") if "BETWEEN" in line]) == 2
-    assert len(list(con.execute(query, ("chr17", 43115725, 43125370)))) == 56
+    assert (
+        len(list(con.execute(query, {"qrid": "chr17", "qbeg": 43115725, "qend": 43125370}))) == 56
+    )
 
 
 def test_join():
@@ -369,7 +383,9 @@ def test_query_in_sql(tmp_path):
 
     control_query = genomicsqlite.genomic_range_rowids_sql(con, "exons")
     control_query = "SELECT id FROM exons WHERE exons._rowid_ IN\n" + control_query
-    control_results = list(con.execute(control_query, ("chr17", 43044294, 43048294)))
+    control_results = list(
+        con.execute(control_query, {"qrid": "chr17", "qbeg": 43044294, "qend": 43048294})
+    )
 
     assert results == control_results
 

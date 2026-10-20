@@ -55,7 +55,7 @@ def test_txdbquery(genomicsqlite_txdb):
             "SELECT tx_name FROM transcript WHERE _rowid_ IN "
             + genomicsqlite.genomic_range_rowids_sql(conn, "transcript")
             + " ORDER BY tx_name",
-            ("chr12", 111803912, 111804012),
+            {"qrid": "chr12", "qbeg": 111803912, "qend": 111804012},
         )
     )
     print(results)
@@ -74,7 +74,9 @@ def test_txdbquery(genomicsqlite_txdb):
     for tbl in ("transcript", "cds"):
         query = genomicsqlite.genomic_range_rowids_sql(conn, tbl)[1:-1]
         fanout = 0
-        for expl in conn.execute("EXPLAIN QUERY PLAN " + query, (None, None, None)):
+        for expl in conn.execute(
+            "EXPLAIN QUERY PLAN " + query, {"qrid": None, "qbeg": None, "qend": None}
+        ):
             print(expl[3])
             if (
                 "((_gri_rid,_gri_lvl,_gri_beg)>(?,?,?) AND (_gri_rid,_gri_lvl,_gri_beg)<(?,?,?))"
@@ -91,7 +93,9 @@ def test_txdbquery(genomicsqlite_txdb):
             chrom = random.choice(chroms)
             beg = random.randint(0, chrom[1] - 65536)
             end = beg + random.randint(1, random.choice([16, 256, 4096, 65536]))
-            ids = list(row[0] for row in conn.execute(query, (chrom[0], beg, end)))
+            ids = list(
+                row[0] for row in conn.execute(query, {"qrid": chrom[0], "qbeg": beg, "qend": end})
+            )
             control_ids = list(row[0] for row in conn.execute(control_query, (chrom[0], beg, end)))
             assert ids == control_ids
             total_results += len(control_ids)
@@ -154,7 +158,7 @@ def test_web():
             "SELECT tx_name FROM transcript WHERE _rowid_ IN "
             + genomicsqlite.genomic_range_rowids_sql(conn, "transcript")
             + " ORDER BY tx_name",
-            ("chr12", 111803912, 111804012),
+            {"qrid": "chr12", "qbeg": 111803912, "qend": 111804012},
         )
     )
     print(results)
