@@ -141,14 +141,19 @@ jobs:
           brew install $dep || brew upgrade $dep
         done
 
-        # macOS ARM's setup-python 3.12 package lacks SQLite extension loading.
+        # setup-python's macOS ARM 3.12.10 build lacked SQLite extension loading.
         # Homebrew enables it; 3.12 is our CI baseline, matching Ubuntu 24.04.
         # A venv selects that interpreter and keeps pip installs isolated.
         "$(brew --prefix python@3.12)/bin/python3.12" -m venv "$HOME/.mac-venv"
         echo "$HOME/.mac-venv/bin" >> "$GITHUB_PATH"
         export PATH="$HOME/.mac-venv/bin:$PATH"
         python3 -m pip install $PIP_DEPS
-        python3 -c "import sys, sqlite3; assert sys.version_info[:2] == (3, 12), sys.version; assert hasattr(sqlite3.Connection, 'enable_load_extension')"
+        python3 - <<'PYTHON'
+        import sqlite3, sys
+        print(sys.executable, sys.version)
+        print("SQLite", sqlite3.sqlite_version)
+        sqlite3.connect(":memory:").enable_load_extension(True)
+        PYTHON
     - name: rust toolchain
       uses: dtolnay/rust-toolchain@stable
     - name: build environment

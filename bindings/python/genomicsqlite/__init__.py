@@ -300,9 +300,6 @@ def _cli(argv=None):
     init_lines = [
         # quoted: the shell's dot-command tokenizer splits on unquoted whitespace,
         # so paths containing spaces would otherwise truncate at the first space.
-        # The entry point is named explicitly because _DLL may be the bundled
-        # library's architecture-qualified filename, from which the shell could
-        # not derive it.
         f'.load "{_DLL}"',
         f'.open "{uri}"',
         ".once /dev/null",
