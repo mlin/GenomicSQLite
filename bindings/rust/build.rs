@@ -4,23 +4,16 @@
 // package, and hand its file name to src/lib.rs via cargo:rustc-env, where a
 // single include_bytes! embeds it.
 //
-// Supported bundled targets -- the bundled libraries are the project's
-// portable builds, and the Linux ones link glibc, so the target env must be
-// gnu (a musl binary must never be handed the glibc library):
+// Supported bundled targets (the Linux libraries link glibc, so the target
+// env must be gnu):
 //     linux + x86_64 + gnu   -> libgenomicsqlite-linux-x86_64.so
 //     linux + aarch64 + gnu  -> libgenomicsqlite-linux-aarch64.so
 //     macos + aarch64        -> libgenomicsqlite-macos-aarch64.dylib
-// macOS x86_64 is deliberately not a bundled target (macOS CI builds
-// ARM-only), so it falls back to the runtime library search like any other
-// unsupported target.
 //
-// Bundling is a build-time contract: with the feature enabled, a supported
-// target whose bundled file is missing FAILS the build -- a release-packaging
-// error must not silently degrade into a runtime library search. Likewise, a
-// Linux target with a non-glibc ABI (e.g. musl) whose CPU has a bundled
-// (glibc) library in the package FAILS with guidance, instead of the library
-// being mis-selected or silently ignored. Any other unsupported target, or
-// building without the feature (--no-default-features), leaves
+// Bundling is a build-time contract: a supported target whose bundled file is
+// missing FAILS the build, as does a non-glibc Linux target whose CPU has a
+// bundled (glibc) library in the package. Any other target, or building
+// without the feature (--no-default-features), leaves
 // GENOMICSQLITE_BUNDLED_LIB empty, and the crate loads an external
 // libgenomicsqlite at runtime (LIBGENOMICSQLITE / system loader search).
 use std::env;

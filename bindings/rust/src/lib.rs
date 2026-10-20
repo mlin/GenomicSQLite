@@ -51,12 +51,10 @@ fn extract_libgenomicsqlite(bytes: &[u8], filename: &str) -> (String, TempDir) {
 /* Bundled libgenomicsqlite selection.
  *
  * With the bundle_libgenomicsqlite feature, build.rs selects the one bundled
- * library matching the compilation target (OS + CPU + libc ABI), validates
- * that it's present in the package, and names it in the
- * GENOMICSQLITE_BUNDLED_LIB environment variable (see build.rs for the
- * supported-target table and the build-time contract). The single
- * include_bytes! below embeds exactly that file -- the bundled_lib cfg is set
- * by build.rs only when a file was selected. On any other target
+ * library matching the compilation target, validates that it's present in
+ * the package, and names it in GENOMICSQLITE_BUNDLED_LIB (see build.rs for
+ * the supported-target table and build-time contract); the single
+ * include_bytes! below embeds exactly that file. With no selection,
  * bundle_libgenomicsqlite() returns None and open() falls back to the normal
  * library search.
  */
@@ -65,28 +63,18 @@ fn extract_libgenomicsqlite(bytes: &[u8], filename: &str) -> (String, TempDir) {
 fn bundle_libgenomicsqlite() -> Option<(String, TempDir)> {
     Some(extract_libgenomicsqlite(
         include_bytes!(concat!("../", env!("GENOMICSQLITE_BUNDLED_LIB"))),
-        // SQLite derives the extension entry point (sqlite3_genomicsqlite_init)
-        // from the name of the file it's asked to load, so the extracted copy
-        // must carry the plain library basename -- loading a file under its
-        // arch-qualified package name looks for a mangled entry point
-        // (sqlite3_genomicsqlitelinuxx_init) and fails.
-        if env!("GENOMICSQLITE_BUNDLED_LIB").ends_with(".dylib") {
-            "libgenomicsqlite.dylib"
-        } else {
-            "libgenomicsqlite.so"
-        },
+        // The bundled binaries export the standard sqlite3_extension_init
+        // entry point, which SQLite tries before guessing an entry point
+        // from the file name -- so the extracted copy loads under its
+        // architecture-qualified package name as-is.
+        env!("GENOMICSQLITE_BUNDLED_LIB"),
     ))
 }
 
-#[cfg(not(feature = "bundle_libgenomicsqlite"))]
-fn bundle_libgenomicsqlite() -> Option<(String, TempDir)> {
-    None
-}
-
-// Feature on, but no bundled library for this target (an OS/architecture/ABI
-// the release doesn't bundle -- build.rs sets bundled_lib exactly when it
-// selected a file): fall back to the normal library search.
-#[cfg(all(feature = "bundle_libgenomicsqlite", not(bundled_lib)))]
+// The complement of the bundled build above: the feature is off, or the
+// compilation target is not one the release bundles. Fall back to the normal
+// library search.
+#[cfg(not(all(feature = "bundle_libgenomicsqlite", bundled_lib)))]
 fn bundle_libgenomicsqlite() -> Option<(String, TempDir)> {
     None
 }

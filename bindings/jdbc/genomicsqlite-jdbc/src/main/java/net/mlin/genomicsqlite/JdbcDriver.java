@@ -160,13 +160,10 @@ public class JdbcDriver extends org.sqlite.JDBC {
           String tempDirpath =
               Files.createTempDirectory("genomicsqlite-jdbc-").toAbsolutePath().toString();
           (new File(tempDirpath)).deleteOnExit();
-          // Extract under the PLAIN basename: SQLite derives the extension
-          // entry point (sqlite3_genomicsqlite_init) from the name of the file
-          // it's asked to load, so loading the extracted copy under its
-          // architecture-qualified resource name would look up a mangled entry
-          // point and fail.
-          String plainBasename = "libgenomicsqlite" + basename.substring(basename.lastIndexOf('.'));
-          File extracted = new File(tempDirpath, plainBasename);
+          // Extract under the resource's own architecture-qualified name: the
+          // bundled binaries export the standard sqlite3_extension_init entry
+          // point, which SQLite tries before guessing one from the file name.
+          File extracted = new File(tempDirpath, basename);
           FileOutputStream writer = new FileOutputStream(extracted.getAbsolutePath());
           extracted.deleteOnExit();
           byte[] buffer = new byte[65536];
