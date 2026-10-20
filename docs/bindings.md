@@ -10,7 +10,7 @@ The key routines are also exposed as [custom SQL functions](https://www.sqlite.o
 
 Bindings should endeavor to integrate "naturally" with the host language and its existing SQLite3 bindings. For example, the object returned by the Open procedure should be an idiomatic SQLite3 connection object. Also, APIs should follow the host language's conventions for naming style and optional/keyword arguments.
 
- Our [Python module](https://github.com/mlin/GenomicSQLite/blob/main/bindings/python/genomicsqlite/__init__.py) can be followed as an illustrative example.
+Our [Python module](https://github.com/mlin/GenomicSQLite/blob/main/bindings/python/genomicsqlite/__init__.py) can be followed as an illustrative example.
 
 ## Locating & loading the extension library
 
@@ -18,12 +18,37 @@ The module should first locate the extension shared-library file (e.g. `libgenom
 
 1. Select the shared-library file in the following order of preference. For development, start with prebuilt binaries from [GitHub Releases](https://github.com/mlin/GenomicSQLite/releases).
     1. Value of `LIBGENOMICSQLITE` environment variable, if nonempty
-    2. Platform-appropriate file shipped with the bindings, if you choose to do so (see Packaging, below)
+    2. A bundled file matching the SQLite process's OS, CPU architecture, and native ABI (see below)
     3. Fall back to `"libgenomicsqlite"` to let SQLite use `dlopen()` to look for it in default locations
 2. Use the language SQLite3 bindings to open a connection to a [`:memory:` database](https://www.sqlite.org/inmemorydb.html), which will just serve these initialization operations.
 3. On the connection, [enable extension loading](https://www.sqlite.org/c3ref/enable_load_extension.html) if needed and perform [`sqlite3_load_extension()`](https://www.sqlite.org/c3ref/load_extension.html), or equivalent, on the library filename.
 
 The extension needs to be loaded only once per process: upon first loading, it [registers itself](https://www.sqlite.org/c3ref/auto_extension.html) to activate automatically on each new connection opened.
+
+### Selecting a bundled library
+
+The release build currently produces these two native variants. Package resources use qualified filenames so several variants can coexist:
+
+| OS | Process architecture | Native ABI | Package resource filename | Release download filename |
+| --- | --- | --- | --- | --- |
+| Linux | `x86_64` | glibc | `libgenomicsqlite-linux-x86_64.so` | `libgenomicsqlite.so` |
+| macOS | `aarch64` / `arm64` | macOS ARM64 | `libgenomicsqlite-macos-aarch64.dylib` | `libgenomicsqlite-macos-aarch64.dylib` |
+
+Normalize architecture names reported by the host language, such as `amd64` / `x86_64` and `arm64` / `aarch64`, before looking up a file. Select for the **process running SQLite**, including its word size. For example, an Intel process running under Rosetta needs an Intel library, even on an Apple Silicon machine. Never substitute another CPU's binary just because its OS matches.
+
+Some existing selectors also recognize Linux ARM64 and macOS Intel filenames for separately supplied builds. Recognition does not mean those binaries are present in the release or package: the current release build does not produce them. A glibc Linux bundle is also unsuitable for a musl target such as Alpine Linux; that target needs a matching source build or externally supplied library.
+
+The filename identifies a native variant, but does not encode all its requirements. Document the release's minimum OS/libc version and CPU instruction set separately. In particular, an `x86_64` filename does not imply support for every x86-64 CPU; the portable Linux build uses an Ivy Bridge instruction-set baseline and glibc 2.28. An ARM64 macOS filename likewise does not specify the oldest supported macOS release.
+
+An explicit `LIBGENOMICSQLITE` override takes precedence over bundled selection. If that file cannot load, report the error rather than silently trying another file. When no compatible bundle is supplied, a binding can use the normal library search or explain how to provide a source build. If a package promises a bundled variant, verify its presence during packaging; silently omitting it turns a packaging error into a user's runtime failure. Rust makes this explicit through the `bundle_libgenomicsqlite` feature: on a supported bundled target, a missing file fails the build; consumers providing their own library can disable the feature.
+
+### Loading the selected file
+
+Current builds export SQLite's standard `sqlite3_extension_init` entry point, so ordinary extension loading works with qualified filenames. The named `sqlite3_genomicsqlite_init` entry point also remains available. When supporting older binaries that lack the standard entry point, pass the named entry point explicitly if the filename would prevent SQLite from deriving it. No rename or extra temporary copy is needed just to select the initializer.
+
+Some packaging systems, such as JAR resources or Rust's embedded bytes, require extracting the library to a real file before SQLite can load it. Manage that file's lifetime and cleanup explicitly. An ordinary filesystem package, such as a Python package directory, can load the bundled file in place.
+
+The host's SQLite bindings must expose extension loading, and it must be enabled for the initialization connection. Python builds can omit this capability even when their version is otherwise suitable. Load through the same SQLite implementation used for the binding's application connections; loading the native library directly through an unrelated FFI does not replace SQLite's extension-loading protocol.
 
 ## GenomicSQLite Open
 
@@ -89,9 +114,13 @@ Our [GitHub Releases](https://github.com/mlin/GenomicSQLite/releases) supply pre
 
 1. **Bundle nothing:** require the end user to download the right library file (or build it themselves) and place it where the bindings and SQLite3 will be able to find them, as described above.
 
-2. **Bundle our binaries:** ship our binaries inside your package and choose the right one to load at runtime. Remember, the only actual ABI linking occurs between the extension library and SQLite3 itself, so there's nothing to worry about compatibility between the library and the host language runtime.
+2. **Bundle our binaries:** ship the variants your package supports and select the compatible file as described above. A language-specific C/C++ FFI is unnecessary, but the native library must still match the SQLite process's OS, architecture, libc ABI, and the release's runtime requirements. For a cross-compiled binding, select using the compilation target rather than the build machine.
 
 3. **Source build:** You can specify the CMake-based source build procedure & its dependencies described in the [GitHub README](https://github.com/mlin/GenomicSQLite) however the host language's packaging system does it. 
+
+### Verify the installed package
+
+Test from a neutral working directory with `LIBGENOMICSQLITE` unset, so a local build cannot hide a missing or misnamed package resource. Install or unpack the actual distributable, open a compressed database through the binding, and execute a query. Exercise each bundled native variant on a matching platform, and verify that unsupported variants never select another architecture's library. The source-tree tests alone do not cover this: they normally point `LIBGENOMICSQLITE` at the CMake build.
 
 ## Documentation
 

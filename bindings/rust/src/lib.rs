@@ -65,11 +65,8 @@ fn extract_libgenomicsqlite(bytes: &[u8], filename: &str) -> (String, TempDir) {
 fn bundle_libgenomicsqlite() -> Option<(String, TempDir)> {
     Some(extract_libgenomicsqlite(
         include_bytes!(concat!("../", env!("GENOMICSQLITE_BUNDLED_LIB"))),
-        // SQLite derives the extension entry point (sqlite3_genomicsqlite_init)
-        // from the name of the file it's asked to load, so the extracted copy
-        // must carry the plain library basename -- loading a file under its
-        // arch-qualified package name looks for a mangled entry point
-        // (sqlite3_genomicsqlitelinuxx_init) and fails.
+        // Keep the canonical basename for compatibility with older binaries.
+        // Current builds export sqlite3_extension_init and accept any filename.
         if env!("GENOMICSQLITE_BUNDLED_LIB").ends_with(".dylib") {
             "libgenomicsqlite.dylib"
         } else {
