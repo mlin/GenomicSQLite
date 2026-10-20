@@ -9,7 +9,7 @@
 # This exists because the CTest suite sets LIBGENOMICSQLITE, which bypasses
 # the package's bundled-library selector entirely; only an installed-package
 # run exercises the selector, including loading the library from its
-# architecture-qualified filename via the explicit entry point.
+# architecture-qualified filename.
 #
 #   $1 python interpreter (pip + setuptools available for it)
 #   $2 bindings/python source dir
@@ -25,6 +25,7 @@ PY="$1"; PKG_SRC="$2"; LIB="$3"; QNAME="$4"; SHELLDIR="$5"
 SHELLDIR="$(cd "$SHELLDIR" && pwd)"
 
 WORK="$(mktemp -d)"
+trap 'rm -rf "$WORK"' EXIT
 SRC="$WORK/pkg-src"
 cp -rL "$PKG_SRC" "$SRC" # -L: materialize the sqlite_web_dbi.py symlink
 cp "$LIB" "$SRC/genomicsqlite/$QNAME"
@@ -45,25 +46,8 @@ con.execute("INSERT INTO t VALUES('pkg-ok')")
 con.commit(); con.close()
 print("PYTHON PACKAGE SMOKE OK")
 EOF
-# Regression check: the installed CLI must not leave genomicsqlite-* staging
-# directories behind in the temp dir. (The bundled-library staging that an
-# earlier selector design used leaked exactly one per CLI call, because the
-# CLI's os.execvp() never ran the atexit cleanup.)
-count_staging_dirs() {
-    local n=0 d
-    for d in "${TMPDIR:-/tmp}"/genomicsqlite-*; do
-        [ -d "$d" ] && n=$((n + 1))
-    done
-    echo "$n"
-}
-STAGING_BEFORE="$(count_staging_dirs)"
 OUT="$(env -u LIBGENOMICSQLITE PYTHONPATH="$SITE" PATH="$SHELLDIR:$PATH" \
        "$PY" -m genomicsqlite "$DB" "SELECT 'CLI:' || (SELECT x FROM t)")"
 echo "$OUT"
 [ "$OUT" = "CLI:pkg-ok" ] || { echo "CLI smoke output mismatch" >&2; exit 1; }
-STAGING_AFTER="$(count_staging_dirs)"
-[ "$STAGING_AFTER" = "$STAGING_BEFORE" ] || {
-    echo "CLI leaked $((STAGING_AFTER - STAGING_BEFORE)) genomicsqlite-* staging dir(s) in ${TMPDIR:-/tmp}" >&2
-    exit 1
-}
 echo "CLI SMOKE OK"

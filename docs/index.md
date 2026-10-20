@@ -45,6 +45,8 @@ It's usually easiest to obtain the extension as a pre-compiled shared library (L
     # -or-
     conda install -c mlin genomicsqlite
     ```
+    Python's `sqlite3` module must support [loadable extensions](https://docs.python.org/3/library/sqlite3.html#sqlite3.Connection.enable_load_extension). Some macOS Python builds omit this support; Homebrew Python enables it. This is an interpreter build option, independent of the Python version.
+
     The package loads a bundled shared library by default. To override the bundled file, set environment variable `LIBGENOMICSQLITE` to a filename.
 
 === "JVM"
