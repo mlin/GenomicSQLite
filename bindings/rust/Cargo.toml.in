@@ -7,7 +7,7 @@ edition = "2018"
 license = "Apache-2.0"
 repository = "https://github.com/mlin/GenomicSQLite"
 documentation = "https://mlin.github.io/GenomicSQLite"
-include = ["src/**/*", "Cargo.toml", "libgenomicsqlite.*"]
+include = ["src/**/*", "Cargo.toml", "build.rs", "libgenomicsqlite.*", "libgenomicsqlite-*"]
 
 [features]
 # Use default-features=false to prevent bundling a platform-specific libgenomicsqlite into your

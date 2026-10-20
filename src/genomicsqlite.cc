@@ -639,10 +639,10 @@ string GenomicRangeRowidsSQL(sqlite3 *dbconn, const string &indexed_table, const
             lvq << "\n  UNION ALL\n  ";
         }
         const string &it = indexed_table;
-        lvq << "SELECT _rowid_ FROM " << it << " INDEXED BY " << table << "__gri WHERE"
-            << "\n   (" << it << "._gri_rid," << it << "._gri_lvl," << it << "._gri_beg) BETWEEN (("
-            << qrid << "),-" << lv << ",(" << qbeg << ")-0x1" << string(lv, '0') << ") AND (("
-            << qrid << "),-" << lv << ",(" << qend << ")-0)" // (*)
+        lvq << "SELECT _rowid_ FROM " << it << " INDEXED BY " << table << "__gri WHERE" << "\n   ("
+            << it << "._gri_rid," << it << "._gri_lvl," << it << "._gri_beg) BETWEEN ((" << qrid
+            << "),-" << lv << ",(" << qbeg << ")-0x1" << string(lv, '0') << ") AND ((" << qrid
+            << "),-" << lv << ",(" << qend << ")-0)" // (*)
             << "\n   AND (" << it << "._gri_beg+" << it << "._gri_len) >= (" << qbeg << ")";
         /*
          * (*) For some reason, we have to obfuscate qend a little (such as with unary *+*, or by
@@ -1023,9 +1023,8 @@ static string gri_refseq_ddl(const string &schema) {
     out << "CREATE TABLE IF NOT EXISTS " << schema_prefix << "_gri_refseq"
         << "(_gri_rid INTEGER NOT NULL PRIMARY KEY, gri_refseq_name TEXT NOT NULL, gri_assembly TEXT,"
         << " gri_refget_id TEXT UNIQUE, gri_refseq_length INTEGER NOT NULL, gri_refseq_meta_json TEXT NOT NULL DEFAULT '{}', "
-        << "UNIQUE(gri_assembly,gri_refseq_name))"
-        << ";\nCREATE INDEX IF NOT EXISTS " << schema_prefix << "_gri_refseq_name ON "
-        << "_gri_refseq(gri_refseq_name)";
+        << "UNIQUE(gri_assembly,gri_refseq_name))" << ";\nCREATE INDEX IF NOT EXISTS "
+        << schema_prefix << "_gri_refseq_name ON " << "_gri_refseq(gri_refseq_name)";
     return out.str();
 }
 
@@ -1863,4 +1862,11 @@ extern "C" int sqlite3_genomicsqlite_init(sqlite3 *db, char **pzErrMsg,
         return rc;
     }
     return SQLITE_OK_LOAD_PERMANENTLY;
+}
+
+// SQLite checks this standard entry point before deriving one from the filename.
+// Keep the named entry point above for callers that already use it explicitly.
+extern "C" int sqlite3_extension_init(sqlite3 *db, char **pzErrMsg,
+                                      const sqlite3_api_routines *pApi) {
+    return sqlite3_genomicsqlite_init(db, pzErrMsg, pApi);
 }

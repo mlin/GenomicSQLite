@@ -48,33 +48,35 @@ fn extract_libgenomicsqlite(bytes: &[u8], filename: &str) -> (String, TempDir) {
     }
 }
 
-#[cfg(not(feature = "bundle_libgenomicsqlite"))]
+/* Bundled libgenomicsqlite selection.
+ *
+ * With the bundle_libgenomicsqlite feature, build.rs selects the one bundled
+ * library matching the compilation target, validates that it's present in
+ * the package, and names it in GENOMICSQLITE_BUNDLED_LIB (see build.rs for
+ * the supported-target table and build-time contract); the single
+ * include_bytes! below embeds exactly that file. With no selection,
+ * bundle_libgenomicsqlite() returns None and open() falls back to the normal
+ * library search.
+ */
+
+#[cfg(all(feature = "bundle_libgenomicsqlite", bundled_lib))]
+fn bundle_libgenomicsqlite() -> Option<(String, TempDir)> {
+    Some(extract_libgenomicsqlite(
+        include_bytes!(concat!("../", env!("GENOMICSQLITE_BUNDLED_LIB"))),
+        // The bundled binaries export the standard sqlite3_extension_init
+        // entry point, which SQLite tries before guessing an entry point
+        // from the file name -- so the extracted copy loads under its
+        // architecture-qualified package name as-is.
+        env!("GENOMICSQLITE_BUNDLED_LIB"),
+    ))
+}
+
+// The complement of the bundled build above: the feature is off, or the
+// compilation target is not one the release bundles. Fall back to the normal
+// library search.
+#[cfg(not(all(feature = "bundle_libgenomicsqlite", bundled_lib)))]
 fn bundle_libgenomicsqlite() -> Option<(String, TempDir)> {
     None
-}
-
-#[cfg(all(
-    feature = "bundle_libgenomicsqlite",
-    target_os = "linux",
-    target_arch = "x86_64"
-))]
-fn bundle_libgenomicsqlite() -> Option<(String, TempDir)> {
-    Some(extract_libgenomicsqlite(
-        include_bytes!("../libgenomicsqlite.so"),
-        &"libgenomicsqlite.so",
-    ))
-}
-
-#[cfg(all(
-    feature = "bundle_libgenomicsqlite",
-    target_os = "macos",
-    target_arch = "x86_64"
-))]
-fn bundle_libgenomicsqlite() -> Option<(String, TempDir)> {
-    Some(extract_libgenomicsqlite(
-        include_bytes!("../libgenomicsqlite.dylib"),
-        "libgenomicsqlite.dylib",
-    ))
 }
 
 // helper for simple queries
@@ -112,23 +114,32 @@ pub fn open<P: AsRef<Path>>(path: P, flags: OpenFlags, config: &Object) -> Resul
     // once: load libgenomicsqlite extension
     START.call_once(|| {
         let mut _tmpdir;
-        let libgenomicsqlite = match env::var("LIBGENOMICSQLITE") {
-            Ok(v) => v,
+        // Decide where to load libgenomicsqlite from, remembering how it was
+        // obtained, so a load failure can say exactly what was tried.
+        let (libgenomicsqlite, libgenomicsqlite_source) = match env::var("LIBGENOMICSQLITE") {
+            Ok(v) => (v, "path from the LIBGENOMICSQLITE environment variable"),
             Err(_) => match bundle_libgenomicsqlite() {
                 Some((ans, td)) => {
                     _tmpdir = td;
-                    ans
+                    (ans, "copy bundled into the genomicsqlite crate")
                 }
-                None => "libgenomicsqlite".to_string(),
+                None => (
+                    "libgenomicsqlite".to_string(),
+                    "bare library name, to be searched by the system loader \
+                     (no bundled copy available for this target)",
+                ),
             },
         };
         let memconn = Connection::open_in_memory().unwrap();
         unsafe {
             let _guard = LoadExtensionGuard::new(&memconn).unwrap();
-            match memconn.load_extension(libgenomicsqlite.clone(), None) {
+            match memconn.load_extension(libgenomicsqlite.clone(), None::<&str>) {
                 Err(err) => panic!(
-                    "genomicsqlite failed to load_extension(\"{}\"): {}",
-                    libgenomicsqlite, err
+                    "genomicsqlite: failed to load_extension(\"{}\") [{}]: {}\n\
+                     genomicsqlite needs a loadable libgenomicsqlite shared library. To provide one:\n\
+                     - set the LIBGENOMICSQLITE environment variable to the path of a locally built libgenomicsqlite, or\n\
+                     - install libgenomicsqlite where the system library loader can find it.",
+                    libgenomicsqlite, libgenomicsqlite_source, err
                 ),
                 Ok(()) => (),
             }

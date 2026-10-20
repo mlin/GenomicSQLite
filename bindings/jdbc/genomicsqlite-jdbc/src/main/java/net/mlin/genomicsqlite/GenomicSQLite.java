@@ -156,7 +156,8 @@ public class GenomicSQLite {
   public static HashMap<Long, ReferenceSequence> getReferenceSequencesByRid(
       Connection conn, String assembly, String schema) throws SQLException {
     String sql =
-        "SELECT _gri_rid, gri_refseq_name, gri_refseq_length, gri_assembly, gri_refget_id, gri_refseq_meta_json FROM ";
+        "SELECT _gri_rid, gri_refseq_name, gri_refseq_length, gri_assembly, gri_refget_id,"
+            + " gri_refseq_meta_json FROM ";
     if (schema != null && schema.length() > 0) {
       sql += schema + ".";
     }

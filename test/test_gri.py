@@ -104,7 +104,7 @@ def test_abutment():
     query = genomicsqlite.genomic_range_rowids_sql(
         con, "features", "42", str(pos0), str(pos0 + 123)
     )[1:-1]
-    control_query = f"SELECT _rowid_ FROM features NOT INDEXED WHERE rid = 42 AND NOT (end < {pos0} OR beg > {pos0+123}) ORDER BY _rowid_"
+    control_query = f"SELECT _rowid_ FROM features NOT INDEXED WHERE rid = 42 AND NOT (end < {pos0} OR beg > {pos0 + 123}) ORDER BY _rowid_"
     assert list(con.execute(query)) == list(con.execute(control_query))
 
 
@@ -148,12 +148,10 @@ def test_level_detection():
 
     assert fanout(query) == 1
 
-    con.executescript(
-        """
+    con.executescript("""
         INSERT INTO features VALUES(44, 1048568, 1048584);
         INSERT INTO features VALUES(44, 0, 64000)
-        """
-    )
+        """)
     query = genomicsqlite.genomic_range_rowids_sql(con, "features")[1:-1]
     print("\n" + query)
     assert "-4," in query and "-0x10000)" in query
@@ -168,30 +166,24 @@ def test_level_detection():
         == 4
     )
 
-    con.executescript(
-        """
+    con.executescript("""
         INSERT INTO features VALUES(43, NULL, 10000000000);
         INSERT INTO features VALUES(44, 0, NULL)
-        """
-    )
+        """)
     assert fanout(genomicsqlite.genomic_range_rowids_sql(con, "features")[1:-1]) == 4
 
-    con.executescript(
-        """
+    con.executescript("""
         INSERT INTO features VALUES(43, 0, 10000000000);
         INSERT INTO features VALUES(43, 32, 33)
-        """
-    )
+        """)
     query = genomicsqlite.genomic_range_rowids_sql(con, "features")[1:-1]
     print("\n" + query)
     assert fanout(query) == 10
 
-    con.executescript(
-        """
+    con.executescript("""
         INSERT INTO features VALUES(43, 0, 10000000000);
         INSERT INTO features VALUES(43, 32, 32)
-        """
-    )
+        """)
     query = genomicsqlite.genomic_range_rowids_sql(con, "features")[1:-1]
     assert fanout(query) == 10
     assert len(list(con.execute(query, (43, 32, 33)))) == 4

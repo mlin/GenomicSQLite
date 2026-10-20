@@ -2,6 +2,7 @@
 """
 GenomicSQLite Python binding
 """
+
 import os
 import sys
 import platform
@@ -14,13 +15,21 @@ _YES = ("1", "true", "t", "yes", "y")
 
 # Module initialization -- locate shared library file
 _DLL = os.environ.get("LIBGENOMICSQLITE", "").strip()  # use env var if present
-if not _DLL and platform.machine() == "x86_64":
-    # select platform-appropriate library bundled with this package
-    _DLL = {"Linux": ".so", "Darwin": ".dylib"}.get(platform.system(), None)
-    if _DLL:
-        _DLL = os.path.join(_HERE, "libgenomicsqlite") + _DLL
-        if not os.path.isfile(_DLL):
-            _DLL = None
+if not _DLL:
+    # select the platform-appropriate library bundled with this package, which
+    # the release pipeline ships under an architecture-qualified name (the same
+    # naming the Rust crate uses). Selection is exact-match on OS + CPU: an
+    # Intel machine never selects the ARM build, nor vice versa.
+    _BUNDLED_NAME = {
+        ("Linux", "x86_64"): "libgenomicsqlite-linux-x86_64.so",
+        ("Linux", "aarch64"): "libgenomicsqlite-linux-aarch64.so",
+        ("Darwin", "x86_64"): "libgenomicsqlite-macos-x86_64.dylib",
+        ("Darwin", "arm64"): "libgenomicsqlite-macos-aarch64.dylib",
+    }.get((platform.system(), platform.machine()))
+    if _BUNDLED_NAME:
+        _bundled_path = os.path.join(_HERE, _BUNDLED_NAME)
+        if os.path.isfile(_bundled_path):
+            _DLL = _bundled_path
 if not _DLL:
     # otherwise, let SQLite use dlopen() to look for it
     _DLL = "libgenomicsqlite"
@@ -252,6 +261,7 @@ def _cli(argv=None):
         sys.exit(1)
 
     import shutil
+    import tempfile
 
     if not shutil.which("sqlite3"):
         print(
@@ -271,46 +281,67 @@ def _cli(argv=None):
     uri = _execute1(_MEMCONN, "SELECT genomicsqlite_uri(?,?)", (argv[1], cfg))
     tuning_sql = _execute1(_MEMCONN, "SELECT genomicsqlite_tuning_sql(?)", (cfg,))
 
-    cmd = [
-        "sqlite3",
-        "-bail",
-        "-cmd",
-        f".load {_DLL}",
-        "-cmd",
-        f".open {uri}",
-        "-cmd",
+    # Assemble the shell startup commands, then replay them inside the shell via
+    # "-cmd .read /dev/fd/N" on an anonymous temporary file whose descriptor is
+    # inherited across exec:
+    #   * Since SQLite 3.52, the shell quits immediately (with a success exit code,
+    #     without reading any input) whenever -bail is combined with an SQL -cmd
+    #     argument, which silently disabled this wrapper when the startup commands
+    #     were passed as -cmd arguments directly. A dot-command -cmd does not take
+    #     that code path.
+    #   * The anonymous TemporaryFile leaves nothing behind in the temp directory
+    #     (unlike a named -init file, which os.execvp() would strand there).
+    #   * The single -init slot stays free, so a user-supplied -init in argv
+    #     composes with -- instead of displacing -- this startup sequence.
+    tuning_sql = tuning_sql.strip()
+    if not tuning_sql.endswith(";"):
+        # in script context, an unterminated statement would absorb the following line
+        tuning_sql += ";"
+    init_lines = [
+        # quoted: the shell's dot-command tokenizer splits on unquoted whitespace,
+        # so paths containing spaces would otherwise truncate at the first space.
+        f'.load "{_DLL}"',
+        f'.open "{uri}"',
         ".once /dev/null",
-        "-cmd",
         tuning_sql,
-        "-cmd",
         '.prompt "GenomicSQLite> "',
     ]
     if sys.stdout.isatty() and not next(
         (arg for arg in argv[2:] if not arg.startswith("-")), False
     ):
-        # interactive mode:
-        cmd += [
-            "-cmd",
-            "SELECT 'GenomicSQLite ' || genomicsqlite_version()",
-            "-cmd",
+        # interactive mode: print version banner, then turn on column headers
+        init_lines += [
+            "SELECT 'GenomicSQLite ' || genomicsqlite_version();",
             ".headers on",
         ]
-    cmd.append(":memory:")  # placeholder so remaining positional args are recognized as such
-    cmd += argv[2:]
 
-    if "DEBUG" in os.environ:
-        print(
-            " ".join(
-                (
+    with tempfile.TemporaryFile("w+") as init_file:
+        init_file.write("\n".join(init_lines) + "\n")
+        init_file.flush()
+        # rewind: on some platforms (notably macOS) reading /dev/fd/N shares this
+        # descriptor's file offset, so the shell must inherit it positioned at 0
+        os.lseek(init_file.fileno(), 0, os.SEEK_SET)
+        # Python file objects are non-inheritable by default (PEP 446); the
+        # descriptor must survive the os.execvp() below
+        os.set_inheritable(init_file.fileno(), True)
+
+        cmd = ["sqlite3", "-bail", "-cmd", f".read /dev/fd/{init_file.fileno()}"]
+        cmd.append(":memory:")  # placeholder so remaining positional args are recognized as such
+        cmd += argv[2:]
+
+        if "DEBUG" in os.environ:
+            print(
+                " ".join(
                     (
-                        (arg if " " not in arg else f"'{arg}'")
-                        + (" \\\n    " if len(arg) > 50 else "")
+                        (
+                            (arg if " " not in arg else f"'{arg}'")
+                            + (" \\\n    " if len(arg) > 50 else "")
+                        )
+                        for arg in cmd
                     )
-                    for arg in cmd
                 )
             )
-        )
-    os.execvp("sqlite3", cmd)
+        os.execvp("sqlite3", cmd)
 
 
 def _compact(dbfilename, argv):

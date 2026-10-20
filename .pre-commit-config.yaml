@@ -38,4 +38,5 @@ repos:
     exclude: version\.py
     verbose: true
     entry: env PYTHONPATH=bindings/python pylint
-    args: [-d, "global-statement,missing-docstring,missing-module-docstring,line-too-long,too-many-arguments,duplicate-code,redefined-outer-name,too-many-locals,bare-except,broad-except,import-outside-toplevel,protected-access,too-many-statements,too-many-branches,unspecified-encoding"]
+    args: [-d, "global-statement,missing-docstring,missing-module-docstring,line-too-long,too-many-arguments,too-many-positional-arguments,duplicate-code,redefined-outer-name,too-many-locals,bare-except,broad-except,import-outside-toplevel,protected-access,too-many-statements,too-many-branches,unspecified-encoding"]
+# CI re-run trigger 2026-10-19 (run 39294337754 lost its macOS runner to GitHub capacity)

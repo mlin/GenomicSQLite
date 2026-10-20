@@ -3,6 +3,13 @@ if(${CMAKE_VERSION} VERSION_LESS 3.12)
     cmake_policy(VERSION ${CMAKE_MAJOR_VERSION}.${CMAKE_MINOR_VERSION})
 endif()
 
+# CMake 4 removed compatibility with projects declaring
+# cmake_minimum_required() below 3.5; the pinned SQLiteCpp fetched
+# below declares 3.1, which makes configure fail outright under
+# CMake 4 (e.g. the macos-15 runner image). Raise the policy-version
+# floor for fetched subprojects; harmless under older CMake.
+set(CMAKE_POLICY_VERSION_MINIMUM 3.5)
+
 include(FetchContent)
 
 if(${CMAKE_VERSION} VERSION_LESS 3.14)
@@ -71,6 +78,7 @@ if(CMAKE_PROJECT_NAME STREQUAL PROJECT_NAME)
     enable_testing()
     set(GENOMICSQLITE_TEST_ENV env PYTHONPATH=${CMAKE_CURRENT_SOURCE_DIR}/bindings/python:${PYTHONPATH} LIBGENOMICSQLITE=${CMAKE_BINARY_DIR}/libgenomicsqlite SQLITE_WEB_LOG=99)
     add_test(NAME smoke_test COMMAND ${GENOMICSQLITE_TEST_ENV} python3 ${CMAKE_CURRENT_SOURCE_DIR}/test/genomicsqlite_smoke_test.py)
+    add_test(NAME extension_loading COMMAND python3 ${CMAKE_CURRENT_SOURCE_DIR}/test/extension_loading.py $<TARGET_FILE:genomicsqlite>)
     add_test(NAME capi_smoke_test COMMAND ${GENOMICSQLITE_TEST_ENV} ${CMAKE_BINARY_DIR}/test/capi_smoke_test)
     add_test(NAME JdbcTests COMMAND ${GENOMICSQLITE_TEST_ENV} mvn test -B -f ${CMAKE_CURRENT_SOURCE_DIR}/bindings/jdbc/genomicsqlite-jdbc/pom.xml)
     add_test(NAME cargo_test COMMAND ${GENOMICSQLITE_TEST_ENV} ${CMAKE_CURRENT_SOURCE_DIR}/bindings/rust/cargo test --no-default-features)
