@@ -141,15 +141,9 @@ jobs:
           brew install $dep || brew upgrade $dep
         done
 
-        # The tests must run under Homebrew's Python 3.12: it is configured with
-        # --enable-loadable-sqlite-extensions (the binding cannot be imported
-        # without sqlite3.Connection.enable_load_extension), while the
-        # image's python.org framework Python is built without it. Select the
-        # interpreter explicitly: the versioned formula's opt bin provides
-        # only python3.12 -- the unversioned python3 symlinks live in its
-        # libexec/bin -- so a PATH entry alone leaves `python3` resolving to
-        # whatever other Python the image ships. Build a venv from it and put
-        # the venv on PATH for all subsequent steps.
+        # macOS ARM's setup-python 3.12 package lacks SQLite extension loading.
+        # Homebrew enables it; 3.12 is our CI baseline, matching Ubuntu 24.04.
+        # A venv selects that interpreter and keeps pip installs isolated.
         "$(brew --prefix python@3.12)/bin/python3.12" -m venv "$HOME/.mac-venv"
         echo "$HOME/.mac-venv/bin" >> "$GITHUB_PATH"
         export PATH="$HOME/.mac-venv/bin:$PATH"
@@ -159,7 +153,7 @@ jobs:
       uses: dtolnay/rust-toolchain@stable
     - name: build environment
       run: |
-        echo "PATH=$HOME/.mac-venv/bin:$(brew --prefix)/bin:$(brew --prefix)/opt/sqlite/bin:${PATH}" >> $GITHUB_ENV
+        echo "$(brew --prefix)/opt/sqlite/bin" >> "$GITHUB_PATH"
         echo "CFLAGS=-I$(brew --prefix)/include -I$(brew --prefix)/opt/sqlite/include" >> $GITHUB_ENV
         echo "CXXFLAGS=-I$(brew --prefix)/include -I$(brew --prefix)/opt/sqlite/include" >> $GITHUB_ENV
         echo "LDFLAGS=-L$(brew --prefix)/lib -L$(brew --prefix)/opt/sqlite/lib" >> $GITHUB_ENV
