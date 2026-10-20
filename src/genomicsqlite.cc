@@ -1867,6 +1867,6 @@ extern "C" int sqlite3_genomicsqlite_init(sqlite3 *db, char **pzErrMsg,
 // SQLite checks this standard entry point before deriving one from the filename.
 // Keep the named entry point above for callers that already use it explicitly.
 extern "C" int sqlite3_extension_init(sqlite3 *db, char **pzErrMsg,
-                                    const sqlite3_api_routines *pApi) {
+                                      const sqlite3_api_routines *pApi) {
     return sqlite3_genomicsqlite_init(db, pzErrMsg, pApi);
 }
