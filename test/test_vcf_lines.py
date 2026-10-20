@@ -1,6 +1,7 @@
 import os
 import sqlite3
 import subprocess
+
 import genomicsqlite
 import pytest
 
