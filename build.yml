@@ -1,0 +1,241 @@
+name: build
+on: [push, pull_request]
+
+env:
+  APT_DEPS: libzstd-dev samtools tabix libhts-dev pigz python3-pip
+  BREW_DEPS: zstd samtools pigz coreutils sqlite python@3.12
+  PIP_DEPS: pytest pytest-xdist
+
+jobs:
+
+  lint:
+    runs-on: ubuntu-24.04
+    steps:
+    - uses: actions/checkout@v7
+      with:
+        fetch-depth: 0
+    - name: deps
+      run: |
+        sudo apt-get -qq update
+        sudo apt-get install -y clang-format cppcheck python3-pip python3-venv
+        python3 -m venv "$HOME/.lint-venv"
+        "$HOME/.lint-venv/bin/pip" install pre-commit $PIP_DEPS ruff
+        echo "$HOME/.lint-venv/bin" >> "$GITHUB_PATH"
+    - name: pre-commit
+      run: pre-commit run --all-files
+    - name: mvn spotless:check
+      run: mvn spotless:check -B -f bindings/jdbc/genomicsqlite-jdbc/pom.xml
+    - name: rust toolchain
+      uses: dtolnay/rust-toolchain@stable
+      with:
+        components: rustfmt, clippy
+    - name: rust lint
+      run: |
+        cd bindings/rust
+        ./cargo check --no-default-features
+        ./cargo fmt -- --check
+
+  test:
+    runs-on: ubuntu-24.04
+    strategy:
+      matrix:
+        BUILD_TYPE: [Debug, Release]
+    steps:
+    - uses: actions/checkout@v7
+      with:
+        fetch-depth: 0
+    - name: deps
+      run: |
+        sudo apt-get -qq update
+        sudo apt-get install -y $APT_DEPS
+        sudo pip3 install --break-system-packages $PIP_DEPS
+    - name: rust toolchain
+      uses: dtolnay/rust-toolchain@stable
+    - name: build
+      run: cmake -DCMAKE_BUILD_TYPE=${{ matrix.BUILD_TYPE }} -B build . && cmake --build build -j $(nproc)
+    - name: test
+      run: env -C build SQLITE_WEB_LOG=99 ctest -V
+
+  linux-x86-64-so:
+    runs-on: ubuntu-24.04
+    steps:
+    - uses: actions/checkout@v7
+      with:
+        fetch-depth: 0
+    - name: build loaders
+      run: |
+        sudo apt-get -qq update
+        sudo apt-get install -y $APT_DEPS
+        sudo pip3 install --break-system-packages $PIP_DEPS
+        cmake -DCMAKE_BUILD_TYPE=Release -DCMAKE_CXX_FLAGS='-D_GLIBCXX_USE_CXX11_ABI=0' -B build . && cmake --build build -j $(nproc)
+        rm build/libgenomicsqlite.so
+        sudo apt-get remove -y libzstd-dev  # should be linked into libgenomicsqlite.so
+    - name: build portable .so in docker
+      run: |
+        # BuildKit builds only the stages the final target depends on, so the
+        # two minimum-runtime smoke-test stages -- which nothing depends on --
+        # must be built explicitly, or they are silently skipped.
+        docker build --target alma-smoke-test .
+        docker build --target rust-smoke-test .
+        docker build -t genomicsqlite . && docker run -v $(pwd):/mnt --rm genomicsqlite cp /usr/local/lib/{libgenomicsqlite.so,libsqlite3.so.0} /usr/local/bin/sqlite3 /mnt/build/
+    - name: symbols & digests
+      run: |
+        readelf -d build/libgenomicsqlite.so
+        ldd -r build/libgenomicsqlite.so
+        echo "----"
+        echo "libgenomicsqlite.so GLIBC version requirements:"
+        objdump -t build/libgenomicsqlite.so | grep -o 'GLIBC_.*' | sort -Vr | head -n1
+        objdump -t build/libgenomicsqlite.so | grep -o 'GLIBCXX_.*' | sort -Vr | head -n1
+        echo "libsqlite3.so.0 GLIBC version requirements:"
+        objdump -t build/libsqlite3.so.0 | grep -o 'GLIBC_.*' | sort -Vr | head -n1
+        echo "----"
+        sha256sum build/libgenomicsqlite.so build/libsqlite3.so.0
+        echo "asserting manylinux_2_28 floor (GLIBC <= 2.28, GLIBCXX <= 3.4.25):"
+        python3 test/check_elf_version_floor.py build/libgenomicsqlite.so build/libsqlite3.so.0
+    - name: rust toolchain
+      uses: dtolnay/rust-toolchain@stable
+    # The steps below test the portable libraries against the portable SQLite
+    # they ship with, scoping that environment (build/ first on PATH /
+    # LD_LIBRARY_PATH) to the tested processes only -- never the runner's
+    # global loader cache or PATH.
+    - name: test portable .so
+      run: env -C build SQLITE_WEB_LOG=99 PATH="$(pwd)/build:$PATH" LD_LIBRARY_PATH="$(pwd)/build" ctest -V
+    - name: test rust crate
+      run: |
+        set -e
+        cp build/libgenomicsqlite.so bindings/rust/libgenomicsqlite-linux-x86_64.so
+        ln -sf libsqlite3.so.0 build/libsqlite3.so  # linker name, scoped to build/ like the Dockerfile rust stage
+        env LD_LIBRARY_PATH="$(pwd)/build" LIBRARY_PATH="$(pwd)/build" SQLITE_WEB_LOG=99 bindings/rust/cargo test --release
+        bindings/rust/cargo package --list | grep libgenomicsqlite-linux-x86_64.so
+    - name: installed-package smoke test
+      run: |
+        sudo pip3 install --break-system-packages -q setuptools wheel
+        bash test/pkg_smoke.sh python3 bindings/python build/libgenomicsqlite.so libgenomicsqlite-linux-x86_64.so "$(pwd)/build"
+    - name: prepare artifacts
+      run: cp build/{libgenomicsqlite.so,libsqlite3.so.0} .
+    - uses: actions/upload-artifact@v7
+      with:
+        name: libgenomicsqlite.so
+        path: libgenomicsqlite.so
+    - uses: actions/upload-artifact@v7
+      with:
+        name: libsqlite3.so.0
+        path: libsqlite3.so.0
+
+  macOS-arm64-dylib:
+    runs-on: macos-15
+    steps:
+    - uses: actions/checkout@v7
+      with:
+        fetch-depth: 0
+    - name: dependencies
+      run: |
+        rm -f $(brew --prefix)/bin/2to3  # https://github.com/pypa/pipenv/issues/3831
+        brew update || (sleep 2; brew update)
+        for dep in $BREW_DEPS ; do
+          brew install $dep || brew upgrade $dep
+        done
+
+        # setup-python's macOS ARM 3.12.10 build lacked SQLite extension loading.
+        # Homebrew enables it; 3.12 is our CI baseline, matching Ubuntu 24.04.
+        # A venv selects that interpreter and keeps pip installs isolated.
+        "$(brew --prefix python@3.12)/bin/python3.12" -m venv "$HOME/.mac-venv"
+        echo "$HOME/.mac-venv/bin" >> "$GITHUB_PATH"
+        export PATH="$HOME/.mac-venv/bin:$PATH"
+        python3 -m pip install $PIP_DEPS
+        python3 - <<'PYTHON'
+        import sqlite3, sys
+        print(sys.executable, sys.version)
+        print("SQLite", sqlite3.sqlite_version)
+        sqlite3.connect(":memory:").enable_load_extension(True)
+        PYTHON
+    - name: rust toolchain
+      uses: dtolnay/rust-toolchain@stable
+    - name: build environment
+      run: |
+        echo "$(brew --prefix)/opt/sqlite/bin" >> "$GITHUB_PATH"
+        echo "CFLAGS=-I$(brew --prefix)/include -I$(brew --prefix)/opt/sqlite/include" >> $GITHUB_ENV
+        echo "CXXFLAGS=-I$(brew --prefix)/include -I$(brew --prefix)/opt/sqlite/include" >> $GITHUB_ENV
+        echo "LDFLAGS=-L$(brew --prefix)/lib -L$(brew --prefix)/opt/sqlite/lib" >> $GITHUB_ENV
+        # used by rusqlite:
+        echo "SQLITE3_INCLUDE_DIR=$(brew --prefix)/opt/sqlite/include" >> $GITHUB_ENV
+        echo "SQLITE3_LIB_DIR=$(brew --prefix)/opt/sqlite/lib" >> $GITHUB_ENV
+    - name: build
+      run: |
+        # Shipped-extension baseline: the Apple M1 CPU target (the flags
+        # compose with the include paths in $CFLAGS / $CXXFLAGS from the
+        # "build environment" step).
+        cmake -DCMAKE_BUILD_TYPE=Release \
+              -DCMAKE_C_FLAGS="$CFLAGS -mcpu=apple-m1" \
+              -DCMAKE_CXX_FLAGS="$CXXFLAGS -mcpu=apple-m1" \
+              -DCMAKE_PREFIX_PATH=$(brew --prefix)/opt/sqlite \
+              -B build .
+        cmake --build build -j 4
+    - name: symbols & digests
+      run: |
+        otool -L build/libgenomicsqlite.dylib
+        sha256sum build/libgenomicsqlite.dylib
+    - name: ctest
+      run: |
+        cd build
+        otool -L test/capi_smoke_test
+        SQLITE_WEB_LOG=99 ctest -V
+    - name: test rust crate
+      run: |
+        set -e
+        cp build/libgenomicsqlite.dylib bindings/rust/libgenomicsqlite-macos-aarch64.dylib
+        SQLITE_WEB_LOG=99 bindings/rust/cargo test --release
+        bindings/rust/cargo package --list | grep libgenomicsqlite-macos-aarch64.dylib
+    - name: installed-package smoke test
+      run: |
+        python3 -m pip install -q setuptools wheel
+        bash test/pkg_smoke.sh python3 bindings/python build/libgenomicsqlite.dylib libgenomicsqlite-macos-aarch64.dylib "$(brew --prefix)/opt/sqlite/bin"
+    - name: prepare artifacts
+      run: cp build/libgenomicsqlite.dylib libgenomicsqlite-macos-aarch64.dylib && cp include/genomicsqlite.h .
+    - uses: actions/upload-artifact@v7
+      with:
+        name: libgenomicsqlite-macos-aarch64.dylib
+        path: libgenomicsqlite-macos-aarch64.dylib
+
+  artifacts:
+    runs-on: ubuntu-24.04
+    needs: [linux-x86-64-so, macOS-arm64-dylib]
+    steps:
+    - uses: actions/checkout@v7
+    - name: fetch libgenomicsqlite.so
+      uses: actions/download-artifact@v8
+      with:
+        name: libgenomicsqlite.so
+    - name: fetch libsqlite3.so.0
+      uses: actions/download-artifact@v8
+      with:
+        name: libsqlite3.so.0
+    - name: fetch libgenomicsqlite.dylib
+      uses: actions/download-artifact@v8
+      with:
+        name: libgenomicsqlite-macos-aarch64.dylib
+    - name: detect GIT_REVISION
+      run: |
+        cp include/genomicsqlite.h .
+        echo "GIT_REVISION=$(git describe --tags --always)" >> $GITHUB_ENV
+    - uses: actions/upload-artifact@v7
+      with:
+        name: GenomicSQLite-${{ env.GIT_REVISION }}
+        path: |
+          LICENSE
+          genomicsqlite.h
+          libgenomicsqlite.so
+          libgenomicsqlite-macos-aarch64.dylib
+    - name: build jar
+      run: |
+        cp libgenomicsqlite.so bindings/jdbc/genomicsqlite-jdbc/src/main/resources/libgenomicsqlite-linux-x86_64.so
+        cp libgenomicsqlite-macos-aarch64.dylib bindings/jdbc/genomicsqlite-jdbc/src/main/resources/libgenomicsqlite-macos-aarch64.dylib
+        mvn deploy -Drevision=${{ env.GIT_REVISION }} -B -f bindings/jdbc/genomicsqlite-jdbc/pom.xml
+    - name: JDBC smoke test
+      run: bash test/jdbc_smoke_test.sh bindings/jdbc/genomicsqlite-jdbc
+    - name: digests
+      run: sha256sum *genomicsqlite* bindings/jdbc/genomicsqlite-jdbc/target/genomicsqlite*.jar libsqlite3.so.0
+    - uses: actions/upload-artifact@v7
+      with:
+        name: genomicsqlite-jdbc-${{ env.GIT_REVISION }}
+        path: bindings/jdbc/genomicsqlite-jdbc/target/mvn-repo
