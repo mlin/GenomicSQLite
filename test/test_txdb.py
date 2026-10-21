@@ -50,7 +50,7 @@ def test_txdbquery(genomicsqlite_txdb):
     assert next(conn.execute("PRAGMA page_size"))[0] == 16384
 
     # one query
-    results = list(
+    results = [
         t[0]
         for t in conn.execute(
             "SELECT tx_name FROM transcript WHERE _rowid_ IN "
@@ -58,7 +58,7 @@ def test_txdbquery(genomicsqlite_txdb):
             + " ORDER BY tx_name",
             ("chr12", 111803912, 111804012),
         )
-    )
+    ]
     print(results)
     assert results == sorted(
         ["ENST00000416293.7", "ENST00000261733.7", "ENST00000548536.1", "ENST00000549106.1"]
@@ -92,8 +92,8 @@ def test_txdbquery(genomicsqlite_txdb):
             chrom = random.choice(chroms)
             beg = random.randint(0, chrom[1] - 65536)
             end = beg + random.randint(1, random.choice([16, 256, 4096, 65536]))
-            ids = list(row[0] for row in conn.execute(query, (chrom[0], beg, end)))
-            control_ids = list(row[0] for row in conn.execute(control_query, (chrom[0], beg, end)))
+            ids = [row[0] for row in conn.execute(query, (chrom[0], beg, end))]
+            control_ids = [row[0] for row in conn.execute(control_query, (chrom[0], beg, end))]
             assert ids == control_ids
             total_results += len(control_ids)
         assert total_results in (7341, 2660)
@@ -149,7 +149,7 @@ def test_web():
         read_only=True,
     )
 
-    results = list(
+    results = [
         t[0]
         for t in conn.execute(
             "SELECT tx_name FROM transcript WHERE _rowid_ IN "
@@ -157,7 +157,7 @@ def test_web():
             + " ORDER BY tx_name",
             ("chr12", 111803912, 111804012),
         )
-    )
+    ]
     print(results)
     sys.stdout.flush()
     assert results == sorted(

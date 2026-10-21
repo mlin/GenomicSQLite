@@ -200,7 +200,7 @@ def get_reference_sequences_by_name(
     con: sqlite3.Connection, assembly: Optional[str] = None, schema: Optional[str] = None
 ) -> Dict[str, ReferenceSequence]:
     ans = {}
-    for _, item in get_reference_sequences_by_rid(con, assembly, schema).items():
+    for item in get_reference_sequences_by_rid(con, assembly, schema).values():
         assert item.name not in ans, "genomicsqlite: non-unique reference sequence names"
         ans[item.name] = item
     return ans
@@ -333,12 +333,10 @@ def _cli(argv=None):
             print(
                 " ".join(
                     (
-                        (
-                            (arg if " " not in arg else f"'{arg}'")
-                            + (" \\\n    " if len(arg) > 50 else "")
-                        )
-                        for arg in cmd
+                        (arg if " " not in arg else f"'{arg}'")
+                        + (" \\\n    " if len(arg) > 50 else "")
                     )
+                    for arg in cmd
                 )
             )
         os.execvp("sqlite3", cmd)
@@ -403,7 +401,7 @@ def _compact(dbfilename, argv):
 
     # sniff whether input db is currently compressed with zstd_vfs or not
     con = None
-    web = dbfilename.startswith("http:") or dbfilename.startswith("https:")
+    web = dbfilename.startswith(("http:", "https:"))
     if not web:
         con = sqlite3.connect(f"file:{urllib.parse.quote(dbfilename)}?mode=ro", uri=True)
         if next(con.execute("PRAGMA application_id"))[0] != 0x7A737464:

@@ -36,9 +36,8 @@ def main():
             sysctl = subprocess.run(
                 ["sysctl", "-n", "machdep.cpu.brand_string"],
                 check=True,
-                universal_newlines=True,
-                stdout=subprocess.PIPE,
-                stderr=subprocess.PIPE,
+                text=True,
+                capture_output=True,
             )
             if sysctl.returncode == 0 and sysctl.stdout.strip():
                 print(": " + sysctl.stdout.strip())
@@ -65,7 +64,7 @@ def main():
 
     conn = sqlite3.connect(":memory:")
     print(next(conn.execute("SELECT sqlite_version()"))[0])
-    sqlite_opts = list(row[0] for row in conn.execute("PRAGMA compile_options"))
+    sqlite_opts = [row[0] for row in conn.execute("PRAGMA compile_options")]
     print(f"  {' '.join(sqlite_opts)}")
 
     print("genomicsqlite: ", end="")

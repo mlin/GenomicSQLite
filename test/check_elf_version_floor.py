@@ -1,4 +1,3 @@
-#!/usr/bin/env python3
 """
 Assert that ELF shared objects' required symbol versions stay at or below the
 project's compatibility ceilings -- the manylinux_2_28 floor asserted by CI for
