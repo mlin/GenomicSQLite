@@ -8,6 +8,7 @@
 #pragma once
 
 #include <assert.h>
+#include <cstdint>
 #include <memory>
 #include <sqlite3ext.h>
 #include <string.h>
@@ -35,7 +36,7 @@ class SQLiteVirtualTableCursor {
     // access current row
     virtual int Column(sqlite3_context *ctx, int colno) { return SQLITE_ERROR; }
 
-    virtual int Rowid(sqlite_int64 *pRowid) { return SQLITE_ERROR; }
+    virtual int Rowid(int64_t *pRowid) { return SQLITE_ERROR; }
 
     SQLiteVirtualTableCursor() {
         memset(&handle_, 0, sizeof(Handle));
@@ -246,8 +247,15 @@ template <class TableImpl> int RegisterSQLiteVirtualTable(sqlite3 *db, const cha
             ctx, colno));
     };
     p->xRowid = [](sqlite3_vtab_cursor *pCursor, sqlite_int64 *pRowid) noexcept {
-        __STUB_CATCH(
-            reinterpret_cast<SQLiteVirtualTableCursor::Handle *>(pCursor)->that->Rowid(pRowid));
+        __STUB_CATCH(([&]() {
+            int64_t rowid;
+            int ans =
+                reinterpret_cast<SQLiteVirtualTableCursor::Handle *>(pCursor)->that->Rowid(&rowid);
+            if (ans == SQLITE_OK) {
+                *pRowid = rowid;
+            }
+            return ans;
+        })());
     };
 #undef __STUB_CATCH
     return sqlite3_create_module_v2(db, zName, p, p,

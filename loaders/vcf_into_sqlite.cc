@@ -157,7 +157,7 @@ void insert_samples(bcf_hdr_t *hdr, const string &table_prefix, SQLite::Database
     SQLite::Statement stmt(db, "INSERT INTO " + table_prefix +
                                    "samples(sample_id,sample_name) VALUES(?,?)");
 
-    for (sqlite3_int64 i = 0; i < bcf_hdr_nsamples(hdr); ++i) {
+    for (int64_t i = 0; i < bcf_hdr_nsamples(hdr); ++i) {
         stmt.bind(1, i);
         stmt.bind(2, hdr->samples[i]);
         stmt.exec();
@@ -486,12 +486,12 @@ unique_ptr<format_helper> format_helper::make(bcf_hdr_t *hdr, bcf1_t *rec,
 }
 
 void insert_genotypes(bcf_hdr_t *hdr, bcf1_t *rec, vector<map<string, string>> &format_hrecs,
-                      int ploidy, sqlite3_int64 variant_rowid, SQLite::Statement &stmt) {
+                      int ploidy, int64_t variant_rowid, SQLite::Statement &stmt) {
     vector<unique_ptr<format_helper>> format_helpers;
     for (auto &hrec : format_hrecs) {
         format_helpers.push_back(format_helper::make(hdr, rec, hrec, ploidy));
     }
-    for (sqlite3_int64 sample = 0; sample < bcf_hdr_nsamples(hdr); ++sample) {
+    for (int64_t sample = 0; sample < bcf_hdr_nsamples(hdr); ++sample) {
         stmt.reset();
         stmt.clearBindings();
         stmt.bind(1, variant_rowid);
@@ -697,7 +697,7 @@ int main(int argc, char *argv[]) {
                     "unexpected: VCF header contig lines reference multiple assemblies");
             }
             errno = 0;
-            sqlite3_int64 length = strtoull(ctg["length"].c_str(), nullptr, 10);
+            int64_t length = strtoull(ctg["length"].c_str(), nullptr, 10);
             if (length <= 0 || errno) {
                 throw runtime_error("invalid contig length in VCF header");
             }

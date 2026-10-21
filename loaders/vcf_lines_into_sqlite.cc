@@ -24,7 +24,7 @@ void InsertLine(const string &line, SQLite::Statement &stmt) {
 
     // POS
     errno = 0;
-    sqlite3_int64 pos = strtoll(fields[1], nullptr, 10);
+    int64_t pos = strtoll(fields[1], nullptr, 10);
     if (errno || pos < 1) {
         throw runtime_error("invalid POS " + string(fields[1]));
     }
@@ -33,11 +33,11 @@ void InsertLine(const string &line, SQLite::Statement &stmt) {
 
     // rlen
     if (strncmp(fields[7], "END=", 4)) {
-        stmt.bind(3, sqlite3_int64(strlen(fields[3])));
+        stmt.bind(3, int64_t(strlen(fields[3])));
     } else {
         vector<char *> info;
         split(fields[7], ';', back_inserter(info), 2);
-        sqlite3_int64 end = strtoll(info[0] + 4, nullptr, 10);
+        int64_t end = strtoll(info[0] + 4, nullptr, 10);
         if (errno || end < pos) {
             throw runtime_error("invalid END " + string(fields[4]));
         }
