@@ -4,13 +4,13 @@ Display platform, environment, & version info for debugging GenomicSQLite instal
 small test database and check GRI query plan on it.
 """
 
-import sys
-import time
 import os
-import subprocess
-import traceback
 import platform
+import subprocess
+import sys
 import textwrap
+import time
+import traceback
 
 
 def main():
@@ -36,9 +36,8 @@ def main():
             sysctl = subprocess.run(
                 ["sysctl", "-n", "machdep.cpu.brand_string"],
                 check=True,
-                universal_newlines=True,
-                stdout=subprocess.PIPE,
-                stderr=subprocess.PIPE,
+                text=True,
+                capture_output=True,
             )
             if sysctl.returncode == 0 and sysctl.stdout.strip():
                 print(": " + sysctl.stdout.strip())
@@ -46,7 +45,7 @@ def main():
                 print(": ???")
         else:
             print(": ???")
-    except Exception:
+    except Exception:  # noqa: BLE001
         print(": ???")
 
     env_keys = [
@@ -65,7 +64,7 @@ def main():
 
     conn = sqlite3.connect(":memory:")
     print(next(conn.execute("SELECT sqlite_version()"))[0])
-    sqlite_opts = list(row[0] for row in conn.execute("PRAGMA compile_options"))
+    sqlite_opts = [row[0] for row in conn.execute("PRAGMA compile_options")]
     print(f"  {' '.join(sqlite_opts)}")
 
     print("genomicsqlite: ", end="")
@@ -126,9 +125,9 @@ def main():
         control = "SELECT exons1.id, exons2.id FROM exons1 LEFT JOIN exons2 NOT INDEXED ON NOT (exons2.end < exons1.pos OR exons2.pos > exons1.end) ORDER BY exons1.id, exons2.id"
         control_results = list(dbconn.execute(control))
         assert len(control_results) == 1139, "unexpected control query results"
-        assert (
-            results == control_results
-        ), "discrepancy between genomic_range_rowids_sql() and control results"
+        assert results == control_results, (
+            "discrepancy between genomic_range_rowids_sql() and control results"
+        )
 
         if gri_constraints != 3:
             print("GRI query opcodes:")
@@ -154,9 +153,9 @@ def main():
                 genomic_range_rowids('exons2', exons1.chrom, exons1.pos, exons1.end, _gri_ceiling, _gri_floor)
             ORDER BY exons1.id, exons2.id
             """
-        assert (
-            list(dbconn.execute(query2)) == control_results
-        ), "discrepancy between genomic_range_rowids() and control results"
+        assert list(dbconn.execute(query2)) == control_results, (
+            "discrepancy between genomic_range_rowids() and control results"
+        )
 
         dbconn.close()
         print("\nGenomicSQLite smoke test OK =)\n")
@@ -525,7 +524,7 @@ chr17	43125270	43125353	ENST00000476777.5_exon_8_0_chr17_43125271_r	0	-
 
 try:
     main()
-except Exception:
+except Exception:  # noqa: BLE001
     print()
     traceback.print_exc(file=sys.stdout)
     sys.exit(1)

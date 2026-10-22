@@ -304,7 +304,7 @@ int main(int argc, char *argv[]) {
                 throw runtime_error("invalid header SQ");
             }
             errno = 0;
-            sqlite3_int64 length = strtoll(ks->s, nullptr, 10);
+            int64_t length = strtoll(ks->s, nullptr, 10);
             if (errno || length <= 0) {
                 throw runtime_error("invalid header SQ");
             }
@@ -391,7 +391,7 @@ int main(int argc, char *argv[]) {
             }
 
             insert_read.exec();
-            sqlite3_int64 rowid = db->getLastInsertRowid();
+            int64_t rowid = db->getLastInsertRowid();
 
             insert_seqs.reset();
             insert_seqs.clearBindings();

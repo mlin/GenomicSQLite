@@ -19,7 +19,7 @@ jobs:
         sudo apt-get -qq update
         sudo apt-get install -y clang-format cppcheck python3-pip python3-venv
         python3 -m venv "$HOME/.lint-venv"
-        "$HOME/.lint-venv/bin/pip" install pre-commit $PIP_DEPS black flake8 pylint
+        "$HOME/.lint-venv/bin/pip" install pre-commit $PIP_DEPS ruff
         echo "$HOME/.lint-venv/bin" >> "$GITHUB_PATH"
     - name: pre-commit
       run: pre-commit run --all-files

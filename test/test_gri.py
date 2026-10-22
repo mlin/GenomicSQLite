@@ -1,8 +1,9 @@
 import os
-import sqlite3
 import random
-import pytest
+import sqlite3
+
 import genomicsqlite
+import pytest
 
 HERE = os.path.dirname(__file__)
 BUILD = os.path.abspath(os.path.join(HERE, "..", "build"))
@@ -62,13 +63,13 @@ def test_indexing():
     # for expl in opcodes:
     #    if expl[1] in {"OpenRead", "OpenPseudo", "Column"}:
     #        print(expl)
-    accessed_cursors = list(opcode[2] for opcode in opcodes if opcode[1] == "Column")
-    table_rootpages = set(
+    accessed_cursors = [opcode[2] for opcode in opcodes if opcode[1] == "Column"]
+    table_rootpages = {
         row[0] for row in con.execute("SELECT rootpage FROM sqlite_master WHERE type='table'")
-    )
-    table_cursors = set(
+    }
+    table_cursors = {
         opcode[2] for opcode in opcodes if opcode[1] == "OpenRead" and opcode[3] in table_rootpages
-    )
+    }
     assert sum(1 for cursor in accessed_cursors if cursor not in table_cursors) > 1  # get from idx
     assert sum(1 for cursor in accessed_cursors if cursor in table_cursors) == 1  # get from table
 
@@ -79,8 +80,8 @@ def test_indexing():
     for _ in range(50000):
         beg = random.randint(43044294 - 10000, 43044294 + 10000)
         end = beg + random.randint(1, random.choice([10, 100, 1000, 10000]))
-        ids = list(row[0] for row in con.execute(query, ("chr17", beg, end)))
-        control_ids = list(row[0] for row in con.execute(control_query, ("chr17", beg, end)))
+        ids = [row[0] for row in con.execute(query, ("chr17", beg, end))]
+        control_ids = [row[0] for row in con.execute(control_query, ("chr17", beg, end))]
         assert ids == control_ids
         total_results += len(control_ids)
     assert total_results == 189935
@@ -406,14 +407,12 @@ def test_query_in_sql(tmp_path):
         assert "USE TEMP B-TREE FOR ORDER BY" not in expl[3]
 
     assert next(
-        (
-            expl[3]
-            for expl in con.execute(
-                "EXPLAIN QUERY PLAN SELECT _rowid_ FROM genomic_range_rowids('exons',?,?,?) ORDER BY _rowid_ DESC",
-                ("chr17", 43044294, 43048294),
-            )
-            if "USE TEMP B-TREE FOR ORDER BY" in expl[3]
+        expl[3]
+        for expl in con.execute(
+            "EXPLAIN QUERY PLAN SELECT _rowid_ FROM genomic_range_rowids('exons',?,?,?) ORDER BY _rowid_ DESC",
+            ("chr17", 43044294, 43048294),
         )
+        if "USE TEMP B-TREE FOR ORDER BY" in expl[3]
     )
 
     with pytest.raises(sqlite3.OperationalError, match="domain error"):

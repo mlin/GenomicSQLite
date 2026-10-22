@@ -1,0 +1,17 @@
+# Ruff: run on ruff's own defaults (project lint policy, 2026-10-20).
+# Opt out of specific rules only where warranted; each opt-out is documented
+# inline. No rule sets are selected or opted into.
+line-length = 100 # exception to the ruff default (88): matches this codebase's black -l 100 formatting; avoids a whole-tree reformat
+
+[lint]
+ignore = [
+    "UP006", # non-pep585-annotation: binding annotations are evaluated at runtime; package declares python_requires>=3.6
+    "UP045", # non-pep604-annotation-optional: same runtime-annotation / python>=3.6 constraint as UP006
+]
+
+[lint.per-file-ignores]
+# bindings/python/version.py is vendored (third-party, public domain) and not
+# hand-edited; the rules below fire only there. Scoping them to that file
+# keeps them enforced on all hand-written code (which has no bare excepts,
+# so restoring E722 enforcement there costs nothing).
+"bindings/python/version.py" = ["E722", "UP031", "UP009", "PLE0605"]

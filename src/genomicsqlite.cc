@@ -538,7 +538,7 @@ extern "C" char *create_genomic_range_index_sql(const char *table, const char *r
 static void sqlfn_create_genomic_range_index_sql(sqlite3_context *ctx, int argc,
                                                  sqlite3_value **argv) {
     string schema_table, rid, beg, end;
-    sqlite3_int64 floor = -1;
+    int64_t floor = -1;
     assert(argc == 4 || argc == 5);
     ARG_TEXT(schema_table, 0)
     ARG_TEXT(rid, 1)
@@ -593,15 +593,15 @@ static pair<int, int> DetectLevelRange(sqlite3 *dbconn, const string &schema_tab
         stmt = shared_ptr<sqlite3_stmt>(pStmt, sqlite3_finalize);
     }
 
-    sqlite3_int64 min_lvl = 15, max_lvl = 0;
+    int64_t min_lvl = 15, max_lvl = 0;
     int rc;
     while ((rc = sqlite3_step(stmt.get())) == SQLITE_ROW) {
         // un-negating as we go
         if (sqlite3_column_type(stmt.get(), 0) == SQLITE_INTEGER) {
-            max_lvl = max(max_lvl, 0 - sqlite3_column_int64(stmt.get(), 0));
+            max_lvl = max<int64_t>(max_lvl, 0 - sqlite3_column_int64(stmt.get(), 0));
         }
         if (sqlite3_column_type(stmt.get(), 1) == SQLITE_INTEGER) {
-            min_lvl = min(min_lvl, 0 - sqlite3_column_int64(stmt.get(), 1));
+            min_lvl = min<int64_t>(min_lvl, 0 - sqlite3_column_int64(stmt.get(), 1));
         }
     }
     if (rc != SQLITE_DONE) {
@@ -669,7 +669,7 @@ extern "C" char *genomic_range_rowids_sql(sqlite3 *dbconn, const char *table, co
 
 static void sqlfn_genomic_range_rowids_sql(sqlite3_context *ctx, int argc, sqlite3_value **argv) {
     string indexed_table, qrid = "?1", qbeg = "?2", qend = "?3";
-    sqlite3_int64 ceiling = -1, floor = -1;
+    int64_t ceiling = -1, floor = -1;
     assert(argc >= 1 && argc <= 6);
     ARG_TEXT(indexed_table, 0)
     ARG_TEXT_OPTIONAL(qrid, 1)
@@ -810,7 +810,7 @@ class GenomicRangeRowidsCursor : public SQLiteVirtualTableCursor {
         return SQLITE_OK;
     }
 
-    int Rowid(sqlite_int64 *pRowid) override {
+    int Rowid(int64_t *pRowid) override {
         assert(stmt_);
         *pRowid = sqlite3_column_int64(stmt_.get(), 0);
         return SQLITE_OK;
@@ -968,7 +968,7 @@ class GenomicRangeIndexLevelsCursor : public SQLiteVirtualTableCursor {
         return SQLITE_OK;
     }
 
-    int Rowid(sqlite_int64 *pRowid) override {
+    int Rowid(int64_t *pRowid) override {
         assert(floor_ >= 0);
         *pRowid = 1;
         return SQLITE_OK;
@@ -977,7 +977,7 @@ class GenomicRangeIndexLevelsCursor : public SQLiteVirtualTableCursor {
   private:
     sqlite3 *db_;
     levels_cache &cache_;
-    sqlite_int64 ceiling_ = -1, floor_ = -1;
+    int64_t ceiling_ = -1, floor_ = -1;
 };
 
 class GenomicRangeIndexLevelsTVF : public SQLiteVirtualTable {
@@ -1069,7 +1069,7 @@ extern "C" char *put_genomic_reference_sequence_sql(const char *name, sqlite3_in
 static void sqlfn_put_genomic_reference_sequence_sql(sqlite3_context *ctx, int argc,
                                                      sqlite3_value **argv) {
     string name, assembly, refget_id, meta_json = "{}", schema;
-    sqlite3_int64 length, rid = -1;
+    int64_t length, rid = -1;
     assert(argc >= 2 && argc <= 7);
     ARG_TEXT(name, 0)
     ARG(length, 1, SQLITE_INTEGER, int64)

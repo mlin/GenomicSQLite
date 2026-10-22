@@ -21,11 +21,7 @@ The extension provides routines to populate a small `_gri_refseq` table describi
 === "Python"
     ``` python3
     create_gri_sql = genomicsqlite.create_genomic_range_index_sql(
-      dbconn,
-      'tableName',
-      'chromosome',
-      'beginPosition',
-      'endPosition'
+        dbconn, "tableName", "chromosome", "beginPosition", "endPosition"
     )
     dbconn.executescript(create_gri_sql)
     ```
@@ -229,9 +225,7 @@ The following routines support the aforementioned, recommended convention for st
 
 === "Python"
     ``` python3
-    refseq_sql = genomicsqlite.put_reference_assembly_sql(
-      dbconn, 'GRCh38_no_alt_analysis_set'
-    )
+    refseq_sql = genomicsqlite.put_reference_assembly_sql(dbconn, "GRCh38_no_alt_analysis_set")
     dbconn.executescript(refseq_sql)
     ```
 
@@ -307,8 +301,10 @@ Available assemblies:
 === "Python"
     ``` python3
     refseq_sql = genomicsqlite.put_reference_sequence_sql(
-      dbconn, 'chr17', 83257441
-      # optional: assembly, refget_id, meta (dict), rid
+        dbconn,
+        "chr17",
+        83257441,
+        # optional: assembly, refget_id, meta (dict), rid
     )
     dbconn.executescript(refseq_sql)
     ```
@@ -407,12 +403,13 @@ If the `rid` argument is omitted or -1 then it will be assigned automatically up
 === "Python"
     ``` python3
     class ReferenceSequence(NamedTuple):
-      rid: int
-      name: str
-      length: int
-      assembly: Optional[str]
-      refget_id: Optional[str]
-      meta: Dict[str, Any]
+        rid: int
+        name: str
+        length: int
+        assembly: Optional[str]
+        refget_id: Optional[str]
+        meta: Dict[str, Any]
+
 
     refseq_by_rid = genomicsqlite.get_reference_sequences_by_rid(dbconn)
     # refseq_by_rid: Dict[int, ReferenceSequence]
@@ -492,12 +489,13 @@ The optional `assembly` argument restricts the retrieved sequences to those with
 === "Python"
     ``` python3
     class ReferenceSequence(NamedTuple):
-      rid: int
-      name: str
-      length: int
-      assembly: Optional[str]
-      refget_id: Optional[str]
-      meta: Dict[str, Any]
+        rid: int
+        name: str
+        length: int
+        assembly: Optional[str]
+        refget_id: Optional[str]
+        meta: Dict[str, Any]
+
 
     refseq_by_name = genomicsqlite.get_reference_sequences_by_name(dbconn)
     # refseq_by_name: Dict[str, ReferenceSequence]

@@ -70,13 +70,19 @@ The extension also exposes the routine to generate the SQL subquery, which you c
 === "Python"
     ``` python3
     query = (
-      'SELECT * FROM tableName WHERE tableName._rowid_ IN ' +
-      genomicsqlite.genomic_range_rowids_sql(dbconn, 'tableName',
-                                             # defaults:
-                                             qrid='?1', qbeg='?2', qend='?3',
-                                             ceiling=-1, floor=-1)
+        "SELECT * FROM tableName WHERE tableName._rowid_ IN "
+        + genomicsqlite.genomic_range_rowids_sql(
+            dbconn,
+            "tableName",
+            # defaults:
+            qrid="?1",
+            qbeg="?2",
+            qend="?3",
+            ceiling=-1,
+            floor=-1,
+        )
     )
-    cursor = dbconn.execute(query, ('chr12',111803912,111804012))
+    cursor = dbconn.execute(query, ("chr12", 111803912, 111804012))
     ```
 
 === "SQLiteCpp"

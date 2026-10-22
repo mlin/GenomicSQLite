@@ -1,4 +1,5 @@
 import sys
+
 from . import _cli
 
 if __name__ == "__main__":

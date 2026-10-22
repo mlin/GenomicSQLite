@@ -1,8 +1,9 @@
 import os
 import sqlite3
 import subprocess
-import pytest
+
 import genomicsqlite
+import pytest
 
 HERE = os.path.dirname(__file__)
 BUILD = os.path.abspath(os.path.join(HERE, "..", "build"))
@@ -49,22 +50,22 @@ def test_gnomad_sites_small(tmp_path):
             indexed += 1
     assert indexed == 3
     opcodes = list(con.execute("EXPLAIN " + query, rs671))
-    accessed_cursors = list(opcode[2] for opcode in opcodes if opcode[1] == "Column")
-    table_rootpages = set(
+    accessed_cursors = [opcode[2] for opcode in opcodes if opcode[1] == "Column"]
+    table_rootpages = {
         row[0] for row in con.execute("SELECT rootpage FROM sqlite_master WHERE type='table'")
-    )
-    table_cursors = set(
+    }
+    table_cursors = {
         opcode[2] for opcode in opcodes if opcode[1] == "OpenRead" and opcode[3] in table_rootpages
-    )
+    }
     assert sum(1 for cursor in accessed_cursors if cursor not in table_cursors) > 1
     assert sum(1 for cursor in accessed_cursors if cursor in table_cursors) == 1
 
     results = list(con.execute(query, rs671))
-    results_rowids = set(vt[0] for vt in results)
+    results_rowids = {vt[0] for vt in results}
     assert next(vt for vt in results if vt[1] and "rs671" in vt[1])
 
     control = "SELECT variant_rowid FROM gnomad_variants NATURAL JOIN _gri_refseq WHERE gri_refseq_name = ? AND NOT ((pos+rlen) < ? OR pos > ?)"
-    control_rowids = set(vt[0] for vt in con.execute(control, rs671))
+    control_rowids = {vt[0] for vt in con.execute(control, rs671)}
     assert len(control_rowids) == 22
     assert results_rowids == control_rowids
 
