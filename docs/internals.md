@@ -77,15 +77,6 @@ The extension also exposes the routine to generate the SQL subquery, which you c
                                              ceiling=-1, floor=-1)
     )
     cursor = dbconn.execute(query, ('chr12',111803912,111804012))
-
-    # or, request named placeholders explicitly to bind the range from a dict:
-    query = (
-      'SELECT * FROM tableName WHERE tableName._rowid_ IN ' +
-      genomicsqlite.genomic_range_rowids_sql(dbconn, 'tableName',
-                                             qrid=':qrid', qbeg=':qbeg', qend=':qend',
-                                             ceiling=-1, floor=-1)
-    )
-    cursor = dbconn.execute(query, {'qrid': 'chr12', 'qbeg': 111803912, 'qend': 111804012})
     ```
 
 === "SQLiteCpp"
