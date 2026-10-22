@@ -44,11 +44,27 @@ jobs:
     - uses: actions/checkout@v7
       with:
         fetch-depth: 0
+    - uses: actions/setup-python@v7
+      with:
+        python-version: "3.12"
     - name: deps
       run: |
         sudo apt-get -qq update
         sudo apt-get install -y $APT_DEPS
-        sudo pip3 install --break-system-packages $PIP_DEPS
+        # Ubuntu 24.04's system Python is 3.12.3, which carries CPython bug #118001:
+        # spurious DeprecationWarnings for ?NNN placeholders bound from a sequence
+        # (fixed in 3.12.4). setup-python's floating 3.12 selects a patched release;
+        # a venv selects that interpreter, mirroring the macOS job below.
+        python3 -m venv "$HOME/.ci-venv"
+        echo "$HOME/.ci-venv/bin" >> "$GITHUB_PATH"
+        export PATH="$HOME/.ci-venv/bin:$PATH"
+        python3 -m pip install $PIP_DEPS
+        python3 - <<'PYTHON'
+        import sqlite3, sys
+        print(sys.executable, sys.version)
+        print("SQLite", sqlite3.sqlite_version)
+        sqlite3.connect(":memory:").enable_load_extension(True)
+        PYTHON
     - name: rust toolchain
       uses: dtolnay/rust-toolchain@stable
     - name: build
@@ -62,11 +78,27 @@ jobs:
     - uses: actions/checkout@v7
       with:
         fetch-depth: 0
+    - uses: actions/setup-python@v7
+      with:
+        python-version: "3.12"
     - name: build loaders
       run: |
         sudo apt-get -qq update
         sudo apt-get install -y $APT_DEPS
-        sudo pip3 install --break-system-packages $PIP_DEPS
+        # Patched Python 3.12 in a venv, as in the test job above: Ubuntu 24.04's
+        # system Python 3.12.3 carries CPython bug #118001 (fixed in 3.12.4). The
+        # venv is created here, before cmake, so later steps' literal python3
+        # (ctest, smoke tests) resolves to it via GITHUB_PATH.
+        python3 -m venv "$HOME/.ci-venv"
+        echo "$HOME/.ci-venv/bin" >> "$GITHUB_PATH"
+        export PATH="$HOME/.ci-venv/bin:$PATH"
+        python3 -m pip install $PIP_DEPS
+        python3 - <<'PYTHON'
+        import sqlite3, sys
+        print(sys.executable, sys.version)
+        print("SQLite", sqlite3.sqlite_version)
+        sqlite3.connect(":memory:").enable_load_extension(True)
+        PYTHON
         cmake -DCMAKE_BUILD_TYPE=Release -DCMAKE_CXX_FLAGS='-D_GLIBCXX_USE_CXX11_ABI=0' -B build . && cmake --build build -j $(nproc)
         rm build/libgenomicsqlite.so
         sudo apt-get remove -y libzstd-dev  # should be linked into libgenomicsqlite.so
@@ -109,7 +141,7 @@ jobs:
         bindings/rust/cargo package --list | grep libgenomicsqlite-linux-x86_64.so
     - name: installed-package smoke test
       run: |
-        sudo pip3 install --break-system-packages -q setuptools wheel
+        python3 -m pip install -q setuptools wheel
         bash test/pkg_smoke.sh python3 bindings/python build/libgenomicsqlite.so libgenomicsqlite-linux-x86_64.so "$(pwd)/build"
     - name: prepare artifacts
       run: cp build/{libgenomicsqlite.so,libsqlite3.so.0} .

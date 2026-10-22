@@ -89,6 +89,32 @@ def test_indexing():
         genomicsqlite.genomic_range_rowids_sql(con, "nonexistent_table")
 
 
+@pytest.mark.filterwarnings("error::DeprecationWarning")
+def test_rowids_sql_binding_styles():
+    # Regression test: the default generated SQL, binding ?1/?2/?3 from a tuple, and the
+    # explicitly-named generated SQL, binding :qrid/:qbeg/:qend from a dict, must select
+    # identical rows. (The named-placeholder wrapper defaults briefly tried in PR #29 were
+    # withdrawn; see there for the CPython bug behind the original motivation.)
+    con = sqlite3.connect(":memory:")
+    _fill_exons(con)
+    con.commit()
+
+    query = genomicsqlite.genomic_range_rowids_sql(con, "exons")
+    query = "SELECT id FROM exons WHERE exons._rowid_ IN\n" + query
+    tuple_results = list(con.execute(query, ("chr17", 43044294, 43048294)))
+
+    named_query = genomicsqlite.genomic_range_rowids_sql(
+        con, "exons", qrid=":qrid", qbeg=":qbeg", qend=":qend"
+    )
+    named_query = "SELECT id FROM exons WHERE exons._rowid_ IN\n" + named_query
+    dict_results = list(
+        con.execute(named_query, {"qrid": "chr17", "qbeg": 43044294, "qend": 43048294})
+    )
+
+    assert tuple_results
+    assert dict_results == tuple_results
+
+
 def test_abutment():
     # Test GRI query correctness with various cases of features abutting the query range
     con = sqlite3.connect(":memory:")

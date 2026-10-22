@@ -126,6 +126,17 @@ def genomic_range_rowids_sql(
     ceiling: Optional[int] = None,
     floor: Optional[int] = None,
 ) -> str:
+    """
+    Generate SQL subquery selecting the rowids of indexed_table entries overlapping a range.
+
+    The range is ordinarily supplied through the numbered placeholders ?1, ?2, and ?3, which
+    recur throughout the generated SQL, so bind them from a sequence when executing it, e.g.
+    ("chr12", 111803912, 111804012). To bind from a dict instead, request named placeholders
+    explicitly, e.g. genomic_range_rowids_sql(conn, table, qrid=":qrid", qbeg=":qbeg",
+    qend=":qend") with {"qrid": "chr12", "qbeg": 111803912, "qend": 111804012}. The
+    qrid/qbeg/qend arguments may also be overridden with literal SQL values or column
+    expressions (e.g. for joins).
+    """
     return _execute1(
         conn,
         "SELECT genomic_range_rowids_sql(?,?,?,?,?,?)",
