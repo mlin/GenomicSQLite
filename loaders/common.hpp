@@ -5,6 +5,7 @@
 #include "strlcpy.h"
 #include <atomic>
 #include <chrono>
+#include <climits>
 #include <iostream>
 #include <memory>
 #include <sqlite3.h>
