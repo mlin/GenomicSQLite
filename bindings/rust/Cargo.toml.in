@@ -17,13 +17,13 @@ default = ["bundle_libgenomicsqlite"]
 bundle_libgenomicsqlite = []
 
 [dependencies]
-json = "^0"
+json = "^0.12"
 tempfile = "^3"
 
 [dependencies.rusqlite]
-version = "^0"
+version = "^0.40"
 features = ["load_extension", "vtab"]
 
 [dev-dependencies.uuid]
-version = "^0"
+version = "^1"
 features = ["v4"]

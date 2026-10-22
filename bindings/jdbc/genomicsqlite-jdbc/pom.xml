@@ -53,10 +53,14 @@
   </properties>
 
   <dependencies>
+    <!-- sqlite-jdbc pinned deliberately (2026-10-22): it bundles the SQLite
+         engine shipped inside this artifact, so its version changes at
+         maintenance touches, not by calendar. The binding code itself only
+         relies on APIs present since 3.31.1, for downstream overrides. -->
     <dependency>
       <groupId>org.xerial</groupId>
       <artifactId>sqlite-jdbc</artifactId>
-      <version>[3.31.1,)</version>
+      <version>3.53.4.0</version>
     </dependency>
     <dependency>
       <groupId>junit</groupId>
