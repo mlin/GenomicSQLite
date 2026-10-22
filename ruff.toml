@@ -5,12 +5,13 @@ line-length = 100 # exception to the ruff default (88): matches this codebase's 
 
 [lint]
 ignore = [
-    "E722", # bare except: deliberate bare-except uses in this codebase, carried from the flake8 era
     "UP006", # non-pep585-annotation: binding annotations are evaluated at runtime; package declares python_requires>=3.6
     "UP045", # non-pep604-annotation-optional: same runtime-annotation / python>=3.6 constraint as UP006
-    "UP035", # deprecated-import: typing.Dict/Optional etc. retained for the same python>=3.6 annotation constraint
-    "UP031", # printf-string-formatting: fires only in vendored bindings/python/version.py (third-party, public domain), not hand-edited
-    "UP009", # utf8-encoding-declaration: fires only in vendored bindings/python/version.py, not hand-edited
-    "PLE0605", # invalid-all-format: fires only in vendored bindings/python/version.py, not hand-edited
-    "BLE001", # blind-except: smoke-test harness deliberately catches broad exceptions to degrade gracefully
 ]
+
+[lint.per-file-ignores]
+# bindings/python/version.py is vendored (third-party, public domain) and not
+# hand-edited; the rules below fire only there. Scoping them to that file
+# keeps them enforced on all hand-written code (which has no bare excepts,
+# so restoring E722 enforcement there costs nothing).
+"bindings/python/version.py" = ["E722", "UP031", "UP009", "PLE0605"]

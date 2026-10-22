@@ -8,7 +8,7 @@ import os
 import platform
 import sqlite3
 import sys
-from typing import Any, Dict, NamedTuple, Optional
+from typing import Any, Dict, NamedTuple, Optional  # noqa: UP035
 
 _HERE = os.path.dirname(__file__)
 _YES = ("1", "true", "t", "yes", "y")

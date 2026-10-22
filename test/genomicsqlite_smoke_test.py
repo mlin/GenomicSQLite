@@ -45,7 +45,7 @@ def main():
                 print(": ???")
         else:
             print(": ???")
-    except Exception:
+    except Exception:  # noqa: BLE001
         print(": ???")
 
     env_keys = [
@@ -524,7 +524,7 @@ chr17	43125270	43125353	ENST00000476777.5_exon_8_0_chr17_43125271_r	0	-
 
 try:
     main()
-except Exception:
+except Exception:  # noqa: BLE001
     print()
     traceback.print_exc(file=sys.stdout)
     sys.exit(1)
