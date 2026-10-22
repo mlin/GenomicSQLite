@@ -34,16 +34,15 @@ def test_gnomad_sites_small(tmp_path):
         + genomicsqlite.genomic_range_rowids_sql(con, "gnomad_vcf_lines")
     )
     rs671 = ("chr12", 111803912, 111804012)
-    rs671_named = {"qrid": rs671[0], "qbeg": rs671[1], "qend": rs671[2]}
     print(query)
 
     indexed = 0
-    for expl in con.execute("EXPLAIN QUERY PLAN " + query, rs671_named):
+    for expl in con.execute("EXPLAIN QUERY PLAN " + query, rs671):
         print(expl[3])
         if "USING INDEX gnomad_vcf_lines__gri" in expl[3]:
             indexed += 1
     assert indexed == 3
-    opcodes = list(con.execute("EXPLAIN " + query, rs671_named))
+    opcodes = list(con.execute("EXPLAIN " + query, rs671))
     accessed_cursors = list(opcode[2] for opcode in opcodes if opcode[1] == "Column")
     table_rootpages = set(
         row[0] for row in con.execute("SELECT rootpage FROM sqlite_master WHERE type='table'")
@@ -54,7 +53,7 @@ def test_gnomad_sites_small(tmp_path):
     assert sum(1 for cursor in accessed_cursors if cursor not in table_cursors) > 1
     assert sum(1 for cursor in accessed_cursors if cursor in table_cursors) == 1
 
-    results = list(con.execute(query, rs671_named))
+    results = list(con.execute(query, rs671))
     results_rowids = set(vt[0] for vt in results)
     assert next(vt for vt in results if vt[1] and "rs671" in vt[1])
 

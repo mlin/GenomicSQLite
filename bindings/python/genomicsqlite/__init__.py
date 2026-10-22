@@ -129,27 +129,18 @@ def genomic_range_rowids_sql(
     """
     Generate SQL subquery selecting the rowids of indexed_table entries overlapping a range.
 
-    The range is ordinarily supplied through the named placeholders :qrid, :qbeg, and :qend,
-    which recur throughout the generated SQL, so bind them from a dict when executing it,
-    e.g. {"qrid": "chr12", "qbeg": 111803912, "qend": 111804012}. The underlying routine
-    defaults to the numbered placeholders ?1, ?2, and ?3 instead, which suits bindings that
-    supply parameters positionally; but CPython's sqlite3 module classifies ?NNN as named
-    placeholders, so supplying them from a sequence drew mass DeprecationWarnings on Python
-    3.12/3.13 (and supplying named placeholders from a sequence is a ProgrammingError on
-    3.14). The qrid/qbeg/qend arguments may be overridden with other placeholders, literal
-    SQL values, or column expressions (e.g. for joins).
+    The range is ordinarily supplied through the numbered placeholders ?1, ?2, and ?3, which
+    recur throughout the generated SQL, so bind them from a sequence when executing it, e.g.
+    ("chr12", 111803912, 111804012). To bind from a dict instead, request named placeholders
+    explicitly, e.g. genomic_range_rowids_sql(conn, table, qrid=":qrid", qbeg=":qbeg",
+    qend=":qend") with {"qrid": "chr12", "qbeg": 111803912, "qend": 111804012}. The
+    qrid/qbeg/qend arguments may also be overridden with literal SQL values or column
+    expressions (e.g. for joins).
     """
     return _execute1(
         conn,
         "SELECT genomic_range_rowids_sql(?,?,?,?,?,?)",
-        (
-            indexed_table,
-            qrid if qrid is not None else ":qrid",
-            qbeg if qbeg is not None else ":qbeg",
-            qend if qend is not None else ":qend",
-            ceiling,
-            floor,
-        ),
+        (indexed_table, qrid, qbeg, qend, ceiling, floor),
     )
 
 

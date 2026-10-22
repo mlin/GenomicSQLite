@@ -72,7 +72,16 @@ The extension also exposes the routine to generate the SQL subquery, which you c
     query = (
       'SELECT * FROM tableName WHERE tableName._rowid_ IN ' +
       genomicsqlite.genomic_range_rowids_sql(dbconn, 'tableName',
-                                             # Python wrapper defaults:
+                                             # defaults:
+                                             qrid='?1', qbeg='?2', qend='?3',
+                                             ceiling=-1, floor=-1)
+    )
+    cursor = dbconn.execute(query, ('chr12',111803912,111804012))
+
+    # or, request named placeholders explicitly to bind the range from a dict:
+    query = (
+      'SELECT * FROM tableName WHERE tableName._rowid_ IN ' +
+      genomicsqlite.genomic_range_rowids_sql(dbconn, 'tableName',
                                              qrid=':qrid', qbeg=':qbeg', qend=':qend',
                                              ceiling=-1, floor=-1)
     )
@@ -149,7 +158,7 @@ The extension also exposes the routine to generate the SQL subquery, which you c
     sqlite3_free(subquery);
     ```
 
-Following the name of the indexed table *to be queried*, the routine takes three arguments supplying the desired range *to query it for* (queryChrom, queryBegin, queryEnd). These arguments default to `?1`, `?2`, and `?3`, sourcing the first three [bound parameters](https://www.sqlite.org/c3ref/bind_blob.html) of the top-level SQL query. (The Python wrapper instead defaults them to the named placeholders `:qrid`, `:qbeg`, and `:qend`, bound from a dict as shown above; CPython's sqlite3 module classifies `?NNN` as named placeholders, so supplying them from a sequence drew mass DeprecationWarnings on Python 3.12/3.13, and supplying named placeholders from a sequence is a ProgrammingError on 3.14.) They can be overridden to:
+Following the name of the indexed table *to be queried*, the routine takes three arguments supplying the desired range *to query it for* (queryChrom, queryBegin, queryEnd). These arguments default to `?1`, `?2`, and `?3`, sourcing the first three [bound parameters](https://www.sqlite.org/c3ref/bind_blob.html) of the top-level SQL query. They can be overridden to:
 
 1. other numbered or named parameter placeholders
 2. literal SQL values
