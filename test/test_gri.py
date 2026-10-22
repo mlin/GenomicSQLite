@@ -89,6 +89,7 @@ def test_indexing():
         genomicsqlite.genomic_range_rowids_sql(con, "nonexistent_table")
 
 
+@pytest.mark.filterwarnings("error::DeprecationWarning")
 def test_rowids_sql_binding_styles():
     # Regression test: the default generated SQL, binding ?1/?2/?3 from a tuple, and the
     # explicitly-named generated SQL, binding :qrid/:qbeg/:qend from a dict, must select
