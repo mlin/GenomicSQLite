@@ -17,12 +17,15 @@ repos:
     verbose: true
     entry: cppcheck
     args: [-q,--std=c++11]
-- repo: https://github.com/astral-sh/ruff-pre-commit
-  rev: v0.17.1
-  hooks:
   - id: ruff-check
     name: ruff-check
+    language: system
+    types: [python]
     verbose: true
+    entry: ruff check
   - id: ruff-format
     name: ruff-format
+    language: system
+    types: [python]
     verbose: true
+    entry: ruff format
