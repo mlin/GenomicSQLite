@@ -2,12 +2,10 @@
 # Opt out of specific rules only where warranted; each opt-out is documented
 # inline. No rule sets are selected or opted into.
 line-length = 100 # exception to the ruff default (88): matches this codebase's black -l 100 formatting; avoids a whole-tree reformat
+target-version = "py310" # matches the package's declared floor (python_requires>=3.10); binding annotations are evaluated at runtime
 
 [lint]
-ignore = [
-    "UP006", # non-pep585-annotation: binding annotations are evaluated at runtime; package declares python_requires>=3.6
-    "UP045", # non-pep604-annotation-optional: same runtime-annotation / python>=3.6 constraint as UP006
-]
+ignore = [] # no global opt-outs; per-file opt-outs for the vendored file are scoped below
 
 [lint.per-file-ignores]
 # bindings/python/version.py is vendored (third-party, public domain) and not

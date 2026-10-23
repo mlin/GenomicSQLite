@@ -27,7 +27,7 @@ We supply the extension [prepackaged](https://github.com/mlin/GenomicSQLite/rele
 Programming language support:
 
 * C/C++
-* Python &ge;3.6
+* Python &ge;3.10
 * Java & JVM languages
 * Rust
 
@@ -54,7 +54,7 @@ cmake --build build -j 4 --target genomicsqlite
 
 * htslib &ge; 1.9, samtools, and tabix
 * pigz
-* Python &ge; 3.6 and packages: pytest pytest-xdist pre-commit ruff
+* Python &ge; 3.10 and packages: pytest pytest-xdist pre-commit ruff
 * JDK, mvn, rust
 * clang-format & cppcheck
 
