@@ -4,7 +4,13 @@
 set -e
 cd `dirname $0`
 
-revision="$(git describe --tags --dirty)"
+revision="$(git describe --tags --abbrev=0)"
+# -dirty only for changes other than the tracked Cargo.lock: builds rewrite
+# the lock's root-package version entry, and that must not feed back into
+# the version itself (which would rewrite the lock again on the next run).
+if git status --porcelain --untracked-files=no | grep -v 'Cargo.lock' | grep -q .; then
+    revision="${revision}-dirty"
+fi
 revision="${revision#v}"  # strip 'v' prefix
 >&2 echo "$revision"
 
