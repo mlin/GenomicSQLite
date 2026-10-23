@@ -9,7 +9,7 @@ with open(path.join(HERE, "README.md")) as f:
     README = f.read()
 
 setup(
-    python_requires=">=3.6",
+    python_requires=">=3.10",
     name="genomicsqlite",
     version=get_version(),
     url="https://github.com/mlin/GenomicSQLite",

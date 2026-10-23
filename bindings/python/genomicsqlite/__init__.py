@@ -8,7 +8,7 @@ import os
 import platform
 import sqlite3
 import sys
-from typing import Any, Dict, NamedTuple, Optional  # noqa: UP035
+from typing import Any, NamedTuple
 
 _HERE = os.path.dirname(__file__)
 _YES = ("1", "true", "t", "yes", "y")
@@ -110,7 +110,7 @@ def create_genomic_range_index_sql(
     rid: str,
     beg: str,
     end: str,
-    floor: Optional[int] = None,
+    floor: int | None = None,
 ) -> str:
     return _execute1(
         conn, "SELECT create_genomic_range_index_sql(?,?,?,?,?)", (table, rid, beg, end, floor)
@@ -120,11 +120,11 @@ def create_genomic_range_index_sql(
 def genomic_range_rowids_sql(
     conn: sqlite3.Connection,
     indexed_table: str,
-    qrid: Optional[str] = None,
-    qbeg: Optional[str] = None,
-    qend: Optional[str] = None,
-    ceiling: Optional[int] = None,
-    floor: Optional[int] = None,
+    qrid: str | None = None,
+    qbeg: str | None = None,
+    qend: str | None = None,
+    ceiling: int | None = None,
+    floor: int | None = None,
 ) -> str:
     """
     Generate SQL subquery selecting the rowids of indexed_table entries overlapping a range.
@@ -145,7 +145,7 @@ def genomic_range_rowids_sql(
 
 
 def put_reference_assembly_sql(
-    conn: sqlite3.Connection, assembly: str, schema: Optional[str] = None
+    conn: sqlite3.Connection, assembly: str, schema: str | None = None
 ) -> str:
     return _execute1(conn, "SELECT put_genomic_reference_assembly_sql(?,?)", (assembly, schema))
 
@@ -154,11 +154,11 @@ def put_reference_sequence_sql(
     conn: sqlite3.Connection,
     name: str,
     length: int,
-    assembly: Optional[str] = None,
-    refget_id: Optional[str] = None,
-    meta: Optional[Dict[str, Any]] = None,
-    rid: Optional[int] = None,
-    schema: Optional[str] = None,
+    assembly: str | None = None,
+    refget_id: str | None = None,
+    meta: dict[str, Any] | None = None,
+    rid: int | None = None,
+    schema: str | None = None,
 ):
     meta_json = json.dumps(meta) if meta else None
     return _execute1(
@@ -172,14 +172,14 @@ class ReferenceSequence(NamedTuple):
     rid: int
     name: str
     length: int
-    assembly: Optional[str]
-    refget_id: Optional[str]
-    meta: Dict[str, Any]
+    assembly: str | None
+    refget_id: str | None
+    meta: dict[str, Any]
 
 
 def get_reference_sequences_by_rid(
-    con: sqlite3.Connection, assembly: Optional[str] = None, schema: Optional[str] = None
-) -> Dict[int, ReferenceSequence]:
+    con: sqlite3.Connection, assembly: str | None = None, schema: str | None = None
+) -> dict[int, ReferenceSequence]:
     table = "_gri_refseq"
     if schema:
         table = f"{schema}.{table}"
@@ -208,8 +208,8 @@ def get_reference_sequences_by_rid(
 
 
 def get_reference_sequences_by_name(
-    con: sqlite3.Connection, assembly: Optional[str] = None, schema: Optional[str] = None
-) -> Dict[str, ReferenceSequence]:
+    con: sqlite3.Connection, assembly: str | None = None, schema: str | None = None
+) -> dict[str, ReferenceSequence]:
     ans = {}
     for item in get_reference_sequences_by_rid(con, assembly, schema).values():
         assert item.name not in ans, "genomicsqlite: non-unique reference sequence names"

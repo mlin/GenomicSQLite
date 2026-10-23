@@ -20,7 +20,7 @@ requirements:
     - python
     - pip
   run:
-    - python >=3.6
+    - python >=3.10
     - sqlite >=3.31.0
 
 test:
