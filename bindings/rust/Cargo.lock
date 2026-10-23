@@ -96,7 +96,7 @@ dependencies = [
 
 [[package]]
 name = "genomicsqlite"
-version = "0.9.4-7-g1fa5e5c"
+version = "0.9.4"
 dependencies = [
  "json",
  "rusqlite",
