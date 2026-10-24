@@ -410,8 +410,10 @@ extern "C" int genomicsqlite_open(const char *filename, sqlite3 **ppDb, char **p
     int ret =
         GenomicSQLiteOpen(string(filename), ppDb, errmsg, flags, config_json ? config_json : "");
     if (ret && !errmsg.empty() && pzErrMsg) {
-        *pzErrMsg = (char *)sqlite3_malloc(errmsg.size());
-        strcpy(*pzErrMsg, errmsg.c_str());
+        *pzErrMsg = (char *)sqlite3_malloc(errmsg.size() + 1);
+        if (*pzErrMsg) {
+            strcpy(*pzErrMsg, errmsg.c_str());
+        }
     }
     return ret;
 }
@@ -1153,7 +1155,7 @@ GetGenomicReferenceSequencesByRid(sqlite3 *dbconn, const string &assembly, const
         if (sqlite3_column_type(stmt.get(), 4) == SQLITE_TEXT) {
             item.refget_id = (const char *)sqlite3_column_text(stmt.get(), 4);
         }
-        if (sqlite3_column_type(stmt.get(), 4) == SQLITE_TEXT) {
+        if (sqlite3_column_type(stmt.get(), 5) == SQLITE_TEXT) {
             item.meta_json = (const char *)sqlite3_column_text(stmt.get(), 5);
         }
         ans[item.rid] = item;
