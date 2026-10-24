@@ -409,6 +409,13 @@ impl ConnectionMethods for Connection {
             .get_reference_sequences_by_rid_with_options(assembly, schema)?
             .drain()
         {
+            if ans.contains_key(&refseq.name) {
+                return Err(rusqlite::Error::ModuleError(
+                    "genomicsqlite::get_reference_sequences_by_name: duplicate name; \
+                     try filtering by assembly"
+                        .to_string(),
+                ));
+            }
             ans.insert(refseq.name.clone(), refseq);
         }
         Ok(ans)
@@ -483,6 +490,64 @@ mod tests {
         assert_eq!(chr3.name, "chr3");
         assert_eq!(chr3.rid, 3);
         assert_eq!(chr3.length, 198295559);
+    }
+
+    #[test]
+    fn refseq_by_name_duplicate_test() {
+        let dbfn = format!(
+            "/tmp/genomicsqlite_rust_dup_test.{}.db",
+            uuid::Uuid::new_v4()
+        );
+        let config = json::object::Object::new();
+        let conn = super::open(
+            dbfn,
+            OpenFlags::SQLITE_OPEN_CREATE | OpenFlags::SQLITE_OPEN_READ_WRITE,
+            &config,
+        )
+        .unwrap();
+
+        // populate a reference assembly (also creates _gri_refseq)
+        conn.execute_batch(
+            &conn
+                .put_reference_assembly_sql("GRCh38_no_alt_analysis_set")
+                .unwrap(),
+        )
+        .unwrap();
+
+        // add a second assembly reusing the name chr3 (inserted directly:
+        // put_reference_sequence_sql is not used here)
+        conn.execute_batch(
+            "INSERT INTO _gri_refseq(_gri_rid, gri_refseq_name, gri_refseq_length, \
+             gri_assembly, gri_refget_id, gri_refseq_meta_json) \
+             VALUES(9001, 'chr3', 424242, 'DuplicateAssembly', NULL, '{}')",
+        )
+        .unwrap();
+
+        // by-rid still returns both chr3 entries
+        let by_rid = conn.get_reference_sequences_by_rid().unwrap();
+        assert_eq!(by_rid.get(&3).unwrap().length, 198295559);
+        assert_eq!(by_rid.get(&9001).unwrap().length, 424242);
+
+        // unfiltered by-name must reject the duplicate name, not drop one silently
+        let res = conn.get_reference_sequences_by_name();
+        assert!(res.is_err(), "duplicate names must be rejected");
+        let err = res.err().unwrap();
+        assert!(
+            format!("{}", err).contains("duplicate name"),
+            "unexpected error: {}",
+            err
+        );
+
+        // by-name filtered to either assembly succeeds
+        let filtered = conn
+            .get_reference_sequences_by_name_with_options(Some("GRCh38_no_alt_analysis_set"), None)
+            .unwrap();
+        assert_eq!(filtered.get("chr3").unwrap().rid, 3);
+        let filtered = conn
+            .get_reference_sequences_by_name_with_options(Some("DuplicateAssembly"), None)
+            .unwrap();
+        assert_eq!(filtered.len(), 1);
+        assert_eq!(filtered.get("chr3").unwrap().length, 424242);
     }
 
     #[test]
