@@ -412,8 +412,7 @@ extern "C" int genomicsqlite_open(const char *filename, sqlite3 **ppDb, char **p
     if (ret && !errmsg.empty() && pzErrMsg) {
         *pzErrMsg = (char *)sqlite3_malloc(errmsg.size() + 1);
         if (*pzErrMsg) {
-            memcpy(*pzErrMsg, errmsg.c_str(), errmsg.size());
-            (*pzErrMsg)[errmsg.size()] = 0;
+            strcpy(*pzErrMsg, errmsg.c_str());
         }
     }
     return ret;
