@@ -25,6 +25,32 @@ The module should first locate the extension shared-library file (e.g. `libgenom
 
 The extension needs to be loaded only once per process: upon first loading, it [registers itself](https://www.sqlite.org/c3ref/auto_extension.html) to activate automatically on each new connection opened.
 
+### The bundled-library scheme
+
+The GitHub release bundle, Python sdist, JDBC JAR, and Rust crate use the same layout for prebuilt libraries. New bindings should follow this scheme.
+
+**Targets.** The release ships prebuilt libraries for exactly three targets:
+
+| Directory | Platform |
+|---|---|
+| `x86_64-linux-gnu` | Linux x86_64, glibc ≥ 2.28 (manylinux_2_28 baseline) |
+| `aarch64-linux-gnu` | Linux ARM64, glibc ≥ 2.28 |
+| `aarch64-darwin` | macOS ARM64 |
+
+musl-based Linux (e.g. Alpine) is not a supported target; see below.
+
+**Layout.** Libraries always use the plain filename `libgenomicsqlite.so` or `libgenomicsqlite.dylib`. In channels carrying multiple targets, each library sits in a one-level target directory, such as `aarch64-darwin/libgenomicsqlite.dylib`. Target variation belongs in the directory, never the filename.
+
+**Selection.** Each binding normalizes the CPU, OS, and target spellings reported by its platform APIs in exactly one step. Aliases are input-only; shipped filenames, documentation, and error messages use canonical target names. A nonempty `LIBGENOMICSQLITE` value, after trimming, overrides selection and is used literally. Empty or whitespace-only values mean unset.
+
+Selection itself never fails. Use the host target's bundled library if present; otherwise silently fall back to the bare name `libgenomicsqlite` for system-loader search. Never select another target's build.
+
+A musl host must never select the glibc bundle. Python detects musl through `platform.libc_ver()` or the musl loader's presence; the loader check also covers older Pythons that do not detect musl through `libc_ver()`. Java checks the loader's presence, and Rust uses the target environment.
+
+Rust selects at build time. With bundling enabled, a supported target fails to build if its library is missing; a musl build also fails if its package carries the glibc build.
+
+**Load failures.** Errors name the attempted file or bare name and its source: the `LIBGENOMICSQLITE` override, bundled copy, or system search. They give both remedies: set `LIBGENOMICSQLITE` to the library file, or install `libgenomicsqlite` where the system loader finds it.
+
 ## GenomicSQLite Open
 
 The Open method should "look like" the language's existing wrapper around `sqlite3_open()`, taking similar arguments and returning the same type of connection object. It uses two routines from the GenomicSQLite library, exposed as SQL functions, which help with activating the compression layer and tuning various settings.
@@ -89,7 +115,7 @@ Our [GitHub Releases](https://github.com/mlin/GenomicSQLite/releases) supply pre
 
 1. **Bundle nothing:** require the end user to download the right library file (or build it themselves) and place it where the bindings and SQLite3 will be able to find them, as described above.
 
-2. **Bundle our binaries:** ship our binaries inside your package and choose the right one to load at runtime. Remember, the only actual ABI linking occurs between the extension library and SQLite3 itself, so there's nothing to worry about compatibility between the library and the host language runtime.
+2. **Bundle our binaries:** ship our binaries inside your package and choose the right one to load at runtime, following [the bundled-library scheme](#the-bundled-library-scheme) above. Remember, the only actual ABI linking occurs between the extension library and SQLite3 itself, so there's nothing to worry about compatibility between the library and the host language runtime.
 
 3. **Source build:** You can specify the CMake-based source build procedure & its dependencies described in the [GitHub README](https://github.com/mlin/GenomicSQLite) however the host language's packaging system does it. 
 

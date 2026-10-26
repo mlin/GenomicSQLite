@@ -14,29 +14,52 @@ _HERE = os.path.dirname(__file__)
 _YES = ("1", "true", "t", "yes", "y")
 
 # Module initialization -- locate shared library file
+# Selection policy: docs/bindings.md. The bundled library lives in a per-target
+# directory {arch}-{os}[-{libc}] under a plain filename; platform spellings
+# (arm64, Darwin) are normalized to that form here, and never emitted.
 _DLL = os.environ.get("LIBGENOMICSQLITE", "").strip()  # use env var if present
+_DLL_SOURCE = "the LIBGENOMICSQLITE environment variable"
+_TRIPLE = None
 if not _DLL:
-    # select the platform-appropriate library bundled with this package, which
-    # the release pipeline ships under an architecture-qualified name (the same
-    # naming the Rust crate uses). Selection is exact-match on OS + CPU: an
-    # Intel machine never selects the ARM build, nor vice versa.
-    _BUNDLED_NAME = {
-        ("Linux", "x86_64"): "libgenomicsqlite-linux-x86_64.so",
-        ("Linux", "aarch64"): "libgenomicsqlite-linux-aarch64.so",
-        ("Darwin", "x86_64"): "libgenomicsqlite-macos-x86_64.dylib",
-        ("Darwin", "arm64"): "libgenomicsqlite-macos-aarch64.dylib",
-    }.get((platform.system(), platform.machine()))
-    if _BUNDLED_NAME:
-        _bundled_path = os.path.join(_HERE, _BUNDLED_NAME)
+    _ARCH = {
+        "x86_64": "x86_64",
+        "amd64": "x86_64",
+        "aarch64": "aarch64",
+        "arm64": "aarch64",
+    }.get(platform.machine())
+    _LIBNAME = None
+    if _ARCH and platform.system() == "Linux":
+        # libc_ver() may miss musl on older Pythons; also check its loader.
+        # Never select the glibc bundle on musl.
+        _MUSL = platform.libc_ver()[0] == "musl" or os.path.exists(f"/lib/ld-musl-{_ARCH}.so.1")
+        _TRIPLE = f"{_ARCH}-linux-musl" if _MUSL else f"{_ARCH}-linux-gnu"
+        _LIBNAME = "libgenomicsqlite.so"
+    elif _ARCH and platform.system() == "Darwin":
+        _TRIPLE = f"{_ARCH}-darwin"
+        _LIBNAME = "libgenomicsqlite.dylib"
+    if _TRIPLE:
+        _bundled_path = os.path.join(_HERE, _TRIPLE, _LIBNAME)
         if os.path.isfile(_bundled_path):
             _DLL = _bundled_path
+            _DLL_SOURCE = "the copy bundled with this package"
 if not _DLL:
     # otherwise, let SQLite use dlopen() to look for it
     _DLL = "libgenomicsqlite"
+    _DLL_SOURCE = "the system library search path"
 # open a dummy connection to :memory: just for loading the extension.
 _MEMCONN = sqlite3.connect(":memory:")
 _MEMCONN.enable_load_extension(True)
-_MEMCONN.load_extension(_DLL)
+try:
+    _MEMCONN.load_extension(_DLL)
+except sqlite3.Error as ex:
+    _musl_note = (
+        "; musl libc is not a supported target" if _TRIPLE and _TRIPLE.endswith("-musl") else ""
+    )
+    raise ImportError(
+        f"genomicsqlite: could not load {_DLL} (from {_DLL_SOURCE}): {ex}; "
+        "set LIBGENOMICSQLITE to the library file, or install libgenomicsqlite "
+        f"where the system loader finds it{_musl_note}"
+    ) from ex
 # now that it's been loaded, the extension will automatically enable itself on any new connections.
 
 

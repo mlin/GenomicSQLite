@@ -1,11 +1,10 @@
-# Builds libgenomicsqlite.so in AlmaLinux 8 (glibc 2.28, the manylinux_2_28 baseline) to
-# maximize compatibility. Bakes in Zstandard, and also builds a compatible libsqlite3.so.0
-# for users unable/unwilling to upgrade their host's.
+# Build against AlmaLinux 8 (glibc 2.28) for the manylinux_2_28 baseline.
+# Link Zstandard statically and provide a compatible SQLite library for older hosts.
 FROM almalinux:8 as builder
 
-ARG CMAKE_VERSION=3.17.3
 ARG SQLITE_VERSION=3540100
 ARG ZSTD_VERSION=1.5.5
+# x86_64 defaults to ivybridge; pass --build-arg CPU_ARCH=armv8-a on aarch64.
 ARG CPU_ARCH=ivybridge
 ENV CFLAGS="-march=${CPU_ARCH} -O3"
 ENV CXXFLAGS=${CFLAGS}
@@ -28,7 +27,12 @@ ENV SQLITE_CFLAGS="\
         -DSQLITE_ENABLE_SESSION \
 "
 
-RUN dnf install -y -q wget unzip rsync git libcurl-devel gcc gcc-c++ make
+# cmake comes from the distro: arch-native on both x86_64 and aarch64,
+# and new enough for the project's CMake floor.
+RUN dnf install -y -q wget unzip git libcurl-devel gcc gcc-c++ make cmake
+# fail fast, before the expensive builds, if CPU_ARCH doesn't fit this CPU
+RUN echo 'int main(void){return 0;}' | gcc ${CFLAGS} -x c - -o /dev/null \
+    || { echo "error: CPU_ARCH=${CPU_ARCH} is not a valid -march for $(uname -m); pass --build-arg CPU_ARCH=armv8-a on aarch64" >&2; exit 1; }
 
 RUN mkdir -p /work/GenomicSQLite
 
@@ -47,12 +51,6 @@ WORKDIR /work
 RUN wget -nv -O - https://github.com/facebook/zstd/releases/download/v${ZSTD_VERSION}/zstd-${ZSTD_VERSION}.tar.gz | tar zx
 WORKDIR /work/zstd-${ZSTD_VERSION}
 RUN CFLAGS="${CFLAGS} -fPIC" make install -j $(nproc)
-
-# CMake
-WORKDIR /work
-RUN wget -nv https://github.com/Kitware/CMake/releases/download/v${CMAKE_VERSION}/cmake-${CMAKE_VERSION}-Linux-x86_64.sh
-RUN yes | sh cmake-${CMAKE_VERSION}-Linux-x86_64.sh
-RUN rsync -a cmake-${CMAKE_VERSION}-Linux-x86_64/ /usr/local/
 
 RUN ldconfig
 
@@ -119,7 +117,9 @@ COPY --from=builder /usr/local/lib/libsqlite3.so.0 ./lib/
 RUN ln -s libsqlite3.so.0 lib/libsqlite3.so
 ADD ./.git ./.git
 ADD ./bindings/rust ./rust
-COPY --from=builder /work/GenomicSQLite/build/libgenomicsqlite.so ./rust/libgenomicsqlite-linux-x86_64.so
+COPY --from=builder /work/GenomicSQLite/build/libgenomicsqlite.so ./libgenomicsqlite.so
+# plant the library in the crate's per-target directory for this build's CPU
+RUN mkdir -p ./rust/$(uname -m)-linux-gnu && cp ./libgenomicsqlite.so ./rust/$(uname -m)-linux-gnu/
 # git in the cargo wrapper must accept the context's .git even if the build
 # host checked it out under a different uid than root
 RUN git config --global --add safe.directory /work
