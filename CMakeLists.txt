@@ -15,6 +15,14 @@ if(${CMAKE_VERSION} VERSION_LESS 3.14)
     endmacro()
 endif()
 
+# FetchContent uses the first declaration, including declarations made by dependencies.
+# Pin sqlite_web_vfs's readerwriterqueue dependency instead of following its release tag.
+FetchContent_Declare(
+    concurrentqueue
+    GIT_REPOSITORY  https://github.com/cameron314/readerwriterqueue.git
+    GIT_TAG         8b2176698e9bdaba653cdc20c32b54737a934b47 # v1.0.7
+)
+
 FetchContent_Declare(
     sqlite_zstd_vfs
     GIT_REPOSITORY  https://github.com/mlin/sqlite_zstd_vfs.git

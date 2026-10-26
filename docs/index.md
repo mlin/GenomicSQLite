@@ -20,9 +20,11 @@ Our **[Colab notebook](https://colab.research.google.com/drive/1OlHPOcRQBhDmEnS1
 
 **USE AT YOUR OWN RISK:** The extension makes fundamental changes to the database storage layer. While designed to preserve ACID transaction safety, it's young and unlikely to have zero bugs. This project is not associated with the SQLite developers.
 
-## SQLite &ge; 3.31.0 required
+## SQLite runtime compatibility
 
 **To use the Genomics Extension you might first need to upgrade SQLite itself.** The host program must link [SQLite version 3.31.0 (2020-01-22)](https://www.sqlite.org/releaselog/3_31_0.html) or newer. In your shell, `sqlite3 --version` displays the version installed with your OS, which is probably what your programs use; if in doubt, cause a program to report the result of `SELECT sqlite_version()`.
+
+Version 3.31.0 is the minimum API and SQL feature level checked when the extension loads; it is **not a recommendation to deploy that old release**, a security guarantee, or a claim that every later SQLite version is tested. Use a maintained SQLite package with current bug and security fixes, especially when opening databases or executing SQL from untrusted sources. Check the SQLite runtime inside each host program: Python, JDBC, and the command-line shell can use different libraries. See the [distribution maintenance notes](distribution.md) for the CI coverage and dependency-update procedure.
 
 If this is too old, then upgrade SQLite3 using your preferred binary package manager (e.g. apt, yum, conda, brew), if possible. Otherwise, modify your program's linking step or runtime environment to cause it to use an up-to-date version, for example by setting rpath or `LD_LIBRARY_PATH` to the location of an up-to-date shared library file. Resources:
 
@@ -31,7 +33,7 @@ If this is too old, then upgrade SQLite3 using your preferred binary package man
 * [Rpmfind: libsqlite3](https://rpmfind.net/linux/rpm2html/search.php?query=libsqlite3&submit=Search+...&system=&arch=)
 * [Sqlite :: Anaconda Cloud](https://anaconda.org/anaconda/sqlite)
 * Homebrew [formula/sqlite](https://formulae.brew.sh/formula/sqlite), [formula-linux/sqlite](https://formulae.brew.sh/formula-linux/sqlite)
-* As a last resort for GNU/Linux, our [GitHub Releases](https://github.com/mlin/GenomicSQLite/releases) include a `libsqlite3.so.0` that should be compatible with modern (2015+) hosts.
+* As a last resort for GNU/Linux x86-64, our [GitHub Releases](https://github.com/mlin/GenomicSQLite/releases) include a `libsqlite3.so.0` built on AlmaLinux 8 (glibc 2.28). The release extension also requires libstdc++ providing GLIBCXX 3.4.25; CI checks these ABI limits and runs the binaries on AlmaLinux 8 and Ubuntu 20.04.
 
 You can always `SELECT sqlite_version()` to verify the upgrade in your program.
 
@@ -45,7 +47,7 @@ It's usually easiest to obtain the extension as a pre-compiled shared library (L
     # -or-
     conda install -c mlin genomicsqlite
     ```
-    Python's `sqlite3` module must support [loadable extensions](https://docs.python.org/3/library/sqlite3.html#sqlite3.Connection.enable_load_extension). Some macOS Python builds omit this support; Homebrew Python enables it. This is an interpreter build option, independent of the Python version.
+    Python 3.10 or newer is required. Python's `sqlite3` module must support [loadable extensions](https://docs.python.org/3/library/sqlite3.html#sqlite3.Connection.enable_load_extension). Some macOS Python builds omit this support; Homebrew Python enables it. This is an interpreter build option, independent of the Python version.
 
     The package loads a bundled shared library by default. To override the bundled file, set environment variable `LIBGENOMICSQLITE` to a filename.
 
