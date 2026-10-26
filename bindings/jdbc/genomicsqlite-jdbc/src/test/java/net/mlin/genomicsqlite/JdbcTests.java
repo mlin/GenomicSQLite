@@ -20,8 +20,7 @@ public class JdbcTests {
     assertNull(JdbcDriver.trimmedOverride(""));
     assertNull(JdbcDriver.trimmedOverride("  \t "));
     assertNull(JdbcDriver.trimmedOverride("\u2003")); // EM SPACE only
-    assertEquals(
-        "/x/libgenomicsqlite.so", JdbcDriver.trimmedOverride(" /x/libgenomicsqlite.so "));
+    assertEquals("/x/libgenomicsqlite.so", JdbcDriver.trimmedOverride(" /x/libgenomicsqlite.so "));
     assertEquals(
         "/x/libgenomicsqlite.so", JdbcDriver.trimmedOverride("\u2003/x/libgenomicsqlite.so\u2003"));
   }

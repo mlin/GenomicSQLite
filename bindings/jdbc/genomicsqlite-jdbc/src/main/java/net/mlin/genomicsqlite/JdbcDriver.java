@@ -171,8 +171,7 @@ public class JdbcDriver extends org.sqlite.JDBC {
         librarySource = "the system library search path (musl libc is not a supported target)";
       }
       try {
-        InputStream reader =
-            JdbcDriver.class.getClassLoader().getResourceAsStream(resourcePath);
+        InputStream reader = JdbcDriver.class.getClassLoader().getResourceAsStream(resourcePath);
         if (reader != null) {
           String tempDirpath =
               Files.createTempDirectory("genomicsqlite-jdbc-").toAbsolutePath().toString();
