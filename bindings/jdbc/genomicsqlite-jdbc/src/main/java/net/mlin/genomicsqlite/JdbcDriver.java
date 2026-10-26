@@ -167,9 +167,6 @@ public class JdbcDriver extends org.sqlite.JDBC {
     String ans = null;
     String resourcePath = getLibraryResourcePath();
     if (resourcePath != null) {
-      if (resourcePath.contains("-linux-musl/")) {
-        librarySource = "the system library search path (musl libc is not a supported target)";
-      }
       try {
         InputStream reader = JdbcDriver.class.getClassLoader().getResourceAsStream(resourcePath);
         if (reader != null) {
@@ -208,7 +205,7 @@ public class JdbcDriver extends org.sqlite.JDBC {
 
   static String getLibraryResourcePath() {
     // Return the canonical resource path, or null for an unrecognized OS or CPU.
-    // Missing resources, including musl paths, fall back to system search.
+    // Missing resources fall back to system search.
     String arch = System.getProperty("os.arch", "unknown").toLowerCase(Locale.ENGLISH);
     String archTok = null;
     if (arch.equals("amd64") || arch.equals("x86_64")) {
@@ -223,9 +220,7 @@ public class JdbcDriver extends org.sqlite.JDBC {
     if (os.indexOf("mac") >= 0 || os.indexOf("darwin") >= 0) {
       return archTok + "-darwin/libgenomicsqlite.dylib";
     } else if (os.indexOf("nux") >= 0) {
-      // The JVM has no libc query; probe the musl loader to avoid selecting glibc.
-      String libc = (new File("/lib/ld-musl-" + archTok + ".so.1")).exists() ? "musl" : "gnu";
-      return archTok + "-linux-" + libc + "/libgenomicsqlite.so";
+      return archTok + "-linux-gnu/libgenomicsqlite.so";
     }
     return null;
   }

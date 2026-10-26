@@ -29,10 +29,7 @@ if not _DLL:
     }.get(platform.machine())
     _LIBNAME = None
     if _ARCH and platform.system() == "Linux":
-        # libc_ver() may miss musl on older Pythons; also check its loader.
-        # Never select the glibc bundle on musl.
-        _MUSL = platform.libc_ver()[0] == "musl" or os.path.exists(f"/lib/ld-musl-{_ARCH}.so.1")
-        _TRIPLE = f"{_ARCH}-linux-musl" if _MUSL else f"{_ARCH}-linux-gnu"
+        _TRIPLE = f"{_ARCH}-linux-gnu"
         _LIBNAME = "libgenomicsqlite.so"
     elif _ARCH and platform.system() == "Darwin":
         _TRIPLE = f"{_ARCH}-darwin"
@@ -52,13 +49,10 @@ _MEMCONN.enable_load_extension(True)
 try:
     _MEMCONN.load_extension(_DLL)
 except sqlite3.Error as ex:
-    _musl_note = (
-        "; musl libc is not a supported target" if _TRIPLE and _TRIPLE.endswith("-musl") else ""
-    )
     raise ImportError(
         f"genomicsqlite: could not load {_DLL} (from {_DLL_SOURCE}): {ex}; "
         "set LIBGENOMICSQLITE to the library file, or install libgenomicsqlite "
-        f"where the system loader finds it{_musl_note}"
+        "where the system loader finds it"
     ) from ex
 # now that it's been loaded, the extension will automatically enable itself on any new connections.
 

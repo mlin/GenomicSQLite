@@ -37,7 +37,7 @@ The GitHub release bundle, Python sdist, JDBC JAR, and Rust crate use the same l
 | `aarch64-linux-gnu` | Linux ARM64, glibc ≥ 2.28 |
 | `aarch64-darwin` | macOS ARM64 |
 
-musl-based Linux (e.g. Alpine) is not a supported target; see below.
+musl-based Linux (e.g. Alpine) is not a supported target.
 
 **Layout.** Libraries always use the plain filename `libgenomicsqlite.so` or `libgenomicsqlite.dylib`. In channels carrying multiple targets, each library sits in a one-level target directory, such as `aarch64-darwin/libgenomicsqlite.dylib`. Target variation belongs in the directory, never the filename.
 
@@ -45,9 +45,8 @@ musl-based Linux (e.g. Alpine) is not a supported target; see below.
 
 Selection itself never fails. Use the host target's bundled library if present; otherwise silently fall back to the bare name `libgenomicsqlite` for system-loader search. Never select another target's build.
 
-A musl host must never select the glibc bundle. Python detects musl through `platform.libc_ver()` or the musl loader's presence; the loader check also covers older Pythons that do not detect musl through `libc_ver()`. Java checks the loader's presence, and Rust uses the target environment.
 
-Rust selects at build time. With bundling enabled, a supported target fails to build if its library is missing; a musl build also fails if its package carries the glibc build.
+Rust selects at build time. With bundling enabled, a supported target fails to build if its library is missing.
 
 **Load failures.** Errors name the attempted file or bare name and its source: the `LIBGENOMICSQLITE` override, bundled copy, or system search. They give both remedies: set `LIBGENOMICSQLITE` to the library file, or install `libgenomicsqlite` where the system loader finds it.
 

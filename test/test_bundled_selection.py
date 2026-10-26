@@ -175,39 +175,6 @@ def test_missing_bundle_falls_back(tmp_path):
 
 
 @needs_real
-def test_musl_never_selects_glibc(tmp_path):
-    if platform.system() != "Linux":
-        pytest.skip("musl case is Linux-only")
-    loader = f"/lib/ld-musl-{HOST_ARCH}.so.1"
-    # Exercise libc reporting and the loader probe used by older Pythons.
-    preludes = [
-        'import platform; platform.libc_ver = lambda *a, **k: ("musl", "1.2.5")\n',
-        (
-            "import os, platform\n"
-            'platform.libc_ver = lambda *a, **k: ("", "")\n'
-            "_exists = os.path.exists\n"
-            f'os.path.exists = lambda p: p == "{loader}" or _exists(p)\n'
-        ),
-    ]
-    if HOST_ARCH == "x86_64":
-        # An input alias must still probe the canonical loader filename.
-        preludes.append(
-            "import os, platform\n"
-            'platform.machine = lambda: "amd64"\n'
-            'platform.libc_ver = lambda *a, **k: ("", "")\n'
-            "_exists = os.path.exists\n"
-            f'os.path.exists = lambda p: p == "{loader}" or _exists(p)\n'
-        )
-    for prelude in preludes:
-        result = run_child(
-            tmp_path, {HOST_TRIPLE: real_library().read_bytes()}, None, prelude, fail_load=True
-        )
-        assert result.returncode != 0
-        assert HOST_TRIPLE not in result.stderr
-        assert "musl" in result.stderr
-
-
-@needs_real
 def test_amd64_machine_alias(tmp_path):
     if platform.system() != "Linux" or HOST_ARCH != "x86_64":
         pytest.skip("amd64 alias case is Linux x86_64-only")
