@@ -14,9 +14,9 @@ fn main() {
     let target_arch = env::var("CARGO_CFG_TARGET_ARCH").unwrap_or_default();
     // The bundled-library candidate for this compilation target, if any.
     let candidate: Option<&str> = match (target_os.as_str(), target_arch.as_str()) {
-        ("linux", "x86_64") => Some("x86_64-linux-gnu/libgenomicsqlite.so"),
-        ("linux", "aarch64") => Some("aarch64-linux-gnu/libgenomicsqlite.so"),
-        ("macos", "aarch64") => Some("aarch64-darwin/libgenomicsqlite.dylib"),
+        ("linux", "x86_64") => Some("lib/x86_64-linux-gnu/libgenomicsqlite.so"),
+        ("linux", "aarch64") => Some("lib/aarch64-linux-gnu/libgenomicsqlite.so"),
+        ("macos", "aarch64") => Some("lib/aarch64-darwin/libgenomicsqlite.dylib"),
         _ => None,
     };
 

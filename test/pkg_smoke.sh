@@ -5,7 +5,7 @@
 # $1 Python interpreter with pip and setuptools
 # $2 Python binding source directory
 # $3 built library with its plain filename
-# $4 canonical target directory (e.g. aarch64-darwin)
+# $4 canonical target directory (e.g. lib/aarch64-darwin)
 # $5 directory containing the sqlite3 shell
 set -euo pipefail
 PY="$1"; PKG_SRC="$2"; LIB="$3"; QDIR="$4"; SHELLDIR="$5"

@@ -15,7 +15,7 @@ _YES = ("1", "true", "t", "yes", "y")
 
 # Module initialization -- locate shared library file
 # Selection policy: docs/bindings.md. The bundled library lives in a per-target
-# directory {arch}-{os}[-{libc}] under a plain filename; platform spellings
+# directory lib/{arch}-{os}[-{libc}] under a plain filename; platform spellings
 # (arm64, Darwin) are normalized to that form here, and never emitted.
 _DLL = os.environ.get("LIBGENOMICSQLITE", "").strip()  # use env var if present
 _DLL_SOURCE = "the LIBGENOMICSQLITE environment variable"
@@ -35,7 +35,7 @@ if not _DLL:
         _TRIPLE = f"{_ARCH}-darwin"
         _LIBNAME = "libgenomicsqlite.dylib"
     if _TRIPLE:
-        _bundled_path = os.path.join(_HERE, _TRIPLE, _LIBNAME)
+        _bundled_path = os.path.join(_HERE, "lib", _TRIPLE, _LIBNAME)
         if os.path.isfile(_bundled_path):
             _DLL = _bundled_path
             _DLL_SOURCE = "the copy bundled with this package"

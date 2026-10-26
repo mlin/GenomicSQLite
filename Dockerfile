@@ -119,7 +119,7 @@ ADD ./.git ./.git
 ADD ./bindings/rust ./rust
 COPY --from=builder /work/GenomicSQLite/build/libgenomicsqlite.so ./libgenomicsqlite.so
 # plant the library in the crate's per-target directory for this build's CPU
-RUN mkdir -p ./rust/$(uname -m)-linux-gnu && cp ./libgenomicsqlite.so ./rust/$(uname -m)-linux-gnu/
+RUN mkdir -p ./rust/lib/$(uname -m)-linux-gnu && cp ./libgenomicsqlite.so ./rust/lib/$(uname -m)-linux-gnu/
 # git in the cargo wrapper must accept the context's .git even if the build
 # host checked it out under a different uid than root
 RUN git config --global --add safe.directory /work

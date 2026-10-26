@@ -33,13 +33,13 @@ The GitHub release bundle, Python sdist, JDBC JAR, and Rust crate use the same l
 
 | Directory | Platform |
 |---|---|
-| `x86_64-linux-gnu` | Linux x86_64, glibc ≥ 2.28 (manylinux_2_28 baseline) |
-| `aarch64-linux-gnu` | Linux ARM64, glibc ≥ 2.28 |
-| `aarch64-darwin` | macOS ARM64 |
+| `lib/x86_64-linux-gnu` | Linux x86_64, glibc ≥ 2.28 (manylinux_2_28 baseline) |
+| `lib/aarch64-linux-gnu` | Linux ARM64, glibc ≥ 2.28 |
+| `lib/aarch64-darwin` | macOS ARM64 |
 
 musl-based Linux (e.g. Alpine) is not a supported target.
 
-**Layout.** Libraries always use the plain filename `libgenomicsqlite.so` or `libgenomicsqlite.dylib`. In channels carrying multiple targets, each library sits in a one-level target directory, such as `aarch64-darwin/libgenomicsqlite.dylib`. Target variation belongs in the directory, never the filename.
+**Layout.** Libraries always use the plain filename `libgenomicsqlite.so` or `libgenomicsqlite.dylib`. In channels carrying multiple targets, each library sits in a target directory under a `lib/` directory, such as `lib/aarch64-darwin/libgenomicsqlite.dylib`. Target variation belongs in the directory, never the filename.
 
 **Selection.** Each binding normalizes the CPU, OS, and target spellings reported by its platform APIs in exactly one step. Aliases are input-only; shipped filenames, documentation, and error messages use canonical target names. A nonempty `LIBGENOMICSQLITE` value, after trimming, overrides selection and is used literally. Empty or whitespace-only values mean unset.
 

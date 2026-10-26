@@ -33,7 +33,7 @@ JAR="$(ls "$MODULE_DIR"/target/genomicsqlite-jdbc-*.jar 2>/dev/null | head -n1 |
 
 # The JAR must carry every bundled library under its per-target resource
 # directory, with the plain library file name inside.
-for res in x86_64-linux-gnu/libgenomicsqlite.so aarch64-linux-gnu/libgenomicsqlite.so aarch64-darwin/libgenomicsqlite.dylib; do
+for res in lib/x86_64-linux-gnu/libgenomicsqlite.so lib/aarch64-linux-gnu/libgenomicsqlite.so lib/aarch64-darwin/libgenomicsqlite.dylib; do
     unzip -l "$JAR" | grep -q "$res" || {
         echo "jdbc_smoke_test: $JAR lacks bundled resource $res" >&2
         exit 1

@@ -77,8 +77,8 @@ def run_child(
     pkg.mkdir(parents=True, exist_ok=True)
     shutil.copyfile(PACKAGE_SRC / "__init__.py", pkg / "__init__.py")
     for triple, content in plant.items():
-        lib = pkg / triple / HOST_LIBNAME
-        lib.parent.mkdir(exist_ok=True)
+        lib = pkg / "lib" / triple / HOST_LIBNAME
+        lib.parent.mkdir(parents=True, exist_ok=True)
         lib.write_bytes(content)
     env = {k: v for k, v in os.environ.items() if k != "LIBGENOMICSQLITE"}
     env["PYTHONPATH"] = str(tmp_path / "pkg")
@@ -118,7 +118,7 @@ def test_override_beats_corrupt_bundle(tmp_path):
 
 @needs_real
 def test_override_empty_means_unset(tmp_path):
-    planted = tmp_path / "pkg" / "genomicsqlite" / HOST_TRIPLE / HOST_LIBNAME
+    planted = tmp_path / "pkg" / "genomicsqlite" / "lib" / HOST_TRIPLE / HOST_LIBNAME
     for empty in ("", "   "):
         result = run_child(tmp_path, {HOST_TRIPLE: real_library().read_bytes()}, empty)
         assert result.returncode == 0, result.stderr
@@ -137,7 +137,7 @@ def test_override_bogus_path_is_named(tmp_path):
 
 @needs_real
 def test_bogus_override_beats_valid_bundle(tmp_path):
-    planted = tmp_path / "pkg" / "genomicsqlite" / HOST_TRIPLE / HOST_LIBNAME
+    planted = tmp_path / "pkg" / "genomicsqlite" / "lib" / HOST_TRIPLE / HOST_LIBNAME
     bogus = "/nonexistent/libgenomicsqlite.so"
     result = run_child(tmp_path, {HOST_TRIPLE: real_library().read_bytes()}, bogus)
     assert result.returncode != 0
@@ -148,7 +148,7 @@ def test_bogus_override_beats_valid_bundle(tmp_path):
 
 @needs_real
 def test_bundled_host_target_selected(tmp_path):
-    planted = tmp_path / "pkg" / "genomicsqlite" / HOST_TRIPLE / HOST_LIBNAME
+    planted = tmp_path / "pkg" / "genomicsqlite" / "lib" / HOST_TRIPLE / HOST_LIBNAME
     plant = {HOST_TRIPLE: real_library().read_bytes(), OTHER_TRIPLE: b"not a library"}
     result = run_child(tmp_path, plant, None)
     assert result.returncode == 0, result.stderr
@@ -178,7 +178,7 @@ def test_missing_bundle_falls_back(tmp_path):
 def test_amd64_machine_alias(tmp_path):
     if platform.system() != "Linux" or HOST_ARCH != "x86_64":
         pytest.skip("amd64 alias case is Linux x86_64-only")
-    planted = tmp_path / "pkg" / "genomicsqlite" / HOST_TRIPLE / HOST_LIBNAME
+    planted = tmp_path / "pkg" / "genomicsqlite" / "lib" / HOST_TRIPLE / HOST_LIBNAME
     prelude = 'import platform; platform.machine = lambda: "amd64"\n'
     result = run_child(tmp_path, {HOST_TRIPLE: real_library().read_bytes()}, None, prelude)
     assert result.returncode == 0, result.stderr
@@ -186,7 +186,7 @@ def test_amd64_machine_alias(tmp_path):
 
 
 def test_corrupt_bundled_file_is_named(tmp_path):
-    planted = tmp_path / "pkg" / "genomicsqlite" / HOST_TRIPLE / HOST_LIBNAME
+    planted = tmp_path / "pkg" / "genomicsqlite" / "lib" / HOST_TRIPLE / HOST_LIBNAME
     result = run_child(tmp_path, {HOST_TRIPLE: b"not a library"}, None)
     assert result.returncode != 0
     assert str(planted) in result.stderr

@@ -218,9 +218,9 @@ public class JdbcDriver extends org.sqlite.JDBC {
     }
     String os = System.getProperty("os.name", "unknown").toLowerCase(Locale.ENGLISH);
     if (os.indexOf("mac") >= 0 || os.indexOf("darwin") >= 0) {
-      return archTok + "-darwin/libgenomicsqlite.dylib";
+      return "lib/" + archTok + "-darwin/libgenomicsqlite.dylib";
     } else if (os.indexOf("nux") >= 0) {
-      return archTok + "-linux-gnu/libgenomicsqlite.so";
+      return "lib/" + archTok + "-linux-gnu/libgenomicsqlite.so";
     }
     return null;
   }

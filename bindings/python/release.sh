@@ -9,8 +9,8 @@ if grep dirty <(git describe --always --dirty); then
     >&2 echo "Cannot release dirty working tree"
     exit 1
 fi
-if [[ ! -f genomicsqlite/x86_64-linux-gnu/libgenomicsqlite.so ]] || [[ ! -f genomicsqlite/aarch64-linux-gnu/libgenomicsqlite.so ]] || [[ ! -f genomicsqlite/aarch64-darwin/libgenomicsqlite.dylib ]]; then
-    >&2 echo "Download the portable libraries to ${HERE}/genomicsqlite/x86_64-linux-gnu/, ${HERE}/genomicsqlite/aarch64-linux-gnu/ & ${HERE}/genomicsqlite/aarch64-darwin/ (each as plain libgenomicsqlite.so/.dylib inside its per-target directory)"
+if [[ ! -f genomicsqlite/lib/x86_64-linux-gnu/libgenomicsqlite.so ]] || [[ ! -f genomicsqlite/lib/aarch64-linux-gnu/libgenomicsqlite.so ]] || [[ ! -f genomicsqlite/lib/aarch64-darwin/libgenomicsqlite.dylib ]]; then
+    >&2 echo "Download the portable libraries to ${HERE}/genomicsqlite/lib/x86_64-linux-gnu/, ${HERE}/genomicsqlite/lib/aarch64-linux-gnu/ & ${HERE}/genomicsqlite/lib/aarch64-darwin/ (each as plain libgenomicsqlite.so/.dylib inside its per-target directory)"
     exit 1
 fi
 function cleanup {
