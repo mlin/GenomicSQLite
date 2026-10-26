@@ -8,6 +8,8 @@ The current CI tests Python 3.12 on Ubuntu 24.04 and macOS 15, using the selecte
 
 Release binaries target Linux x86-64 (Ivy Bridge instruction set, glibc 2.28, GLIBCXX 3.4.25) and macOS Apple Silicon (macOS 15+). The Linux compiler target is `-march=ivybridge`, so the host must expose those CPU instructions, including AVX; an older CPU or a virtual machine with AVX disabled needs a source build with a suitable `CPU_ARCH` Docker build argument. Other platforms also require a source build. The Python package's `LIBGENOMICSQLITE` override can select that build; installing the wrapper alone does not provide native support for every platform.
 
+Source builds require a compiler and C++ runtime supporting `-faligned-new` (GCC 7+ or a compatible Clang toolchain). The VFS embeds a cache-line-aligned queue; ordinary C++11 heap allocation does not guarantee its required alignment. The build enables aligned allocation while retaining C++11 and the selected `std::string` ABI. On Linux, the aligned allocation symbols require CXXABI 1.3.11, which is available within the release binary's GCC 8 runtime baseline. The `aligned_allocation` CTest checks heap alignment and queue operations.
+
 ## Download integrity
 
 The Dockerfile verifies downloaded SQLite, Zstandard, and CMake artifacts before extracting or executing them. Version overrides require the matching digest override; changing only a version must fail verification. The committed SHA-256 values come from:

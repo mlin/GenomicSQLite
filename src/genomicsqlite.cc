@@ -13,6 +13,10 @@ SQLITE_EXTENSION_INIT1
 #include "web_vfs.h"
 #include "zstd_vfs.h"
 
+#if !defined(__cpp_aligned_new) || __cpp_aligned_new < 201606L
+#error "GenomicSQLite requires aligned allocation support for its VFS objects"
+#endif
+
 using namespace std;
 
 #ifndef NDEBUG
