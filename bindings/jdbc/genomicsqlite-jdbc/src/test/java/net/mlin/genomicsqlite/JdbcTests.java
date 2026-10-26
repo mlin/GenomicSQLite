@@ -13,6 +13,20 @@ import org.junit.Test;
 
 public class JdbcTests {
   @Test
+  public void trimmedOverrideTest() {
+    // LIBGENOMICSQLITE: unset, empty, and whitespace-only all mean no
+    // override; a nonempty value wins, trimmed (docs/bindings.md).
+    assertNull(JdbcDriver.trimmedOverride(null));
+    assertNull(JdbcDriver.trimmedOverride(""));
+    assertNull(JdbcDriver.trimmedOverride("  \t "));
+    assertNull(JdbcDriver.trimmedOverride("\u2003")); // EM SPACE only
+    assertEquals(
+        "/x/libgenomicsqlite.so", JdbcDriver.trimmedOverride(" /x/libgenomicsqlite.so "));
+    assertEquals(
+        "/x/libgenomicsqlite.so", JdbcDriver.trimmedOverride("\u2003/x/libgenomicsqlite.so\u2003"));
+  }
+
+  @Test
   public void smokeTest() throws SQLException {
     // create temp database
     String url =

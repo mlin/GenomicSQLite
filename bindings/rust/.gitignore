@@ -11,5 +11,6 @@ target/
 
 # Cargo.toml is generated from Cargo.toml.in by ./cargo
 Cargo.toml
-libgenomicsqlite.*
-libgenomicsqlite-*
+# planted prebuilt libraries, in per-target directories (release pipeline)
+*/libgenomicsqlite.so
+*/libgenomicsqlite.dylib

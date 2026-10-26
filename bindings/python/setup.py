@@ -20,9 +20,7 @@ setup(
     author_email="dna@mlin.net",
     license="Apache",
     packages=find_packages(),
-    package_data={
-        "": ["genomicsqlite/libgenomicsqlite-*.so", "genomicsqlite/libgenomicsqlite-*.dylib"]
-    },
+    # the bundled libraries enter the distribution via MANIFEST.in
     include_package_data=True,
     entry_points={"console_scripts": ["genomicsqlite = genomicsqlite:_cli"]},
 )

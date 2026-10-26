@@ -1,21 +1,5 @@
-// Build script for the genomicsqlite crate: when the bundle_libgenomicsqlite
-// feature is enabled, select the ONE prebuilt libgenomicsqlite matching the
-// compilation target (OS + CPU + libc ABI), validate that it's present in the
-// package, and hand its file name to src/lib.rs via cargo:rustc-env, where a
-// single include_bytes! embeds it.
-//
-// Supported bundled targets (the Linux libraries link glibc, so the target
-// env must be gnu):
-//     linux + x86_64 + gnu   -> libgenomicsqlite-linux-x86_64.so
-//     linux + aarch64 + gnu  -> libgenomicsqlite-linux-aarch64.so
-//     macos + aarch64        -> libgenomicsqlite-macos-aarch64.dylib
-//
-// Bundling is a build-time contract: a supported target whose bundled file is
-// missing FAILS the build, as does a non-glibc Linux target whose CPU has a
-// bundled (glibc) library in the package. Any other target, or building
-// without the feature (--no-default-features), leaves
-// GENOMICSQLITE_BUNDLED_LIB empty, and the crate loads an external
-// libgenomicsqlite at runtime (LIBGENOMICSQLITE / system loader search).
+// Select and validate the bundled library at build time; pass its crate-relative
+// path to src/lib.rs for embedding. See docs/bindings.md for the selection policy.
 use std::env;
 use std::path::Path;
 
@@ -30,52 +14,45 @@ fn main() {
     let target_arch = env::var("CARGO_CFG_TARGET_ARCH").unwrap_or_default();
     let target_env = env::var("CARGO_CFG_TARGET_ENV").unwrap_or_default();
 
-    // The single bundled file for this compilation target, if supported.
-    let bundled_file: Option<&str> = match (
-        target_os.as_str(),
-        target_arch.as_str(),
-        target_env.as_str(),
-    ) {
-        ("linux", "x86_64", "gnu") => Some("libgenomicsqlite-linux-x86_64.so"),
-        ("linux", "aarch64", "gnu") => Some("libgenomicsqlite-linux-aarch64.so"),
-        ("macos", "aarch64", _) => Some("libgenomicsqlite-macos-aarch64.dylib"),
+    // Reuse the OS/CPU candidate for selection and the incompatible-libc guard.
+    let candidate: Option<&str> = match (target_os.as_str(), target_arch.as_str()) {
+        ("linux", "x86_64") => Some("x86_64-linux-gnu/libgenomicsqlite.so"),
+        ("linux", "aarch64") => Some("aarch64-linux-gnu/libgenomicsqlite.so"),
+        ("macos", "aarch64") => Some("aarch64-darwin/libgenomicsqlite.dylib"),
+        _ => None,
+    };
+    // Bundled Linux libraries require the gnu target environment.
+    let bundled_path: Option<&str> = match candidate {
+        Some(path) if target_os != "linux" || target_env == "gnu" => Some(path),
         _ => None,
     };
 
     let mut selected = "";
     if bundling {
-        match bundled_file {
-            Some(name) => {
-                let path = Path::new(&manifest_dir).join(name);
+        match bundled_path {
+            Some(relpath) => {
+                let path = Path::new(&manifest_dir).join(relpath);
                 // Rerun this script if the bundled library appears or disappears.
                 println!("cargo:rerun-if-changed={}", path.display());
                 if path.is_file() {
-                    selected = name;
+                    selected = relpath;
                     println!("cargo:rustc-cfg=bundled_lib");
                 } else {
                     panic!(
                         "genomicsqlite: the bundle_libgenomicsqlite feature is enabled \
-                         but the bundled library {} for target {}-{}-{} is missing \
-                         from the crate. Either package the prebuilt library under \
-                         that name, or build with --no-default-features to load an \
-                         external libgenomicsqlite at runtime instead.",
-                        name, target_os, target_arch, target_env
+                         but the bundled library {} is missing from the crate. \
+                         Either package the prebuilt library at that path, or \
+                         build with --no-default-features to load an external \
+                         libgenomicsqlite at runtime instead.",
+                        relpath
                     );
                 }
             }
             None => {
-                // Incompatible-bundle guard: if this is a Linux target with a
-                // non-glibc ABI and the package carries the glibc library for
-                // the same CPU, reject the combination outright -- selecting
-                // it would produce a broken binary, and silently ignoring it
-                // would mask the ABI mismatch.
+                // Reject a same-CPU glibc bundle on non-glibc Linux rather than hiding
+                // the ABI mismatch with a runtime fallback.
                 if target_os == "linux" && target_env != "gnu" {
-                    let glibc_twin = match target_arch.as_str() {
-                        "x86_64" => Some("libgenomicsqlite-linux-x86_64.so"),
-                        "aarch64" => Some("libgenomicsqlite-linux-aarch64.so"),
-                        _ => None,
-                    };
-                    if let Some(twin) = glibc_twin {
+                    if let Some(twin) = candidate {
                         let path = Path::new(&manifest_dir).join(twin);
                         println!("cargo:rerun-if-changed={}", path.display());
                         if path.is_file() {
@@ -91,8 +68,6 @@ fn main() {
                         }
                     }
                 }
-                // Any other unsupported target: no bundle; the crate loads an
-                // external libgenomicsqlite at runtime.
             }
         }
     }
