@@ -6,7 +6,7 @@ The native extension rejects SQLite runtimes older than 3.31.0 because genomic r
 
 The current CI tests Python 3.12 on Ubuntu 24.04 and macOS 15, using the selected interpreter's SQLite runtime. The portable Linux tests use the companion SQLite built by the Dockerfile, currently 3.54.1. These jobs do not cover every SQLite version above the feature floor or every supported Python version. The JDBC binding pins its own SQLite runtime separately in `bindings/jdbc/genomicsqlite-jdbc/pom.xml`. Report `SELECT sqlite_version()` from the host program when investigating compatibility; a shell's version need not match Python or JDBC.
 
-Release binaries target Linux x86-64 (glibc 2.28, GLIBCXX 3.4.25) and macOS Apple Silicon (macOS 15+). Other platforms require a source build. The Python package's `LIBGENOMICSQLITE` override can select that build; installing the wrapper alone does not provide native support for every platform.
+Release binaries target Linux x86-64 (Ivy Bridge instruction set, glibc 2.28, GLIBCXX 3.4.25) and macOS Apple Silicon (macOS 15+). The Linux compiler target is `-march=ivybridge`, so the host must expose those CPU instructions, including AVX; an older CPU or a virtual machine with AVX disabled needs a source build with a suitable `CPU_ARCH` Docker build argument. Other platforms also require a source build. The Python package's `LIBGENOMICSQLITE` override can select that build; installing the wrapper alone does not provide native support for every platform.
 
 ## Download integrity
 

@@ -33,7 +33,7 @@ If this is too old, then upgrade SQLite3 using your preferred binary package man
 * [Rpmfind: libsqlite3](https://rpmfind.net/linux/rpm2html/search.php?query=libsqlite3&submit=Search+...&system=&arch=)
 * [Sqlite :: Anaconda Cloud](https://anaconda.org/anaconda/sqlite)
 * Homebrew [formula/sqlite](https://formulae.brew.sh/formula/sqlite), [formula-linux/sqlite](https://formulae.brew.sh/formula-linux/sqlite)
-* As a last resort for GNU/Linux x86-64, our [GitHub Releases](https://github.com/mlin/GenomicSQLite/releases) include a `libsqlite3.so.0` built on AlmaLinux 8 (glibc 2.28). The release extension also requires libstdc++ providing GLIBCXX 3.4.25; CI checks these ABI limits and runs the binaries on AlmaLinux 8 and Ubuntu 20.04.
+* As a last resort for GNU/Linux x86-64 with an Ivy Bridge-compatible instruction set (including AVX), our [GitHub Releases](https://github.com/mlin/GenomicSQLite/releases) include a `libsqlite3.so.0` built on AlmaLinux 8 (glibc 2.28). The release extension also requires libstdc++ providing GLIBCXX 3.4.25; CI checks these ABI limits and runs the binaries on AlmaLinux 8 and Ubuntu 20.04. See the [distribution maintenance notes](distribution.md) for building with a different CPU target.
 
 You can always `SELECT sqlite_version()` to verify the upgrade in your program.
 
