@@ -15,6 +15,14 @@ if(${CMAKE_VERSION} VERSION_LESS 3.14)
     endmacro()
 endif()
 
+# FetchContent uses the first declaration, including declarations made by dependencies.
+# Pin sqlite_web_vfs's readerwriterqueue dependency instead of following its release tag.
+FetchContent_Declare(
+    concurrentqueue
+    GIT_REPOSITORY  https://github.com/cameron314/readerwriterqueue.git
+    GIT_TAG         8b2176698e9bdaba653cdc20c32b54737a934b47 # v1.0.7
+)
+
 FetchContent_Declare(
     sqlite_zstd_vfs
     GIT_REPOSITORY  https://github.com/mlin/sqlite_zstd_vfs.git
@@ -48,6 +56,15 @@ set(CMAKE_CXX_STANDARD 11)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_EXTENSIONS OFF)
 
+# The VFS contains readerwriterqueue objects with cache-line alignment. Ordinary
+# C++11 new need not honor that alignment, which can crash vectorized constructors.
+include(CheckCXXCompilerFlag)
+check_cxx_compiler_flag("-faligned-new" GENOMICSQLITE_HAS_ALIGNED_NEW)
+if(NOT GENOMICSQLITE_HAS_ALIGNED_NEW)
+    message(FATAL_ERROR "The C++ compiler must support -faligned-new for VFS allocations")
+endif()
+add_compile_options($<$<COMPILE_LANGUAGE:CXX>:-faligned-new>)
+
 execute_process(COMMAND git describe --tags --always --dirty
                 OUTPUT_VARIABLE GIT_REVISION OUTPUT_STRIP_TRAILING_WHITESPACE)
                 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -DGIT_REVISION=\"\\\"${GIT_REVISION}\\\"\"")
@@ -73,6 +90,7 @@ if(CMAKE_PROJECT_NAME STREQUAL PROJECT_NAME)
     add_test(NAME smoke_test COMMAND ${GENOMICSQLITE_TEST_ENV} python3 ${CMAKE_CURRENT_SOURCE_DIR}/test/genomicsqlite_smoke_test.py)
     add_test(NAME extension_loading COMMAND python3 ${CMAKE_CURRENT_SOURCE_DIR}/test/extension_loading.py $<TARGET_FILE:genomicsqlite>)
     add_test(NAME capi_smoke_test COMMAND ${GENOMICSQLITE_TEST_ENV} ${CMAKE_BINARY_DIR}/test/capi_smoke_test)
+    add_test(NAME aligned_allocation COMMAND aligned_allocation_test)
     add_test(NAME JdbcTests COMMAND ${GENOMICSQLITE_TEST_ENV} mvn test -B -f ${CMAKE_CURRENT_SOURCE_DIR}/bindings/jdbc/genomicsqlite-jdbc/pom.xml)
     add_test(NAME cargo_test COMMAND ${GENOMICSQLITE_TEST_ENV} ${CMAKE_CURRENT_SOURCE_DIR}/bindings/rust/cargo test --no-default-features)
     add_test(NAME pytest COMMAND ${GENOMICSQLITE_TEST_ENV} python3 -m pytest -xv -n 4 --tb=short ${CMAKE_CURRENT_SOURCE_DIR}/test)

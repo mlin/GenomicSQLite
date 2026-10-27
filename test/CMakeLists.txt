@@ -1,2 +1,4 @@
 add_executable(capi_smoke_test capi_smoke_test.c)
 target_link_libraries(capi_smoke_test PRIVATE sqlite3 genomicsqlite)
+
+add_executable(aligned_allocation_test aligned_allocation_test.cc)

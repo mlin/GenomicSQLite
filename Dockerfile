@@ -4,8 +4,11 @@
 FROM almalinux:8 as builder
 
 ARG CMAKE_VERSION=3.17.3
+ARG CMAKE_SHA256=1a99f573512793224991d24ad49283f017fa544524d8513667ea3cb89cbe368b
 ARG SQLITE_VERSION=3540100
+ARG SQLITE_SHA256=0a9c8e34352dad46006aa82836d5383bff9dc6bc9ce5a60553c05aa30e6ad1f9
 ARG ZSTD_VERSION=1.5.5
+ARG ZSTD_SHA256=9c4396cc829cfae319a6e2615202e82aad41372073482fce286fac78646d3ee4
 ARG CPU_ARCH=ivybridge
 ENV CFLAGS="-march=${CPU_ARCH} -O3"
 ENV CXXFLAGS=${CFLAGS}
@@ -33,8 +36,10 @@ RUN dnf install -y -q wget unzip rsync git libcurl-devel gcc gcc-c++ make
 RUN mkdir -p /work/GenomicSQLite
 
 # SQLite
+# Update versions and their digests together.
 WORKDIR /work
-RUN wget -nv http://www.sqlite.org/2026/sqlite-amalgamation-${SQLITE_VERSION}.zip \
+RUN wget -nv https://www.sqlite.org/2026/sqlite-amalgamation-${SQLITE_VERSION}.zip \
+        && echo "${SQLITE_SHA256}  sqlite-amalgamation-${SQLITE_VERSION}.zip" | sha256sum -c - \
         && unzip -o sqlite-amalgamation-${SQLITE_VERSION}.zip
 WORKDIR /work/sqlite-amalgamation-${SQLITE_VERSION}
 RUN bash -c "gcc -shared -o libsqlite3.so.0 -fPIC -shared -Wl,-soname,libsqlite3.so.0 -g ${CFLAGS} ${SQLITE_CFLAGS} sqlite3.c & pid=$? \
@@ -44,13 +49,16 @@ RUN ln -s /usr/local/lib/libsqlite3.so.0 /usr/local/lib/libsqlite3.so
 
 # Zstandard -- hacked with -fPIC for use with ZSTD_WHOLE_ARCHIVE
 WORKDIR /work
-RUN wget -nv -O - https://github.com/facebook/zstd/releases/download/v${ZSTD_VERSION}/zstd-${ZSTD_VERSION}.tar.gz | tar zx
+RUN wget -nv https://github.com/facebook/zstd/releases/download/v${ZSTD_VERSION}/zstd-${ZSTD_VERSION}.tar.gz \
+        && echo "${ZSTD_SHA256}  zstd-${ZSTD_VERSION}.tar.gz" | sha256sum -c - \
+        && tar zxf zstd-${ZSTD_VERSION}.tar.gz
 WORKDIR /work/zstd-${ZSTD_VERSION}
 RUN CFLAGS="${CFLAGS} -fPIC" make install -j $(nproc)
 
 # CMake
 WORKDIR /work
-RUN wget -nv https://github.com/Kitware/CMake/releases/download/v${CMAKE_VERSION}/cmake-${CMAKE_VERSION}-Linux-x86_64.sh
+RUN wget -nv https://github.com/Kitware/CMake/releases/download/v${CMAKE_VERSION}/cmake-${CMAKE_VERSION}-Linux-x86_64.sh \
+        && echo "${CMAKE_SHA256}  cmake-${CMAKE_VERSION}-Linux-x86_64.sh" | sha256sum -c -
 RUN yes | sh cmake-${CMAKE_VERSION}-Linux-x86_64.sh
 RUN rsync -a cmake-${CMAKE_VERSION}-Linux-x86_64/ /usr/local/
 
