@@ -37,7 +37,7 @@ More to come. (Help wanted; see [Language Bindings Guide](https://mlin.github.io
 
 [![build](https://github.com/mlin/GenomicSQLite/workflows/build/badge.svg?branch=main)](https://github.com/mlin/GenomicSQLite/actions?query=workflow%3Abuild)
 
-Most will prefer to install a pre-built shared library (see above). To build from source, see our [Actions yml (Ubuntu 24.04 and macOS 15)](https://github.com/mlin/GenomicSQLite/blob/main/.github/workflows/build.yml) or [Dockerfile (AlmaLinux 8)](https://github.com/mlin/GenomicSQLite/blob/main/Dockerfile) used to build the more-portable releases. See the [distribution maintenance notes](docs/distribution.md) for dependency pins and compatibility policy. Briefly, you'll need:
+Most will prefer to install a pre-built shared library (see above). To build from source, see our [Actions yml (Ubuntu 20.04)](https://github.com/mlin/GenomicSQLite/blob/main/.github/workflows/build.yml) or [Dockerfile (CentOS 7)](https://github.com/mlin/GenomicSQLite/blob/main/Dockerfile) used to build the more-portable releases. Briefly, you'll need:
 
 * C++11 build system
 * CMake &ge; 3.14

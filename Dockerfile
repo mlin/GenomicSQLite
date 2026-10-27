@@ -36,7 +36,7 @@ RUN dnf install -y -q wget unzip rsync git libcurl-devel gcc gcc-c++ make
 RUN mkdir -p /work/GenomicSQLite
 
 # SQLite
-# Update versions and their digests together; see docs/distribution.md for provenance.
+# Update versions and their digests together.
 WORKDIR /work
 RUN wget -nv https://www.sqlite.org/2026/sqlite-amalgamation-${SQLITE_VERSION}.zip \
         && echo "${SQLITE_SHA256}  sqlite-amalgamation-${SQLITE_VERSION}.zip" | sha256sum -c - \
