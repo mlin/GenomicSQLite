@@ -89,9 +89,23 @@ Our [GitHub Releases](https://github.com/mlin/GenomicSQLite/releases) supply pre
 
 1. **Bundle nothing:** require the end user to download the right library file (or build it themselves) and place it where the bindings and SQLite3 will be able to find them, as described above.
 
-2. **Bundle our binaries:** ship our binaries inside your package and choose the right one to load at runtime. Remember, the only actual ABI linking occurs between the extension library and SQLite3 itself, so there's nothing to worry about compatibility between the library and the host language runtime.
+2. **Bundle our binaries:** ship our binaries inside your package and choose the right one to load at runtime, following [the bundled-library scheme](#the-bundled-library-scheme) below. Remember, the only actual ABI linking occurs between the extension library and SQLite3 itself, so there's nothing to worry about compatibility between the library and the host language runtime.
 
 3. **Source build:** You can specify the CMake-based source build procedure & its dependencies described in the [GitHub README](https://github.com/mlin/GenomicSQLite) however the host language's packaging system does it. 
+
+### The bundled-library scheme
+
+The GitHub release bundle, Python sdist, JDBC JAR, and Rust crate lay out prebuilt libraries the same way; new bindings should follow this scheme. Libraries always use the plain filename `libgenomicsqlite.so` or `libgenomicsqlite.dylib`; target variation lives in directories, never the filename. The release ships prebuilt libraries for exactly three targets, and in channels carrying multiple targets each sits in its per-target directory under `lib/` (musl-based Linux, e.g. Alpine, is not a supported target):
+
+| Directory | Platform |
+|---|---|
+| `lib/x86_64-linux-gnu` | Linux x86_64, glibc ≥ 2.28 (manylinux_2_28 baseline) |
+| `lib/aarch64-linux-gnu` | Linux ARM64, glibc ≥ 2.28 |
+| `lib/aarch64-darwin` | macOS ARM64 |
+
+Each binding normalizes the CPU, OS, and target spellings reported by its platform APIs in exactly one step; aliases are input-only and never appear in shipped filenames, documentation, or error messages. A nonempty `LIBGENOMICSQLITE` value, after trimming, overrides selection and is used literally; empty or whitespace-only values mean unset. Otherwise the binding uses the host target's bundled library if present, and silently falls back to the bare name `libgenomicsqlite` for system-loader search: selection never fails, and never selects another target's build. Rust instead selects at build time; with bundling enabled, a supported target fails to build if its library is missing.
+
+Load-failure errors name the attempted file or bare name and its source (the `LIBGENOMICSQLITE` override, the bundled copy, or the system search), and give both remedies: set `LIBGENOMICSQLITE` to the library file, or install `libgenomicsqlite` where the system loader finds it.
 
 ## Documentation
 

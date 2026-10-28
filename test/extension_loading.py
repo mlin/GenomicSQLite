@@ -27,8 +27,8 @@ def main():
     with tempfile.TemporaryDirectory() as scratch:
         for basename in (
             "libgenomicsqlite",
-            "libgenomicsqlite-linux-x86_64",
-            "libgenomicsqlite-macos-aarch64",
+            "libgenomicsqlite-x86_64-linux-gnu",
+            "libgenomicsqlite-aarch64-darwin",
             "arbitrary name",
         ):
             renamed = Path(scratch) / (basename + library.suffix)

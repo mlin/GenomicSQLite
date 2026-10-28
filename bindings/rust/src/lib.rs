@@ -44,30 +44,22 @@ fn extract_libgenomicsqlite_impl(
 fn extract_libgenomicsqlite(bytes: &[u8], filename: &str) -> (String, TempDir) {
     match extract_libgenomicsqlite_impl(bytes, filename) {
         Ok(ans) => ans,
-        Err(_) => panic!("genomicsqlite: failed extracting temp libgenomicsqlite; check temp free space & permissions")
+        Err(_) => panic!("genomicsqlite: could not extract bundled libgenomicsqlite; check temporary space and permissions")
     }
 }
 
-/* Bundled libgenomicsqlite selection.
- *
- * With the bundle_libgenomicsqlite feature, build.rs selects the one bundled
- * library matching the compilation target, validates that it's present in
- * the package, and names it in GENOMICSQLITE_BUNDLED_LIB (see build.rs for
- * the supported-target table and build-time contract); the single
- * include_bytes! below embeds exactly that file. With no selection,
- * bundle_libgenomicsqlite() returns None and open() falls back to the normal
- * library search.
- */
+// build.rs names the target-matched library in GENOMICSQLITE_BUNDLED_LIB.
+// Embed it only when selected; other builds use an external library.
 
 #[cfg(all(feature = "bundle_libgenomicsqlite", bundled_lib))]
 fn bundle_libgenomicsqlite() -> Option<(String, TempDir)> {
     Some(extract_libgenomicsqlite(
         include_bytes!(concat!("../", env!("GENOMICSQLITE_BUNDLED_LIB"))),
-        // The bundled binaries export the standard sqlite3_extension_init
-        // entry point, which SQLite tries before guessing an entry point
-        // from the file name -- so the extracted copy loads under its
-        // architecture-qualified package name as-is.
-        env!("GENOMICSQLITE_BUNDLED_LIB"),
+        // Package paths include a target directory; extracted copies use the plain filename.
+        env!("GENOMICSQLITE_BUNDLED_LIB")
+            .rsplit('/')
+            .next()
+            .unwrap(),
     ))
 }
 
@@ -86,6 +78,14 @@ where
 {
     let ans: Result<String> = conn.query_row(sql, params, |row| row.get(0));
     ans
+}
+
+// The LIBGENOMICSQLITE override: set and nonempty (after trimming) wins;
+// empty or whitespace-only means unset (selection policy: docs/bindings.md).
+fn libgenomicsqlite_override(value: Option<String>) -> Option<String> {
+    value
+        .map(|v| v.trim().to_string())
+        .filter(|v| !v.is_empty())
 }
 
 static START: Once = Once::new();
@@ -116,9 +116,10 @@ pub fn open<P: AsRef<Path>>(path: P, flags: OpenFlags, config: &Object) -> Resul
         let mut _tmpdir;
         // Decide where to load libgenomicsqlite from, remembering how it was
         // obtained, so a load failure can say exactly what was tried.
-        let (libgenomicsqlite, libgenomicsqlite_source) = match env::var("LIBGENOMICSQLITE") {
-            Ok(v) => (v, "path from the LIBGENOMICSQLITE environment variable"),
-            Err(_) => match bundle_libgenomicsqlite() {
+        let (libgenomicsqlite, libgenomicsqlite_source) =
+            match libgenomicsqlite_override(env::var("LIBGENOMICSQLITE").ok()) {
+            Some(v) => (v, "path from the LIBGENOMICSQLITE environment variable"),
+            None => match bundle_libgenomicsqlite() {
                 Some((ans, td)) => {
                     _tmpdir = td;
                     (ans, "copy bundled into the genomicsqlite crate")
@@ -426,6 +427,22 @@ impl ConnectionMethods for Connection {
 mod tests {
     use super::ConnectionMethods;
     use rusqlite::OpenFlags;
+
+    #[test]
+    fn override_semantics() {
+        // LIBGENOMICSQLITE: unset, empty, and whitespace-only all mean no
+        // override; a nonempty value wins, trimmed (docs/bindings.md).
+        assert_eq!(super::libgenomicsqlite_override(None), None);
+        assert_eq!(super::libgenomicsqlite_override(Some(String::new())), None);
+        assert_eq!(
+            super::libgenomicsqlite_override(Some("  ".to_string())),
+            None
+        );
+        assert_eq!(
+            super::libgenomicsqlite_override(Some(" /x/libgenomicsqlite.so ".to_string())),
+            Some("/x/libgenomicsqlite.so".to_string())
+        );
+    }
 
     #[test]
     fn smoke_test() {

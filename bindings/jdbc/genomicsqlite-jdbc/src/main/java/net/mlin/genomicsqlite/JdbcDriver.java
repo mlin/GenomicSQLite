@@ -31,6 +31,8 @@ import org.sqlite.SQLiteConnection;
 public class JdbcDriver extends org.sqlite.JDBC {
   public static final String PREFIX = "jdbc:genomicsqlite:";
   private static Connection memoryDb = null;
+  // how getLibraryFilename() obtained the library, for load-failure messages
+  private static String librarySource = "the system library search path";
 
   static {
     try {
@@ -98,7 +100,6 @@ public class JdbcDriver extends org.sqlite.JDBC {
     String config_json = prop.getProperty("genomicsqlite.config_json", "{}");
 
     ensureExtension();
-    // generate connection URI
     PreparedStatement stmt;
     ResultSet row;
     synchronized (memoryDb) {
@@ -110,14 +111,12 @@ public class JdbcDriver extends org.sqlite.JDBC {
       url = row.getString(1);
     }
 
-    // connect via sqlite-jdbc
     if (prop.getProperty("open_mode") == null
         && (url.indexOf("&mode=ro") > -1 || url.indexOf("&immutable=1") > -1)) {
       prop.setProperty("open_mode", "65"); // SQLITE_OPEN_READONLY|SQLITE_OPEN_URI
     }
     SQLiteConnection conn = org.sqlite.JDBC.createConnection("jdbc:sqlite:" + url, prop);
 
-    // generate & apply tuning script
     stmt = conn.prepareStatement("SELECT genomicsqlite_tuning_sql(?)");
     stmt.setString(1, config_json);
     row = stmt.executeQuery();
@@ -127,7 +126,6 @@ public class JdbcDriver extends org.sqlite.JDBC {
   }
 
   static synchronized void ensureExtension() throws SQLException {
-    // Load the extension library if we haven't already
     if (memoryDb == null) {
       String libraryFilename = getLibraryFilename();
 
@@ -137,33 +135,47 @@ public class JdbcDriver extends org.sqlite.JDBC {
       Properties memProp = new Properties();
       memProp.setProperty("enable_load_extension", "true");
       Connection db = DriverManager.getConnection("jdbc:sqlite::memory:", memProp);
+      String loadName = libraryFilename != null ? libraryFilename : "libgenomicsqlite";
       PreparedStatement stmt = db.prepareStatement("SELECT load_extension(?)");
-      stmt.setString(1, libraryFilename != null ? libraryFilename : "libgenomicsqlite");
-      stmt.execute();
+      stmt.setString(1, loadName);
+      try {
+        stmt.execute();
+      } catch (SQLException exc) {
+        throw new SQLException(
+            "genomicsqlite: could not load "
+                + loadName
+                + " (from "
+                + librarySource
+                + "): "
+                + exc.getMessage()
+                + "; set LIBGENOMICSQLITE to the library file, or install libgenomicsqlite"
+                + " where the system loader finds it",
+            exc);
+      }
       memoryDb = db;
     }
   }
 
   static String getLibraryFilename() {
-    // extract platform-appropriate extension library file from resources and return its temp
-    // filename, which will be deleted on exit. sources:
-    // https://stackoverflow.com/questions/228477/how-do-i-programmatically-determine-operating-system-in-java
-    // https://github.com/xerial/sqlite-jdbc/blob/master/src/main/java/org/sqlite/SQLiteJDBCLoader.java
-    String override = System.getenv("LIBGENOMICSQLITE");
-    if (override != null && override.trim().length() > 0) return override;
+    // Return an override or extracted bundle path; null requests system-loader search.
+    librarySource = "the system library search path";
+    String override = trimmedOverride(System.getenv("LIBGENOMICSQLITE"));
+    if (override != null) {
+      librarySource = "the LIBGENOMICSQLITE environment variable";
+      return override;
+    }
     String ans = null;
-    String basename = getLibraryBasename();
-    if (basename != null) {
+    String resourcePath = getLibraryResourcePath();
+    if (resourcePath != null) {
       try {
-        InputStream reader = JdbcDriver.class.getClassLoader().getResourceAsStream(basename);
+        InputStream reader = JdbcDriver.class.getClassLoader().getResourceAsStream(resourcePath);
         if (reader != null) {
           String tempDirpath =
               Files.createTempDirectory("genomicsqlite-jdbc-").toAbsolutePath().toString();
           (new File(tempDirpath)).deleteOnExit();
-          // Extract under the resource's own architecture-qualified name: the
-          // bundled binaries export the standard sqlite3_extension_init entry
-          // point, which SQLite tries before guessing one from the file name.
-          File extracted = new File(tempDirpath, basename);
+          // Extract under the plain filename; target variation belongs in resource paths.
+          File extracted =
+              new File(tempDirpath, resourcePath.substring(resourcePath.lastIndexOf('/') + 1));
           FileOutputStream writer = new FileOutputStream(extracted.getAbsolutePath());
           extracted.deleteOnExit();
           byte[] buffer = new byte[65536];
@@ -174,6 +186,7 @@ public class JdbcDriver extends org.sqlite.JDBC {
           extracted.setReadable(true);
           extracted.setExecutable(true);
           ans = extracted.getAbsolutePath();
+          librarySource = "the copy bundled in this JAR";
         }
       } catch (IOException exc) {
       }
@@ -181,13 +194,18 @@ public class JdbcDriver extends org.sqlite.JDBC {
     return ans;
   }
 
-  static String getLibraryBasename() {
-    // Resource name of the bundled library for this OS + CPU, in the
-    // architecture-qualified form the release pipeline packs into the JAR (the
-    // same naming the Rust crate uses). Matching is exact: an Intel JVM never
-    // selects the ARM build, nor vice versa. If the JAR carries no resource
-    // under the returned name (a platform the release doesn't bundle), the
-    // caller falls back to the system library search.
+  static String trimmedOverride(String override) {
+    // String.trim() does not cover Unicode whitespace; whitespace-only means unset.
+    if (override == null) {
+      return null;
+    }
+    String trimmed = override.replaceAll("(?U)^\\s+|\\s+$", "");
+    return trimmed.length() > 0 ? trimmed : null;
+  }
+
+  static String getLibraryResourcePath() {
+    // Return the canonical resource path, or null for an unrecognized OS or CPU.
+    // Missing resources fall back to system search.
     String arch = System.getProperty("os.arch", "unknown").toLowerCase(Locale.ENGLISH);
     String archTok = null;
     if (arch.equals("amd64") || arch.equals("x86_64")) {
@@ -200,9 +218,9 @@ public class JdbcDriver extends org.sqlite.JDBC {
     }
     String os = System.getProperty("os.name", "unknown").toLowerCase(Locale.ENGLISH);
     if (os.indexOf("mac") >= 0 || os.indexOf("darwin") >= 0) {
-      return "libgenomicsqlite-macos-" + archTok + ".dylib";
+      return "lib/" + archTok + "-darwin/libgenomicsqlite.dylib";
     } else if (os.indexOf("nux") >= 0) {
-      return "libgenomicsqlite-linux-" + archTok + ".so";
+      return "lib/" + archTok + "-linux-gnu/libgenomicsqlite.so";
     }
     return null;
   }

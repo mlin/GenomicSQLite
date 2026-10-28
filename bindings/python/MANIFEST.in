@@ -1,1 +1,1 @@
-include RELEASE-VERSION version.py genomicsqlite/libgenomicsqlite-*
+include RELEASE-VERSION version.py genomicsqlite/lib/*/libgenomicsqlite.so genomicsqlite/lib/*/libgenomicsqlite.dylib
