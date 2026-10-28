@@ -3,7 +3,9 @@
 FROM almalinux:8 as builder
 
 ARG SQLITE_VERSION=3540100
+ARG SQLITE_SHA256=0a9c8e34352dad46006aa82836d5383bff9dc6bc9ce5a60553c05aa30e6ad1f9
 ARG ZSTD_VERSION=1.5.5
+ARG ZSTD_SHA256=9c4396cc829cfae319a6e2615202e82aad41372073482fce286fac78646d3ee4
 # x86_64 defaults to ivybridge; pass --build-arg CPU_ARCH=armv8-a on aarch64.
 ARG CPU_ARCH=ivybridge
 ENV CFLAGS="-march=${CPU_ARCH} -O3"
@@ -37,8 +39,10 @@ RUN echo 'int main(void){return 0;}' | gcc ${CFLAGS} -x c - -o /dev/null \
 RUN mkdir -p /work/GenomicSQLite
 
 # SQLite
+# Update versions and their digests together.
 WORKDIR /work
-RUN wget -nv http://www.sqlite.org/2026/sqlite-amalgamation-${SQLITE_VERSION}.zip \
+RUN wget -nv https://www.sqlite.org/2026/sqlite-amalgamation-${SQLITE_VERSION}.zip \
+        && echo "${SQLITE_SHA256}  sqlite-amalgamation-${SQLITE_VERSION}.zip" | sha256sum -c - \
         && unzip -o sqlite-amalgamation-${SQLITE_VERSION}.zip
 WORKDIR /work/sqlite-amalgamation-${SQLITE_VERSION}
 RUN bash -c "gcc -shared -o libsqlite3.so.0 -fPIC -shared -Wl,-soname,libsqlite3.so.0 -g ${CFLAGS} ${SQLITE_CFLAGS} sqlite3.c & pid=$? \
@@ -48,7 +52,9 @@ RUN ln -s /usr/local/lib/libsqlite3.so.0 /usr/local/lib/libsqlite3.so
 
 # Zstandard -- hacked with -fPIC for use with ZSTD_WHOLE_ARCHIVE
 WORKDIR /work
-RUN wget -nv -O - https://github.com/facebook/zstd/releases/download/v${ZSTD_VERSION}/zstd-${ZSTD_VERSION}.tar.gz | tar zx
+RUN wget -nv https://github.com/facebook/zstd/releases/download/v${ZSTD_VERSION}/zstd-${ZSTD_VERSION}.tar.gz \
+        && echo "${ZSTD_SHA256}  zstd-${ZSTD_VERSION}.tar.gz" | sha256sum -c - \
+        && tar zxf zstd-${ZSTD_VERSION}.tar.gz
 WORKDIR /work/zstd-${ZSTD_VERSION}
 RUN CFLAGS="${CFLAGS} -fPIC" make install -j $(nproc)
 
