@@ -147,6 +147,7 @@ pub fn open<P: AsRef<Path>>(path: P, flags: OpenFlags, config: &Object) -> Resul
         }
     });
 
+    // generate config & connection strings
     let memconn = Connection::open_in_memory().unwrap();
     let config_json_str = config.dump();
     let uri: String = query1str(
@@ -155,8 +156,10 @@ pub fn open<P: AsRef<Path>>(path: P, flags: OpenFlags, config: &Object) -> Resul
         params![path.as_ref().to_str().unwrap(), &config_json_str],
     )?;
 
+    // open GenomicSQLite connection
     let conn = Connection::open_with_flags(uri, flags | OpenFlags::SQLITE_OPEN_URI)?;
 
+    // generate and execute tuning SQL script
     let tuning_sql = query1str(
         &conn,
         "SELECT genomicsqlite_tuning_sql(?)",
