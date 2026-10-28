@@ -9,6 +9,10 @@ format:
 
    v<num>(.<num>)+ [ {a|b|c|rc} <num> (.<num>)* ]
 
+   Semver-style prerelease tags (v0.10.0-rc.1, the form Cargo
+   requires for the crate version) are also accepted, normalized
+   to the PEP 386 form (0.10.0rc1).
+
 If “git describe” returns an error (likely because we're in an unpacked copy
 of a release tarball, rather than a git working copy), or returns a tag that
 does not match the above format, version is read from RELEASE-VERSION file.
@@ -74,6 +78,9 @@ def read_git_version():
 
     if not ver:
         return None
+    # Normalize a semver-style prerelease segment (-rc.1) to the PEP 386
+    # form (rc1) that _GIT_DESCRIPTION_RE parses.
+    ver = re.sub(r"(\d+(?:\.\d+)+)-(a|b|c|rc)\.?(\d+)", r"\1\2\3", ver)
     match = re.search(_GIT_DESCRIPTION_RE, ver)
     if not match:
         sys.stderr.write("version: git description (%s) is invalid, ignoring\n" % ver)
