@@ -162,6 +162,17 @@ def test_wrong_target_never_selected(tmp_path):
     assert SYSTEM_SOURCE in result.stderr
 
 
+def test_unsupported_machine_is_named(tmp_path):
+    prelude = 'import platform; platform.machine = lambda: "riscv64"\n'
+    result = run_child(tmp_path, {}, None, prelude, fail_load=True)
+    assert result.returncode != 0
+    assert "riscv64" in result.stderr
+    assert "no bundled library for this platform" in result.stderr
+    assert SYSTEM_SOURCE in result.stderr
+    for remedy in REMEDIES:
+        assert remedy in result.stderr
+
+
 def test_missing_bundle_falls_back(tmp_path):
     # System search may succeed or fail; only the selected bare name is fixed.
     result = run_child(tmp_path, {}, None)

@@ -20,6 +20,7 @@ _YES = ("1", "true", "t", "yes", "y")
 _DLL = os.environ.get("LIBGENOMICSQLITE", "").strip()  # use env var if present
 _DLL_SOURCE = "the LIBGENOMICSQLITE environment variable"
 _TRIPLE = None
+_UNSUPPORTED_PLATFORM = None
 if not _DLL:
     _ARCH = {
         "x86_64": "x86_64",
@@ -39,6 +40,9 @@ if not _DLL:
         if os.path.isfile(_bundled_path):
             _DLL = _bundled_path
             _DLL_SOURCE = "the copy bundled with this package"
+    else:
+        # no bundled target for this platform; the load error below leads with it
+        _UNSUPPORTED_PLATFORM = f"{platform.system()} {platform.machine()}"
 if not _DLL:
     # otherwise, let SQLite use dlopen() to look for it
     _DLL = "libgenomicsqlite"
@@ -49,8 +53,11 @@ _MEMCONN.enable_load_extension(True)
 try:
     _MEMCONN.load_extension(_DLL)
 except sqlite3.Error as ex:
+    _note = ""
+    if _UNSUPPORTED_PLATFORM:
+        _note = f"no bundled library for this platform ({_UNSUPPORTED_PLATFORM}); "
     raise ImportError(
-        f"genomicsqlite: could not load {_DLL} (from {_DLL_SOURCE}): {ex}; "
+        f"genomicsqlite: {_note}could not load {_DLL} (from {_DLL_SOURCE}): {ex}; "
         "set LIBGENOMICSQLITE to the library file, or install libgenomicsqlite "
         "where the system loader finds it"
     ) from ex
