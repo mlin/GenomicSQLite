@@ -11,8 +11,7 @@ ARG CPU_ARCH=ivybridge
 ARG CPU_TUNE=
 # -mtune tunes instruction scheduling only; it never widens the -march
 # instruction set. The aarch64 CI leg passes CPU_TUNE=neoverse-n1.
-ENV TUNE_FLAG=${CPU_TUNE:+ -mtune=}
-ENV CFLAGS="-march=${CPU_ARCH}${TUNE_FLAG}${CPU_TUNE} -O3"
+ENV CFLAGS="-march=${CPU_ARCH} ${CPU_TUNE:+-mtune=}${CPU_TUNE} -O3"
 ENV CXXFLAGS=${CFLAGS}
 # https://www.sqlite.org/compile.html
 ENV SQLITE_CFLAGS="\
