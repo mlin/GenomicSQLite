@@ -8,7 +8,10 @@ ARG ZSTD_VERSION=1.5.5
 ARG ZSTD_SHA256=9c4396cc829cfae319a6e2615202e82aad41372073482fce286fac78646d3ee4
 # x86_64 defaults to ivybridge; pass --build-arg CPU_ARCH=armv8-a on aarch64.
 ARG CPU_ARCH=ivybridge
-ENV CFLAGS="-march=${CPU_ARCH} -O3"
+ARG CPU_TUNE=
+# -mtune tunes instruction scheduling only; it never widens the -march
+# instruction set. The aarch64 CI leg passes CPU_TUNE=neoverse-n1.
+ENV CFLAGS="-march=${CPU_ARCH} ${CPU_TUNE:+-mtune=}${CPU_TUNE} -O3"
 ENV CXXFLAGS=${CFLAGS}
 # https://www.sqlite.org/compile.html
 ENV SQLITE_CFLAGS="\
@@ -32,9 +35,9 @@ ENV SQLITE_CFLAGS="\
 # cmake comes from the distro: arch-native on both x86_64 and aarch64,
 # and new enough for the project's CMake floor.
 RUN dnf install -y -q wget unzip git libcurl-devel gcc gcc-c++ make cmake
-# fail fast, before the expensive builds, if CPU_ARCH doesn't fit this CPU
+# fail fast, before the expensive builds, if the CPU flags don't fit this CPU
 RUN echo 'int main(void){return 0;}' | gcc ${CFLAGS} -x c - -o /dev/null \
-    || { echo "error: CPU_ARCH=${CPU_ARCH} is not a valid -march for $(uname -m); pass --build-arg CPU_ARCH=armv8-a on aarch64" >&2; exit 1; }
+    || { echo "error: CPU_ARCH=${CPU_ARCH} CPU_TUNE=${CPU_TUNE} is not a valid -march/-mtune for $(uname -m); pass --build-arg CPU_ARCH=armv8-a on aarch64" >&2; exit 1; }
 
 RUN mkdir -p /work/GenomicSQLite
 
