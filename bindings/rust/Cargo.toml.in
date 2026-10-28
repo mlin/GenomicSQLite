@@ -21,7 +21,7 @@ json = "^0.12"
 tempfile = "^3"
 
 [dependencies.rusqlite]
-version = ">=0.25, <0.41"
+version = ">=0.25, <0.42"
 features = ["load_extension", "vtab"]
 
 [dev-dependencies.uuid]
