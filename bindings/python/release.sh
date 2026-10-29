@@ -15,7 +15,7 @@ if [[ ! -f genomicsqlite/lib/x86_64-linux-gnu/libgenomicsqlite.so ]] || [[ ! -f 
 fi
 function cleanup {
     # force us to put libs on each attempt; ensures a stale version can't be left behind
-    rm -f genomicsqlite/*/libgenomicsqlite.so genomicsqlite/*/libgenomicsqlite.dylib
+    rm -f genomicsqlite/lib/*/libgenomicsqlite.so genomicsqlite/lib/*/libgenomicsqlite.dylib
 }
 trap cleanup EXIT
 
