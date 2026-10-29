@@ -270,6 +270,12 @@ jobs:
       uses: actions/download-artifact@v8
       with:
         name: libsqlite3.so.0-x86_64
+        path: libsqlite3/x86_64-linux-gnu
+    - name: fetch libsqlite3.so.0 (aarch64)
+      uses: actions/download-artifact@v8
+      with:
+        name: libsqlite3.so.0-aarch64
+        path: libsqlite3/aarch64-linux-gnu
     - name: fetch libgenomicsqlite.so (aarch64)
       uses: actions/download-artifact@v8
       with:
@@ -304,7 +310,13 @@ jobs:
     - name: JDBC smoke test
       run: bash test/jdbc_smoke_test.sh bindings/jdbc/genomicsqlite-jdbc
     - name: digests
-      run: sha256sum lib/x86_64-linux-gnu/libgenomicsqlite.so lib/aarch64-linux-gnu/libgenomicsqlite.so lib/aarch64-darwin/libgenomicsqlite.dylib bindings/jdbc/genomicsqlite-jdbc/target/genomicsqlite*.jar libsqlite3.so.0
+      run: sha256sum lib/x86_64-linux-gnu/libgenomicsqlite.so lib/aarch64-linux-gnu/libgenomicsqlite.so lib/aarch64-darwin/libgenomicsqlite.dylib bindings/jdbc/genomicsqlite-jdbc/target/genomicsqlite*.jar libsqlite3/x86_64-linux-gnu/libsqlite3.so.0 libsqlite3/aarch64-linux-gnu/libsqlite3.so.0
+    # The two libsqlite3.so.0 builds ship as one artifact, in the same
+    # per-target folders as the bundle libraries.
+    - uses: actions/upload-artifact@v7
+      with:
+        name: libsqlite3.so.0
+        path: libsqlite3
     - uses: actions/upload-artifact@v7
       with:
         name: genomicsqlite-jdbc-${{ env.GIT_REVISION }}
