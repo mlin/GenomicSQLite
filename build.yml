@@ -1,0 +1,386 @@
+name: build
+on: [push, pull_request]
+
+env:
+  APT_DEPS: libzstd-dev samtools tabix libhts-dev pigz python3-pip
+  BREW_DEPS: zstd samtools pigz coreutils sqlite python@3.12
+  PIP_DEPS: pytest pytest-xdist
+
+jobs:
+
+  lint:
+    runs-on: ubuntu-24.04
+    steps:
+    - uses: actions/checkout@v7
+      with:
+        fetch-depth: 0
+    - name: deps
+      run: |
+        sudo apt-get -qq update
+        sudo apt-get install -y clang-format cppcheck python3-pip python3-venv
+        python3 -m venv "$HOME/.lint-venv"
+        "$HOME/.lint-venv/bin/pip" install pre-commit $PIP_DEPS ruff
+        echo "$HOME/.lint-venv/bin" >> "$GITHUB_PATH"
+    - name: pre-commit
+      run: pre-commit run --all-files
+    - name: mvn spotless:check
+      run: mvn spotless:check -B -f bindings/jdbc/genomicsqlite-jdbc/pom.xml
+    - name: rust toolchain
+      uses: dtolnay/rust-toolchain@stable
+      with:
+        components: rustfmt, clippy
+    - name: rust lint
+      run: |
+        cd bindings/rust
+        ./cargo check --no-default-features
+        ./cargo fmt -- --check
+
+  test:
+    runs-on: ubuntu-24.04
+    strategy:
+      matrix:
+        BUILD_TYPE: [Debug, Release]
+    steps:
+    - uses: actions/checkout@v7
+      with:
+        fetch-depth: 0
+    - uses: actions/setup-python@v7
+      with:
+        python-version: "3.12"
+    - name: deps
+      run: |
+        sudo apt-get -qq update
+        sudo apt-get install -y $APT_DEPS
+        # Ubuntu 24.04's system Python is 3.12.3, which carries CPython bug #118001:
+        # spurious DeprecationWarnings for ?NNN placeholders bound from a sequence
+        # (fixed in 3.12.4). setup-python's floating 3.12 selects a patched release;
+        # a venv selects that interpreter, mirroring the macOS job below.
+        python3 -m venv "$HOME/.ci-venv"
+        echo "$HOME/.ci-venv/bin" >> "$GITHUB_PATH"
+        export PATH="$HOME/.ci-venv/bin:$PATH"
+        python3 -m pip install $PIP_DEPS
+        python3 - <<'PYTHON'
+        import sqlite3, sys
+        print(sys.executable, sys.version)
+        print("SQLite", sqlite3.sqlite_version)
+        sqlite3.connect(":memory:").enable_load_extension(True)
+        PYTHON
+    - name: rust toolchain
+      uses: dtolnay/rust-toolchain@stable
+    - name: build
+      run: cmake -DCMAKE_BUILD_TYPE=${{ matrix.BUILD_TYPE }} -B build . && cmake --build build -j $(nproc)
+    - name: test
+      run: env -C build SQLITE_WEB_LOG=99 ctest -V
+
+  rust-floor:
+    # Latest-floor gate (runbook section 10): the full build and test suite,
+    # including the Rust binding at its committed Cargo.lock, must pass with
+    # Ubuntu 24.04's default toolchains. No rustup -- apt's cargo/rustc
+    # (1.75) only, with the runner image's own Rust kept off PATH. (The
+    # Python venv mirrors the test job's workaround for noble's 3.12.3 bug;
+    # the floor constrains toolchain versions, not that bug fix.)
+    runs-on: ubuntu-24.04
+    steps:
+    - uses: actions/checkout@v7
+      with:
+        fetch-depth: 0
+    - uses: actions/setup-python@v7
+      with:
+        python-version: "3.12"
+    - name: deps
+      run: |
+        sudo apt-get -qq update
+        sudo apt-get install -y $APT_DEPS cargo rustc
+        python3 -m venv "$HOME/.ci-venv"
+        echo "$HOME/.ci-venv/bin" >> "$GITHUB_PATH"
+        export PATH="$HOME/.ci-venv/bin:$PATH"
+        python3 -m pip install $PIP_DEPS
+    - name: build
+      run: |
+        export PATH="$HOME/.ci-venv/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin"
+        cargo --version | grep -q 'cargo 1.75' || { echo "rust-floor must use noble's stock cargo 1.75, got: $(cargo --version)"; exit 1; }
+        cmake -DCMAKE_BUILD_TYPE=Release -B build . && cmake --build build -j $(nproc)
+    - name: test
+      run: |
+        export PATH="$HOME/.ci-venv/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin"
+        env -C build SQLITE_WEB_LOG=99 ctest -V
+
+  linux-so:
+    runs-on: ${{ matrix.runs-on }}
+    strategy:
+      matrix:
+        include:
+          - target: x86_64-linux-gnu
+            runs-on: ubuntu-24.04
+            cpu_arch: ivybridge
+            cpu_tune: ''
+            artifact: libgenomicsqlite.so-x86_64
+            sqlite_artifact: libsqlite3.so.0-x86_64
+          - target: aarch64-linux-gnu
+            runs-on: ubuntu-24.04-arm
+            cpu_arch: armv8-a
+            cpu_tune: neoverse-n1
+            artifact: libgenomicsqlite.so-aarch64
+            sqlite_artifact: libsqlite3.so.0-aarch64
+    steps:
+    - uses: actions/checkout@v7
+      with:
+        fetch-depth: 0
+    - uses: actions/setup-python@v7
+      with:
+        python-version: "3.12"
+    - name: build loaders
+      run: |
+        sudo apt-get -qq update
+        sudo apt-get install -y $APT_DEPS
+        # Patched Python 3.12 in a venv, as in the test job above: Ubuntu 24.04's
+        # system Python 3.12.3 carries CPython bug #118001 (fixed in 3.12.4). The
+        # venv is created here, before cmake, so later steps' literal python3
+        # (ctest, smoke tests) resolves to it via GITHUB_PATH.
+        python3 -m venv "$HOME/.ci-venv"
+        echo "$HOME/.ci-venv/bin" >> "$GITHUB_PATH"
+        export PATH="$HOME/.ci-venv/bin:$PATH"
+        python3 -m pip install $PIP_DEPS
+        python3 - <<'PYTHON'
+        import sqlite3, sys
+        print(sys.executable, sys.version)
+        print("SQLite", sqlite3.sqlite_version)
+        sqlite3.connect(":memory:").enable_load_extension(True)
+        PYTHON
+        cmake -DCMAKE_BUILD_TYPE=Release -DCMAKE_CXX_FLAGS='-D_GLIBCXX_USE_CXX11_ABI=0' -B build . && cmake --build build -j $(nproc)
+        rm build/libgenomicsqlite.so
+        sudo apt-get remove -y libzstd-dev  # should be linked into libgenomicsqlite.so
+    - name: build portable .so in docker
+      run: |
+        # BuildKit builds only the stages the final target depends on, so the
+        # two minimum-runtime smoke-test stages -- which nothing depends on --
+        # must be built explicitly, or they are silently skipped. CPU_ARCH
+        # selects the Dockerfile's -march baseline for this leg's CPU;
+        # CPU_TUNE adds its -mtune scheduling target (aarch64 only).
+        docker build --build-arg CPU_ARCH=${{ matrix.cpu_arch }} --build-arg CPU_TUNE=${{ matrix.cpu_tune }} --target alma-smoke-test .
+        docker build --build-arg CPU_ARCH=${{ matrix.cpu_arch }} --build-arg CPU_TUNE=${{ matrix.cpu_tune }} --target rust-smoke-test .
+        docker build --build-arg CPU_ARCH=${{ matrix.cpu_arch }} --build-arg CPU_TUNE=${{ matrix.cpu_tune }} -t genomicsqlite . && docker run -v $(pwd):/mnt --rm genomicsqlite cp /usr/local/lib/{libgenomicsqlite.so,libsqlite3.so.0} /usr/local/bin/sqlite3 /mnt/build/
+    - name: symbols & digests
+      run: |
+        readelf -d build/libgenomicsqlite.so
+        ldd -r build/libgenomicsqlite.so
+        echo "----"
+        echo "libgenomicsqlite.so GLIBC version requirements:"
+        objdump -t build/libgenomicsqlite.so | grep -o 'GLIBC_.*' | sort -Vr | head -n1
+        objdump -t build/libgenomicsqlite.so | grep -o 'GLIBCXX_.*' | sort -Vr | head -n1
+        echo "libsqlite3.so.0 GLIBC version requirements:"
+        objdump -t build/libsqlite3.so.0 | grep -o 'GLIBC_.*' | sort -Vr | head -n1
+        echo "----"
+        sha256sum build/libgenomicsqlite.so build/libsqlite3.so.0
+        echo "asserting manylinux_2_28 floor (GLIBC <= 2.28, GLIBCXX <= 3.4.25):"
+        python3 test/check_elf_version_floor.py build/libgenomicsqlite.so build/libsqlite3.so.0
+    - name: rust toolchain
+      uses: dtolnay/rust-toolchain@stable
+    # The steps below test the portable libraries against the portable SQLite
+    # they ship with, scoping that environment (build/ first on PATH /
+    # LD_LIBRARY_PATH) to the tested processes only -- never the runner's
+    # global loader cache or PATH.
+    - name: test portable .so
+      run: env -C build SQLITE_WEB_LOG=99 PATH="$(pwd)/build:$PATH" LD_LIBRARY_PATH="$(pwd)/build" ctest -V
+    - name: test rust crate
+      run: |
+        set -e
+        mkdir -p bindings/rust/lib/${{ matrix.target }}
+        cp build/libgenomicsqlite.so bindings/rust/lib/${{ matrix.target }}/
+        ln -sf libsqlite3.so.0 build/libsqlite3.so  # linker name, scoped to build/ like the Dockerfile rust stage
+        env LD_LIBRARY_PATH="$(pwd)/build" LIBRARY_PATH="$(pwd)/build" SQLITE_WEB_LOG=99 bindings/rust/cargo test --release
+        bindings/rust/cargo package --list | grep lib/${{ matrix.target }}/libgenomicsqlite.so
+    - name: test rust crate (rusqlite ceiling)
+      if: matrix.target == 'x86_64-linux-gnu'
+      run: |
+        # The committed Cargo.lock pins the newest rusqlite line that builds
+        # on the latest floor (rust-floor job below); verify the manifest's
+        # rusqlite ceiling separately, on this current toolchain.
+        cp -r bindings/rust build/rust-ceiling
+        rm -rf build/rust-ceiling/target build/rust-ceiling/.cargo
+        cd build/rust-ceiling
+        env LD_LIBRARY_PATH="$(pwd)/.." LIBRARY_PATH="$(pwd)/.." ./cargo update -p rusqlite
+        env LD_LIBRARY_PATH="$(pwd)/.." LIBRARY_PATH="$(pwd)/.." SQLITE_WEB_LOG=99 ./cargo test --release
+    - name: installed-package smoke test
+      run: |
+        python3 -m pip install -q setuptools wheel
+        bash test/pkg_smoke.sh python3 bindings/python build/libgenomicsqlite.so lib/${{ matrix.target }} "$(pwd)/build"
+    - name: prepare artifacts
+      run: cp build/libgenomicsqlite.so .
+    - name: prepare sqlite artifact
+      run: cp build/libsqlite3.so.0 .
+    - uses: actions/upload-artifact@v7
+      with:
+        name: ${{ matrix.artifact }}
+        path: libgenomicsqlite.so
+        retention-days: 1
+    - uses: actions/upload-artifact@v7
+      with:
+        name: ${{ matrix.sqlite_artifact }}
+        path: libsqlite3.so.0
+        retention-days: 1
+
+  macOS-aarch64-dylib:
+    runs-on: macos-15
+    steps:
+    - uses: actions/checkout@v7
+      with:
+        fetch-depth: 0
+    # The brew passes below report "Skipping <formula>: most recent version
+    # not installed" for the runner image's own outdated formulae; GitHub
+    # renders them as job annotations. Expected, and not our dependencies.
+    - name: dependencies
+      run: |
+        rm -f $(brew --prefix)/bin/2to3  # https://github.com/pypa/pipenv/issues/3831
+        brew update || (sleep 2; brew update)
+        for dep in $BREW_DEPS ; do
+          brew install $dep || brew upgrade $dep
+        done
+
+        # setup-python's macOS ARM 3.12.10 build lacked SQLite extension loading.
+        # Homebrew enables it; 3.12 is our CI baseline, matching Ubuntu 24.04.
+        # A venv selects that interpreter and keeps pip installs isolated.
+        "$(brew --prefix python@3.12)/bin/python3.12" -m venv "$HOME/.mac-venv"
+        echo "$HOME/.mac-venv/bin" >> "$GITHUB_PATH"
+        export PATH="$HOME/.mac-venv/bin:$PATH"
+        python3 -m pip install $PIP_DEPS
+        python3 - <<'PYTHON'
+        import sqlite3, sys
+        print(sys.executable, sys.version)
+        print("SQLite", sqlite3.sqlite_version)
+        sqlite3.connect(":memory:").enable_load_extension(True)
+        PYTHON
+    - name: rust toolchain
+      uses: dtolnay/rust-toolchain@stable
+    - name: build environment
+      run: |
+        echo "$(brew --prefix)/opt/sqlite/bin" >> "$GITHUB_PATH"
+        echo "CFLAGS=-I$(brew --prefix)/include -I$(brew --prefix)/opt/sqlite/include" >> $GITHUB_ENV
+        echo "CXXFLAGS=-I$(brew --prefix)/include -I$(brew --prefix)/opt/sqlite/include" >> $GITHUB_ENV
+        echo "LDFLAGS=-L$(brew --prefix)/lib -L$(brew --prefix)/opt/sqlite/lib" >> $GITHUB_ENV
+        # used by rusqlite:
+        echo "SQLITE3_INCLUDE_DIR=$(brew --prefix)/opt/sqlite/include" >> $GITHUB_ENV
+        echo "SQLITE3_LIB_DIR=$(brew --prefix)/opt/sqlite/lib" >> $GITHUB_ENV
+    - name: build
+      run: |
+        # Shipped-extension baseline: the Apple M1 CPU target (the flags
+        # compose with the include paths in $CFLAGS / $CXXFLAGS from the
+        # "build environment" step).
+        cmake -DCMAKE_BUILD_TYPE=Release \
+              -DCMAKE_C_FLAGS="$CFLAGS -mcpu=apple-m1" \
+              -DCMAKE_CXX_FLAGS="$CXXFLAGS -mcpu=apple-m1" \
+              -DCMAKE_PREFIX_PATH=$(brew --prefix)/opt/sqlite \
+              -B build .
+        cmake --build build -j 4
+    - name: symbols & digests
+      run: |
+        otool -L build/libgenomicsqlite.dylib
+        sha256sum build/libgenomicsqlite.dylib
+    - name: ctest
+      run: |
+        cd build
+        otool -L test/capi_smoke_test
+        SQLITE_WEB_LOG=99 ctest -V
+    - name: test rust crate
+      run: |
+        set -e
+        mkdir -p bindings/rust/lib/aarch64-darwin
+        cp build/libgenomicsqlite.dylib bindings/rust/lib/aarch64-darwin/
+        SQLITE_WEB_LOG=99 bindings/rust/cargo test --release
+        bindings/rust/cargo package --list | grep lib/aarch64-darwin/libgenomicsqlite.dylib
+    - name: installed-package smoke test
+      run: |
+        python3 -m pip install -q setuptools wheel
+        bash test/pkg_smoke.sh python3 bindings/python build/libgenomicsqlite.dylib lib/aarch64-darwin "$(brew --prefix)/opt/sqlite/bin"
+    - name: prepare artifacts
+      run: cp build/libgenomicsqlite.dylib . && cp include/genomicsqlite.h .
+    - uses: actions/upload-artifact@v7
+      with:
+        name: libgenomicsqlite.dylib
+        path: libgenomicsqlite.dylib
+        retention-days: 1
+
+  artifacts:
+    runs-on: ubuntu-24.04
+    needs: [linux-so, macOS-aarch64-dylib]
+    permissions:
+      contents: read
+      actions: write  # the final step deletes this run's transport artifacts
+    steps:
+    - uses: actions/checkout@v7
+    # Each library downloads directly into its per-target directory under
+    # lib/ (the shipped layout, docs/bindings.md): plain file names, target
+    # variation in the directory. Artifact names are transport labels only.
+    - name: fetch libgenomicsqlite.so (x86_64)
+      uses: actions/download-artifact@v8
+      with:
+        name: libgenomicsqlite.so-x86_64
+        path: lib/x86_64-linux-gnu
+    - name: fetch libsqlite3.so.0 (x86_64)
+      uses: actions/download-artifact@v8
+      with:
+        name: libsqlite3.so.0-x86_64
+        path: libsqlite3/x86_64-linux-gnu
+    - name: fetch libsqlite3.so.0 (aarch64)
+      uses: actions/download-artifact@v8
+      with:
+        name: libsqlite3.so.0-aarch64
+        path: libsqlite3/aarch64-linux-gnu
+    - name: fetch libgenomicsqlite.so (aarch64)
+      uses: actions/download-artifact@v8
+      with:
+        name: libgenomicsqlite.so-aarch64
+        path: lib/aarch64-linux-gnu
+    - name: fetch libgenomicsqlite.dylib
+      uses: actions/download-artifact@v8
+      with:
+        name: libgenomicsqlite.dylib
+        path: lib/aarch64-darwin
+    - name: detect GIT_REVISION
+      run: |
+        cp include/genomicsqlite.h .
+        echo "GIT_REVISION=$(git describe --tags --always)" >> $GITHUB_ENV
+    - uses: actions/upload-artifact@v7
+      with:
+        name: GenomicSQLite-${{ env.GIT_REVISION }}
+        path: |
+          LICENSE
+          genomicsqlite.h
+          lib/x86_64-linux-gnu/libgenomicsqlite.so
+          lib/aarch64-linux-gnu/libgenomicsqlite.so
+          lib/aarch64-darwin/libgenomicsqlite.dylib
+        retention-days: ${{ github.ref_type == 'tag' && 60 || github.ref == 'refs/heads/main' && 14 || 3 }}
+    - name: build jar
+      run: |
+        RES=bindings/jdbc/genomicsqlite-jdbc/src/main/resources
+        mkdir -p $RES/lib/x86_64-linux-gnu $RES/lib/aarch64-linux-gnu $RES/lib/aarch64-darwin
+        cp lib/x86_64-linux-gnu/libgenomicsqlite.so $RES/lib/x86_64-linux-gnu/
+        cp lib/aarch64-linux-gnu/libgenomicsqlite.so $RES/lib/aarch64-linux-gnu/
+        cp lib/aarch64-darwin/libgenomicsqlite.dylib $RES/lib/aarch64-darwin/
+        mvn deploy -Drevision=${{ env.GIT_REVISION }} -B -f bindings/jdbc/genomicsqlite-jdbc/pom.xml
+    - name: JDBC smoke test
+      run: bash test/jdbc_smoke_test.sh bindings/jdbc/genomicsqlite-jdbc
+    - name: digests
+      run: sha256sum lib/x86_64-linux-gnu/libgenomicsqlite.so lib/aarch64-linux-gnu/libgenomicsqlite.so lib/aarch64-darwin/libgenomicsqlite.dylib bindings/jdbc/genomicsqlite-jdbc/target/genomicsqlite*.jar libsqlite3/x86_64-linux-gnu/libsqlite3.so.0 libsqlite3/aarch64-linux-gnu/libsqlite3.so.0
+    # The two libsqlite3.so.0 builds ship as one artifact, in the same
+    # per-target folders as the bundle libraries.
+    - uses: actions/upload-artifact@v7
+      with:
+        name: libsqlite3.so.0
+        path: libsqlite3
+        retention-days: ${{ github.ref_type == 'tag' && 60 || github.ref == 'refs/heads/main' && 14 || 3 }}
+    - uses: actions/upload-artifact@v7
+      with:
+        name: genomicsqlite-jdbc-${{ env.GIT_REVISION }}
+        path: bindings/jdbc/genomicsqlite-jdbc/target/mvn-repo
+        retention-days: ${{ github.ref_type == 'tag' && 60 || github.ref == 'refs/heads/main' && 14 || 3 }}
+    # The per-platform library artifacts were transport only: their bytes
+    # ship inside the bundle, the jar repo, and the combined libsqlite3
+    # artifact above. Delete them now; their uploads also carry
+    # retention-days: 1 as a backstop if this step does not run.
+    - name: delete transport artifacts
+      continue-on-error: true
+      env:
+        GH_TOKEN: ${{ github.token }}
+      run: |
+        gh api "repos/$GITHUB_REPOSITORY/actions/runs/$GITHUB_RUN_ID/artifacts" --paginate --jq '.artifacts[] | select(.name as $n | ["libgenomicsqlite.so-x86_64", "libgenomicsqlite.so-aarch64", "libgenomicsqlite.dylib", "libsqlite3.so.0-x86_64", "libsqlite3.so.0-aarch64"] | index($n) != null) | .id' | while read id; do gh api -X DELETE "repos/$GITHUB_REPOSITORY/actions/artifacts/$id" || true; done
