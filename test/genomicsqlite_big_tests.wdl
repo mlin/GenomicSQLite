@@ -55,10 +55,6 @@ task build {
     command <<<
         set -euxo pipefail
 
-        # current Rust toolchain for the binding tests run under ctest
-        # (the distro cargo lags the versions pinned in Cargo.lock)
-        curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y --profile minimal
-        export PATH="$HOME/.cargo/bin:$PATH"
 
         # build libgenomicsqlite.so and loader executables
         git clone --recursive https://github.com/mlin/GenomicSQLite.git
@@ -85,7 +81,7 @@ task build {
 
     Array[String] apt_deps = [
         "zip", "pigz", "wget", "build-essential", "git", "sqlite3", "cmake", "libsqlite3-dev",
-        "libzstd-dev", "python3-pip", "maven", "libhts-dev", "samtools", "tabix", "libcurl4-openssl-dev"
+        "libzstd-dev", "python3-pip", "maven", "cargo", "libhts-dev", "samtools", "tabix", "libcurl4-openssl-dev"
     ]
     Array[String] pip_deps = ["pytest", "pytest-xdist"]
 
