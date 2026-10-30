@@ -16,7 +16,7 @@ This November 2021 poster discusses the context and long-run ambitions:
 
 [<img src="GA4GH_8thPlenary_poster_mlin_v2.thumb.jpeg" width="400" alt="GenomicSQLite Poster"/>](GenomeInformatics2021Poster.pdf)
 
-Our **[Colab notebook](https://colab.research.google.com/drive/1OlHPOcRQBhDmEnS1wtOdtUGDkcD7LtKx?usp=sharing)** demonstrates key features with Python, one of several language bindings.
+Our **[Colab notebook](https://colab.research.google.com/drive/1BND1nYHDg9DLsw5buvaB30BpH_GoYbit)** demonstrates key features with Python, one of several language bindings.
 
 **USE AT YOUR OWN RISK:** The extension makes fundamental changes to the database storage layer. While designed to preserve ACID transaction safety, it's young and unlikely to have zero bugs. This project is not associated with the SQLite developers.
 
