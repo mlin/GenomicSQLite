@@ -55,6 +55,11 @@ task build {
     command <<<
         set -euxo pipefail
 
+        # current Rust toolchain for the binding tests run under ctest
+        # (the distro cargo lags the versions pinned in Cargo.lock)
+        curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y --profile minimal
+        export PATH="$HOME/.cargo/bin:$PATH"
+
         # build libgenomicsqlite.so and loader executables
         git clone --recursive https://github.com/mlin/GenomicSQLite.git
         cd GenomicSQLite
@@ -79,17 +84,17 @@ task build {
     }
 
     Array[String] apt_deps = [
-        "zip", "pigz", "wget", "build-essential", "git-core", "sqlite3", "cmake", "libsqlite3-dev",
-        "libzstd-dev", "python3-pip", "maven", "cargo", "libhts-dev", "samtools", "tabix", "libcurl4-openssl-dev"
+        "zip", "pigz", "wget", "build-essential", "git", "sqlite3", "cmake", "libsqlite3-dev",
+        "libzstd-dev", "python3-pip", "maven", "libhts-dev", "samtools", "tabix", "libcurl4-openssl-dev"
     ]
     Array[String] pip_deps = ["pytest", "pytest-xdist"]
 
     runtime {
         cpu: 8
         inlineDockerfile: [
-            "FROM ubuntu:20.04",
+            "FROM ubuntu:24.04",
             "RUN apt-get -qq update && DEBIAN_FRONTEND=noninteractive apt-get install -qq -y ~{sep(' ', apt_deps)}",
-            "RUN pip3 install ~{sep(' ', pip_deps)}"
+            "RUN pip3 install --break-system-packages ~{sep(' ', pip_deps)}"
         ]
     }
 }
@@ -97,7 +102,7 @@ task build {
 task test_sam {
     input {
         File reads
-        String cram_ref_fa_gz = "ftp://ftp.ncbi.nlm.nih.gov/genomes/all/GCA/000/001/405/GCA_000001405.15_GRCh38/seqs_for_alignment_pipelines.ucsc_ids/GCA_000001405.15_GRCh38_no_alt_analysis_set.fna.gz"
+        String cram_ref_fa_gz = "https://ftp.ncbi.nlm.nih.gov/genomes/all/GCA/000/001/405/GCA_000001405.15_GRCh38/seqs_for_alignment_pipelines.ucsc_ids/GCA_000001405.15_GRCh38_no_alt_analysis_set.fna.gz"
 
         File genomicsqlite_py
         File libgenomicsqlite_so
@@ -110,7 +115,8 @@ task test_sam {
         set -euxo pipefail
         TMPDIR=${TMPDIR:-/tmp}
 
-        cp ~{genomicsqlite_py} /usr/lib/python3.8/genomicsqlite.py
+        GENOMICSQLITE_PY="$(python3 -c 'import sysconfig; print(sysconfig.get_paths()["purelib"])')/genomicsqlite.py"
+        cp ~{genomicsqlite_py} "$GENOMICSQLITE_PY"
         cp ~{libgenomicsqlite_so} /usr/local/lib/libgenomicsqlite.so
         ldconfig
         >&2 sha256sum /usr/local/lib/libgenomicsqlite.so
@@ -135,7 +141,7 @@ task test_sam {
         >&2 ls -l '~{dbname}'
 
         # compaction
-        time /usr/lib/python3.8/genomicsqlite.py '~{dbname}' --compact --level 9 --inner-page-KiB 64 --outer-page-KiB 1
+        time "$GENOMICSQLITE_PY" '~{dbname}' --compact --level 9 --inner-page-KiB 64 --outer-page-KiB 1
         >&2 ls -l '~{dbname}'*
 
         # GRI query
@@ -155,8 +161,8 @@ task test_sam {
         time sqlite3 '~{dbname}.compact' "SELECT meta1, count(*), avg(length(data)) FROM nested_vfs_zstd_pages GROUP BY meta1" >&2
 
         # add a QNAME-sorted seqs table. TODO: write it into a separate attached db
-        chmod +x /usr/lib/python3.8/genomicsqlite.py
-        time /usr/lib/python3.8/genomicsqlite.py '~{dbname}.compact' "PRAGMA journal_mode=off; PRAGMA synchronous=off; CREATE TABLE reads_seqs_by_qname AS SELECT * from reads_seqs NOT INDEXED ORDER BY qname"
+        chmod +x "$GENOMICSQLITE_PY"
+        time "$GENOMICSQLITE_PY" '~{dbname}.compact' "PRAGMA journal_mode=off; PRAGMA synchronous=off; CREATE TABLE reads_seqs_by_qname AS SELECT * from reads_seqs NOT INDEXED ORDER BY qname"
     >>>
 
     output {
@@ -170,7 +176,7 @@ task test_sam {
     runtime {
         cpu: 8
         inlineDockerfile: [
-            "FROM ubuntu:20.04",
+            "FROM ubuntu:24.04",
             "RUN apt-get -qq update && DEBIAN_FRONTEND=noninteractive apt-get install -qq -y ~{sep(' ', apt_deps)}"
         ]
     }
@@ -264,7 +270,7 @@ task test_sam_web {
     runtime {
         cpu: 8
         inlineDockerfile: [
-            "FROM ubuntu:20.04",
+            "FROM ubuntu:24.04",
             "RUN apt-get -qq update && DEBIAN_FRONTEND=noninteractive apt-get install -qq -y ~{sep(' ', apt_deps)}"
         ]
     }
@@ -284,7 +290,8 @@ task test_vcf {
     command <<<
         set -euxo pipefail
 
-        cp ~{genomicsqlite_py} /usr/lib/python3.8/genomicsqlite.py
+        GENOMICSQLITE_PY="$(python3 -c 'import sysconfig; print(sysconfig.get_paths()["purelib"])')/genomicsqlite.py"
+        cp ~{genomicsqlite_py} "$GENOMICSQLITE_PY"
         cp ~{libgenomicsqlite_so} /usr/local/lib/libgenomicsqlite.so
         ldconfig
         >&2 sha256sum /usr/local/lib/libgenomicsqlite.so
@@ -324,7 +331,7 @@ task test_vcf {
     runtime {
         cpu: 8
         inlineDockerfile: [
-            "FROM ubuntu:20.04",
+            "FROM ubuntu:24.04",
             "RUN apt-get -qq update && DEBIAN_FRONTEND=noninteractive apt-get install -qq -y ~{sep(' ', apt_deps)}"
         ]
     }
