@@ -111,7 +111,7 @@ task test_sam {
         set -euxo pipefail
         TMPDIR=${TMPDIR:-/tmp}
 
-        GENOMICSQLITE_PY="$(python3 -c 'import sysconfig; print(sysconfig.get_paths()["purelib"])')/genomicsqlite.py"
+        GENOMICSQLITE_PY="$PWD/genomicsqlite.py"
         cp ~{genomicsqlite_py} "$GENOMICSQLITE_PY"
         cp ~{libgenomicsqlite_so} /usr/local/lib/libgenomicsqlite.so
         ldconfig
@@ -286,7 +286,7 @@ task test_vcf {
     command <<<
         set -euxo pipefail
 
-        GENOMICSQLITE_PY="$(python3 -c 'import sysconfig; print(sysconfig.get_paths()["purelib"])')/genomicsqlite.py"
+        GENOMICSQLITE_PY="$PWD/genomicsqlite.py"
         cp ~{genomicsqlite_py} "$GENOMICSQLITE_PY"
         cp ~{libgenomicsqlite_so} /usr/local/lib/libgenomicsqlite.so
         ldconfig
