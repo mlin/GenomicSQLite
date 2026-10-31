@@ -111,7 +111,7 @@ task test_sam {
         set -euxo pipefail
         TMPDIR=${TMPDIR:-/tmp}
 
-        GENOMICSQLITE_PY="$(python3 -c 'import sysconfig; print(sysconfig.get_paths()["purelib"])')/genomicsqlite.py"
+        GENOMICSQLITE_PY="$PWD/genomicsqlite.py"
         cp ~{genomicsqlite_py} "$GENOMICSQLITE_PY"
         cp ~{libgenomicsqlite_so} /usr/local/lib/libgenomicsqlite.so
         ldconfig
@@ -137,7 +137,7 @@ task test_sam {
         >&2 ls -l '~{dbname}'
 
         # compaction
-        time "$GENOMICSQLITE_PY" '~{dbname}' --compact --level 9 --inner-page-KiB 64 --outer-page-KiB 1
+        time python3 "$GENOMICSQLITE_PY" '~{dbname}' --compact --level 9 --inner-page-KiB 64 --outer-page-KiB 1
         >&2 ls -l '~{dbname}'*
 
         # GRI query
@@ -157,8 +157,7 @@ task test_sam {
         time sqlite3 '~{dbname}.compact' "SELECT meta1, count(*), avg(length(data)) FROM nested_vfs_zstd_pages GROUP BY meta1" >&2
 
         # add a QNAME-sorted seqs table. TODO: write it into a separate attached db
-        chmod +x "$GENOMICSQLITE_PY"
-        time "$GENOMICSQLITE_PY" '~{dbname}.compact' "PRAGMA journal_mode=off; PRAGMA synchronous=off; CREATE TABLE reads_seqs_by_qname AS SELECT * from reads_seqs NOT INDEXED ORDER BY qname"
+        time python3 "$GENOMICSQLITE_PY" '~{dbname}.compact' "PRAGMA journal_mode=off; PRAGMA synchronous=off; CREATE TABLE reads_seqs_by_qname AS SELECT * from reads_seqs NOT INDEXED ORDER BY qname"
     >>>
 
     output {
@@ -167,7 +166,7 @@ task test_sam {
         Int reads_original_size = round(size(reads))
     }
 
-    Array[String] apt_deps = ["sqlite3", "samtools", "tabix", "libzstd1", "pigz", "wget"]
+    Array[String] apt_deps = ["sqlite3", "python3", "samtools", "tabix", "libzstd1", "pigz", "wget"]
 
     runtime {
         cpu: 8
@@ -261,7 +260,7 @@ task test_sam_web {
         killall nginx || true
     >>>
 
-    Array[String] apt_deps = ["sqlite3", "nginx", "openssl", "python3-minimal", "libcurl4", "psmisc"]
+    Array[String] apt_deps = ["sqlite3", "nginx", "openssl", "python3", "libcurl4", "psmisc"]
 
     runtime {
         cpu: 8
@@ -286,7 +285,7 @@ task test_vcf {
     command <<<
         set -euxo pipefail
 
-        GENOMICSQLITE_PY="$(python3 -c 'import sysconfig; print(sysconfig.get_paths()["purelib"])')/genomicsqlite.py"
+        GENOMICSQLITE_PY="$PWD/genomicsqlite.py"
         cp ~{genomicsqlite_py} "$GENOMICSQLITE_PY"
         cp ~{libgenomicsqlite_so} /usr/local/lib/libgenomicsqlite.so
         ldconfig
@@ -322,7 +321,7 @@ task test_vcf {
         Int variants_original_size = round(size(variants))
     }
 
-    Array[String] apt_deps = ["sqlite3", "samtools", "tabix", "libzstd1", "pigz", "wget"]
+    Array[String] apt_deps = ["sqlite3", "python3", "samtools", "tabix", "libzstd1", "pigz", "wget"]
 
     runtime {
         cpu: 8
