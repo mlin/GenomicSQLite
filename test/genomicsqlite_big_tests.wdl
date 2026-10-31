@@ -88,7 +88,7 @@ task build {
     runtime {
         cpu: 8
         inlineDockerfile: [
-            "FROM ubuntu:24.04",
+            "FROM ubuntu:26.04",
             "RUN apt-get -qq update && DEBIAN_FRONTEND=noninteractive apt-get install -qq -y ~{sep(' ', apt_deps)}",
             "RUN pip3 install --break-system-packages ~{sep(' ', pip_deps)}"
         ]
@@ -171,7 +171,7 @@ task test_sam {
     runtime {
         cpu: 8
         inlineDockerfile: [
-            "FROM ubuntu:24.04",
+            "FROM ubuntu:26.04",
             "RUN apt-get -qq update && DEBIAN_FRONTEND=noninteractive apt-get install -qq -y ~{sep(' ', apt_deps)}"
         ]
     }
@@ -265,7 +265,7 @@ task test_sam_web {
     runtime {
         cpu: 8
         inlineDockerfile: [
-            "FROM ubuntu:24.04",
+            "FROM ubuntu:26.04",
             "RUN apt-get -qq update && DEBIAN_FRONTEND=noninteractive apt-get install -qq -y ~{sep(' ', apt_deps)}"
         ]
     }
@@ -326,7 +326,7 @@ task test_vcf {
     runtime {
         cpu: 8
         inlineDockerfile: [
-            "FROM ubuntu:24.04",
+            "FROM ubuntu:26.04",
             "RUN apt-get -qq update && DEBIAN_FRONTEND=noninteractive apt-get install -qq -y ~{sep(' ', apt_deps)}"
         ]
     }
