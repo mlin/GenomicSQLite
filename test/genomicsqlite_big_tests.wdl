@@ -137,7 +137,7 @@ task test_sam {
         >&2 ls -l '~{dbname}'
 
         # compaction
-        time "$GENOMICSQLITE_PY" '~{dbname}' --compact --level 9 --inner-page-KiB 64 --outer-page-KiB 1
+        time python3 "$GENOMICSQLITE_PY" '~{dbname}' --compact --level 9 --inner-page-KiB 64 --outer-page-KiB 1
         >&2 ls -l '~{dbname}'*
 
         # GRI query
@@ -157,8 +157,7 @@ task test_sam {
         time sqlite3 '~{dbname}.compact' "SELECT meta1, count(*), avg(length(data)) FROM nested_vfs_zstd_pages GROUP BY meta1" >&2
 
         # add a QNAME-sorted seqs table. TODO: write it into a separate attached db
-        chmod +x "$GENOMICSQLITE_PY"
-        time "$GENOMICSQLITE_PY" '~{dbname}.compact' "PRAGMA journal_mode=off; PRAGMA synchronous=off; CREATE TABLE reads_seqs_by_qname AS SELECT * from reads_seqs NOT INDEXED ORDER BY qname"
+        time python3 "$GENOMICSQLITE_PY" '~{dbname}.compact' "PRAGMA journal_mode=off; PRAGMA synchronous=off; CREATE TABLE reads_seqs_by_qname AS SELECT * from reads_seqs NOT INDEXED ORDER BY qname"
     >>>
 
     output {
