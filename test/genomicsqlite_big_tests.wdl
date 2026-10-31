@@ -166,7 +166,7 @@ task test_sam {
         Int reads_original_size = round(size(reads))
     }
 
-    Array[String] apt_deps = ["sqlite3", "samtools", "tabix", "libzstd1", "pigz", "wget"]
+    Array[String] apt_deps = ["sqlite3", "python3", "samtools", "tabix", "libzstd1", "pigz", "wget"]
 
     runtime {
         cpu: 8
@@ -260,7 +260,7 @@ task test_sam_web {
         killall nginx || true
     >>>
 
-    Array[String] apt_deps = ["sqlite3", "nginx", "openssl", "python3-minimal", "libcurl4", "psmisc"]
+    Array[String] apt_deps = ["sqlite3", "nginx", "openssl", "python3", "libcurl4", "psmisc"]
 
     runtime {
         cpu: 8
@@ -321,7 +321,7 @@ task test_vcf {
         Int variants_original_size = round(size(variants))
     }
 
-    Array[String] apt_deps = ["sqlite3", "samtools", "tabix", "libzstd1", "pigz", "wget"]
+    Array[String] apt_deps = ["sqlite3", "python3", "samtools", "tabix", "libzstd1", "pigz", "wget"]
 
     runtime {
         cpu: 8
