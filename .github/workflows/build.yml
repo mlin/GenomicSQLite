@@ -32,7 +32,7 @@ jobs:
     - name: rust lint
       run: |
         cd bindings/rust
-        ./cargo check --no-default-features
+        ./cargo check --no-default-features --locked
         ./cargo fmt -- --check
 
   test:
@@ -71,6 +71,49 @@ jobs:
       run: cmake -DCMAKE_BUILD_TYPE=${{ matrix.BUILD_TYPE }} -B build . && cmake --build build -j $(nproc)
     - name: test
       run: env -C build SQLITE_WEB_LOG=99 ctest -V
+
+  rust-floor:
+    # Latest-floor gate: the full build and test suite,
+    # including the Rust binding at its committed Cargo.lock, must pass with
+    # Ubuntu 24.04's default toolchains. No rustup -- apt's cargo/rustc
+    # (1.75) only, with the runner image's own Rust kept off PATH. (The
+    # Python venv mirrors the test job's workaround for noble's 3.12.3 bug;
+    # the floor constrains toolchain versions, not that bug fix.)
+    runs-on: ubuntu-24.04
+    env:
+      FLOOR_PATH: /home/runner/.ci-venv/bin:/usr/sbin:/usr/bin:/sbin:/bin
+    steps:
+    - uses: actions/checkout@v7
+      with:
+        fetch-depth: 0
+    - uses: actions/setup-python@v7
+      with:
+        python-version: "3.12"
+    - name: deps
+      run: |
+        sudo apt-get -qq update
+        sudo apt-get install -y $APT_DEPS build-essential cmake cargo rustc
+        python3 -m venv "$HOME/.ci-venv"
+        echo "$HOME/.ci-venv/bin" >> "$GITHUB_PATH"
+        export PATH="$HOME/.ci-venv/bin:$PATH"
+        python3 -m pip install $PIP_DEPS
+    - name: build
+      run: |
+        export PATH="$FLOOR_PATH"
+        cargo --version | grep -qE '^cargo 1\.75\.0( |$)' || { echo "rust-floor must use noble's stock cargo 1.75.0, got: $(cargo --version)"; exit 1; }
+        rustc --version | grep -qE '^rustc 1\.75\.0( |$)' || { echo "rust-floor must use noble's stock rustc 1.75.0, got: $(rustc --version)"; exit 1; }
+        cmake -DCMAKE_BUILD_TYPE=Release -B build . && cmake --build build -j $(nproc)
+    - name: test rust crate (locked)
+      run: |
+        export PATH="$FLOOR_PATH"
+        mkdir -p bindings/rust/lib/x86_64-linux-gnu
+        cp build/libgenomicsqlite.so bindings/rust/lib/x86_64-linux-gnu/
+        ln -sf libsqlite3.so.0 build/libsqlite3.so
+        env LD_LIBRARY_PATH="$(pwd)/build" LIBRARY_PATH="$(pwd)/build" SQLITE_WEB_LOG=99 bindings/rust/cargo test --release --locked
+    - name: test
+      run: |
+        export PATH="$FLOOR_PATH"
+        env -C build SQLITE_WEB_LOG=99 ctest -V
 
   linux-so:
     runs-on: ${{ matrix.runs-on }}
@@ -155,8 +198,19 @@ jobs:
         mkdir -p bindings/rust/lib/${{ matrix.target }}
         cp build/libgenomicsqlite.so bindings/rust/lib/${{ matrix.target }}/
         ln -sf libsqlite3.so.0 build/libsqlite3.so  # linker name, scoped to build/ like the Dockerfile rust stage
-        env LD_LIBRARY_PATH="$(pwd)/build" LIBRARY_PATH="$(pwd)/build" SQLITE_WEB_LOG=99 bindings/rust/cargo test --release
+        env LD_LIBRARY_PATH="$(pwd)/build" LIBRARY_PATH="$(pwd)/build" SQLITE_WEB_LOG=99 bindings/rust/cargo test --release --locked
         bindings/rust/cargo package --list | grep lib/${{ matrix.target }}/libgenomicsqlite.so
+    - name: test rust crate (rusqlite ceiling)
+      if: matrix.target == 'x86_64-linux-gnu'
+      run: |
+        # The committed Cargo.lock pins the newest rusqlite line that builds
+        # on the latest floor (rust-floor job below); verify the manifest's
+        # rusqlite ceiling separately, on this current toolchain.
+        mkdir build/rust-ceiling
+        tar -C bindings/rust --exclude=target -cf - . | tar -C build/rust-ceiling -xf -
+        cd build/rust-ceiling
+        env LD_LIBRARY_PATH="$(pwd)/.." LIBRARY_PATH="$(pwd)/.." ./cargo update -p rusqlite
+        env LD_LIBRARY_PATH="$(pwd)/.." LIBRARY_PATH="$(pwd)/.." SQLITE_WEB_LOG=99 ./cargo test --release --locked
     - name: installed-package smoke test
       run: |
         python3 -m pip install -q setuptools wheel
@@ -242,7 +296,7 @@ jobs:
         set -e
         mkdir -p bindings/rust/lib/aarch64-darwin
         cp build/libgenomicsqlite.dylib bindings/rust/lib/aarch64-darwin/
-        SQLITE_WEB_LOG=99 bindings/rust/cargo test --release
+        SQLITE_WEB_LOG=99 bindings/rust/cargo test --release --locked
         bindings/rust/cargo package --list | grep lib/aarch64-darwin/libgenomicsqlite.dylib
     - name: installed-package smoke test
       run: |
