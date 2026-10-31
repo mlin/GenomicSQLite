@@ -169,10 +169,12 @@ jobs:
       with:
         name: ${{ matrix.artifact }}
         path: libgenomicsqlite.so
+        retention-days: 1
     - uses: actions/upload-artifact@v7
       with:
         name: ${{ matrix.sqlite_artifact }}
         path: libsqlite3.so.0
+        retention-days: 1
 
   macOS-aarch64-dylib:
     runs-on: macos-15
@@ -252,10 +254,14 @@ jobs:
       with:
         name: libgenomicsqlite.dylib
         path: libgenomicsqlite.dylib
+        retention-days: 1
 
   artifacts:
     runs-on: ubuntu-24.04
     needs: [linux-so, macOS-aarch64-dylib]
+    permissions:
+      contents: read
+      actions: write  # the final step deletes this run's transport artifacts
     steps:
     - uses: actions/checkout@v7
     # Each library downloads directly into its per-target directory under
@@ -299,6 +305,7 @@ jobs:
           lib/x86_64-linux-gnu/libgenomicsqlite.so
           lib/aarch64-linux-gnu/libgenomicsqlite.so
           lib/aarch64-darwin/libgenomicsqlite.dylib
+        retention-days: ${{ github.ref_type == 'tag' && 60 || github.ref == 'refs/heads/main' && 14 || 3 }}
     - name: build jar
       run: |
         RES=bindings/jdbc/genomicsqlite-jdbc/src/main/resources
@@ -317,7 +324,19 @@ jobs:
       with:
         name: libsqlite3.so.0
         path: libsqlite3
+        retention-days: ${{ github.ref_type == 'tag' && 60 || github.ref == 'refs/heads/main' && 14 || 3 }}
     - uses: actions/upload-artifact@v7
       with:
         name: genomicsqlite-jdbc-${{ env.GIT_REVISION }}
         path: bindings/jdbc/genomicsqlite-jdbc/target/mvn-repo
+        retention-days: ${{ github.ref_type == 'tag' && 60 || github.ref == 'refs/heads/main' && 14 || 3 }}
+    # The per-platform library artifacts were transport only: their bytes
+    # ship inside the bundle, the jar repo, and the combined libsqlite3
+    # artifact above. Delete them now; their uploads also carry
+    # retention-days: 1 as a backstop if this step does not run.
+    - name: delete transport artifacts
+      continue-on-error: true
+      env:
+        GH_TOKEN: ${{ github.token }}
+      run: |
+        gh api "repos/$GITHUB_REPOSITORY/actions/runs/$GITHUB_RUN_ID/artifacts" --paginate --jq '.artifacts[] | select(.name as $n | ["libgenomicsqlite.so-x86_64", "libgenomicsqlite.so-aarch64", "libgenomicsqlite.dylib", "libsqlite3.so.0-x86_64", "libsqlite3.so.0-aarch64"] | index($n) != null) | .id' | while read id; do gh api -X DELETE "repos/$GITHUB_REPOSITORY/actions/artifacts/$id" || true; done
