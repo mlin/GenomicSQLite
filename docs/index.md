@@ -90,7 +90,7 @@ It's usually easiest to obtain the extension as a pre-compiled shared library (G
 
     Building with the crate will include a platform-appropriate shared library file within your compilation unit, to be extracted & loaded at runtime. To disable this, add `default-features = false` to the dependencies entry and at runtime, set environment variable `LIBGENOMICSQLITE` to a filename or place the library file somewhere it'll be found by `dlopen("libgenomicsqlite")`.
 
-    To make `rusqlite` use an SQLite library other than the system's default, set `SQLITE3_LIB_DIR` and `SQLITE3_INCLUDE_DIR` to the `bin` and `include` directories where the library is installed.
+    To make `rusqlite` use an SQLite library other than the system's default, set `SQLITE3_LIB_DIR` and `SQLITE3_INCLUDE_DIR` to the `lib` and `include` directories where the library is installed.
 
     Recommendation: *also* install the Python package, which includes a useful command-line shell and other tools.
 
