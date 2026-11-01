@@ -83,7 +83,7 @@ It's usually easiest to obtain the extension as a pre-compiled shared library (L
 
     To bundle GenomicSQLite and sqlite-jdbc inside an "Uber JAR" for your application, you may need to enable the [ServicesResourceTransformer for Maven Shade](https://maven.apache.org/plugins/maven-shade-plugin/examples/resource-transformers.html#ServicesResourceTransformer) or [mergeServiceFiles() for Gradle Shadow](https://stackoverflow.com/questions/32887966/shadow-plugin-gradle-what-does-mergeservicefiles-do), to ensure the JDBC drivers will be registered automatically when the "Uber JAR" loads.
 
-    Recommendation: *also* install the Python package, which includes a useful command-line shell.
+    Recommendation: *also* install the Python package, which includes a useful command-line shell and other tools.
 
 === "Rust"
     Add to your project's `Cargo.toml`:
@@ -95,12 +95,12 @@ It's usually easiest to obtain the extension as a pre-compiled shared library (L
 
     Building with the crate will include a platform-appropriate shared library file within your compilation unit, to be extracted & loaded at runtime. To disable this, add `default-features = false` and at runtime, set environment variable `LIBGENOMICSQLITE` to a filename or place the library file somewhere it'll be found by `dlopen("libgenomicsqlite")`.
 
-    Recommendation: *also* install the Python package, which includes a useful command-line shell.
+    Recommendation: *also* install the Python package, which includes a useful command-line shell and other tools.
 
 === "C/C++"
     Download zip of shared library and `genomicsqlite.h` from [GitHub Releases](https://github.com/mlin/GenomicSQLite/releases). Build your program with them, and also ensure the dynamic linker will find the shared library at runtime, by either: (1) installing it in a system or user lib directory & refreshing cache, (2) setting `LD_LIBRARY_PATH` environment variable, (3) building with `-rpath`.
 
-    Recommendation: *also* install the Python package, which includes a useful command-line shell.
+    Recommendation: *also* install the Python package, which includes a useful command-line shell and other tools.
 
     GNU/Linux: to link the prebuilt `libgenomicsqlite.so` distributed from our GitHub Releases, you
     may have to compile your source with `CXXFLAGS=-D_GLIBCXX_USE_CXX11_ABI=0`. This is because the
