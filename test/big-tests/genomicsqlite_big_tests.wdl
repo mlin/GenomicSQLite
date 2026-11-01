@@ -81,12 +81,12 @@ task build {
 
     Array[String] apt_deps = [
         "zip", "pigz", "wget", "build-essential", "git", "sqlite3", "cmake", "libsqlite3-dev",
-        "libzstd-dev", "python3-pip", "maven", "cargo", "libhts-dev", "samtools", "tabix", "libcurl4-openssl-dev"
+        "libzstd-dev", "python3-pip", "maven", "cargo", "libhts-dev", "samtools", "tabix", "libcurl4-gnutls-dev"
     ]
     Array[String] pip_deps = ["pytest", "pytest-xdist"]
 
     runtime {
-        cpu: 8
+        cpu: 16
         inlineDockerfile: [
             "FROM ubuntu:26.04",
             "RUN apt-get -qq update && DEBIAN_FRONTEND=noninteractive apt-get install -qq -y ~{sep(' ', apt_deps)}",
@@ -98,7 +98,7 @@ task build {
 task test_sam {
     input {
         File reads
-        String cram_ref_fa_gz = "https://ftp.ncbi.nlm.nih.gov/genomes/all/GCA/000/001/405/GCA_000001405.15_GRCh38/seqs_for_alignment_pipelines.ucsc_ids/GCA_000001405.15_GRCh38_no_alt_analysis_set.fna.gz"
+        String cram_ref_fa = "https://s3.amazonaws.com/1000genomes/technical/reference/GRCh38_reference_genome/GRCh38_full_analysis_set_plus_decoy_hla.fa"
 
         File genomicsqlite_py
         File libgenomicsqlite_so
@@ -124,7 +124,7 @@ task test_sam {
         reads_file='~{reads}'
         if [[ $reads_file == *.cram ]]; then
             # CRAM given; make BAM to take reference downloads out of the timings
-            wget -nv -O - '~{cram_ref_fa_gz}' | pigz -dc > "${TMPDIR}/cram_ref.fa"
+            wget -nv -O "${TMPDIR}/cram_ref.fa" '~{cram_ref_fa}'
             samtools faidx "${TMPDIR}/cram_ref.fa"
             bam_file="${TMPDIR}/$(basename "$reads_file" .cram).bam"
             time samtools view -T "${TMPDIR}/cram_ref.fa" -h -O BAM -@ 8 "$reads_file" > "$bam_file"
@@ -169,7 +169,7 @@ task test_sam {
     Array[String] apt_deps = ["sqlite3", "python3", "samtools", "tabix", "libzstd1", "pigz", "wget"]
 
     runtime {
-        cpu: 8
+        cpu: 16
         inlineDockerfile: [
             "FROM ubuntu:26.04",
             "RUN apt-get -qq update && DEBIAN_FRONTEND=noninteractive apt-get install -qq -y ~{sep(' ', apt_deps)}"
@@ -263,7 +263,7 @@ task test_sam_web {
     Array[String] apt_deps = ["sqlite3", "nginx", "openssl", "python3", "libcurl4", "psmisc"]
 
     runtime {
-        cpu: 8
+        cpu: 16
         inlineDockerfile: [
             "FROM ubuntu:26.04",
             "RUN apt-get -qq update && DEBIAN_FRONTEND=noninteractive apt-get install -qq -y ~{sep(' ', apt_deps)}"
@@ -324,7 +324,7 @@ task test_vcf {
     Array[String] apt_deps = ["sqlite3", "python3", "samtools", "tabix", "libzstd1", "pigz", "wget"]
 
     runtime {
-        cpu: 8
+        cpu: 16
         inlineDockerfile: [
             "FROM ubuntu:26.04",
             "RUN apt-get -qq update && DEBIAN_FRONTEND=noninteractive apt-get install -qq -y ~{sep(' ', apt_deps)}"

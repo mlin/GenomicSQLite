@@ -97,7 +97,7 @@ resource "aws_security_group" "instance" {
 
 resource "aws_instance" "runner" {
   ami                         = data.aws_ssm_parameter.ubuntu_arm64.value
-  instance_type               = "c7gd.2xlarge"
+  instance_type               = "c7gd.4xlarge"
   subnet_id                   = sort(data.aws_subnets.default.ids)[0]
   associate_public_ip_address = true
   vpc_security_group_ids      = [aws_security_group.instance.id]

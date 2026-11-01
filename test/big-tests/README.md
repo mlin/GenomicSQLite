@@ -1,8 +1,8 @@
 # Big tests on one EC2 instance
 
 This directory contains the big-test WDL and a small Terraform configuration for
-running it with miniwdl on an on-demand `c7gd.2xlarge` in the default VPC. The
-instance has eight Arm64 vCPUs, 16 GiB RAM, one 474 GB NVMe instance-store disk,
+running it with miniwdl on an on-demand `c7gd.4xlarge` in the default VPC. The
+instance has 16 Arm64 vCPUs, 32 GiB RAM, one 950 GB NVMe instance-store disk,
 and a separate 50 GiB encrypted gp3 root volume. The default region is
 `us-west-2`; `-var='region=...'` can select another region with a default VPC,
 default subnet, and this instance type. If needed, use
@@ -75,7 +75,10 @@ The system miniwdl configuration enables call and download caching under
 `/scratch/miniwdl`, and places task temporary files on the run filesystem.
 The call cache references files in earlier run directories, so keep those
 directories while using the cache. Storage is finite: the default CRAM and VCF
-alone occupy about 33 GiB, before the intermediate BAM and databases. Check
+alone occupy about 33 GiB, before the intermediate BAM and databases. A trial
+on a 474 GB instance store filled the disk during the SAM QNAME sort, which
+creates large temporary files. The WDL requests all 16 vCPUs for each task so
+miniwdl runs at most one at a time on this instance. Check
 `df -h /scratch` during the run. The GCS VCF and other public downloads require
 internet access; the public S3 CRAM resides in `us-east-1`.
 
