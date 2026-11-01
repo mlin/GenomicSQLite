@@ -21,7 +21,10 @@ cp "$LIB" "$SRC/genomicsqlite/$QDIR/"
 # version.py wants git describe (unavailable in the staged copy) or this file
 [ -f "$SRC/RELEASE-VERSION" ] || echo "0.0.0" > "$SRC/RELEASE-VERSION"
 SITE="$WORK/site"
-"$PY" -m pip install --quiet --no-build-isolation --target "$SITE" "$SRC"
+# Install the sdist, not the source directory: the tarball is the shipped
+# artifact, and building it is the step that can drop package modules.
+( cd "$SRC" && "$PY" setup.py sdist --dist-dir "$WORK/dist" )
+"$PY" -m pip install --quiet --no-build-isolation --target "$SITE" "$WORK"/dist/*.tar.gz
 echo "installed bundled libraries:"; ls "$SITE/genomicsqlite/$QDIR"
 
 cd "$WORK" # neutral cwd: the repo tree must not shadow the installed package
@@ -40,3 +43,8 @@ OUT="$(env -u LIBGENOMICSQLITE PYTHONPATH="$SITE" PATH="$SHELLDIR:$PATH" \
 echo "$OUT"
 [ "$OUT" = "CLI:pkg-ok" ] || { echo "CLI smoke output mismatch" >&2; exit 1; }
 echo "CLI SMOKE OK"
+
+# Exercise the .dbi helper end-to-end (sqlite_web_dbi.py in the installed package)
+env -u LIBGENOMICSQLITE PYTHONPATH="$SITE" "$PY" -m genomicsqlite "$DB" --dbi
+[ -f "$DB.dbi" ] || { echo "missing $DB.dbi" >&2; exit 1; }
+echo "DBI SMOKE OK"

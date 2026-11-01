@@ -21,5 +21,12 @@ trap cleanup EXIT
 
 rm -rf build dist *.egg-info
 python3 setup.py sdist
+if ! tar tzf dist/*.tar.gz | grep -q 'genomicsqlite/sqlite_web_dbi\.py$'; then
+    >&2 echo "The sdist is missing genomicsqlite/sqlite_web_dbi.py; refusing to release."
+    >&2 echo "That module is a symlink into build/_deps/sqlite_web_vfs-src/, populated by the CMake build."
+    >&2 echo "This tree was never built, so setuptools dropped the dangling symlink silently."
+    >&2 echo "Build this tree (or materialize the file from a built tree), rebuild the sdist, and retry."
+    exit 1
+fi
 echo -e "\033[0;31;5m -- Pushing $(basename `ls -1 dist/*.tar.gz` .tar.gz) to PyPI! -- \033[0m"
 twine upload dist/*.tar.gz
