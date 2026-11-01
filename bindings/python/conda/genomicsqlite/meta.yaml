@@ -13,12 +13,14 @@ build:
   number: 0
   entry_points:
     - genomicsqlite = genomicsqlite:_cli
-  script: "{{ PYTHON }} -m pip install . -vv"
+  script: "{{ PYTHON }} -m pip install . -vv --no-deps --no-build-isolation"
 
 requirements:
   host:
     - python
     - pip
+    - setuptools
+    - wheel
   run:
     - python >=3.10
     - sqlite >=3.31.0
