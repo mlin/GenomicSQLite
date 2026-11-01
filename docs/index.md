@@ -22,20 +22,15 @@ Our **[Colab notebook](https://colab.research.google.com/drive/1BND1nYHDg9DLsw5b
 
 ## SQLite requirements
 
-The host program must support loading extensions and use SQLite 3.31.0 (2020) or newer. Check the version with `SELECT sqlite_version()` in your program.
+The SQLite library linked into application must be at least version 3.31.0 (2020 vintage) and support [loadable extensions](https://www.sqlite.org/loadext.html). Check the version with `SELECT sqlite_version()` in your program.
 
-The macOS system SQLite lacks extension-loading entry points, regardless of version, so programs linked to it cannot load the Genomics Extension. On macOS, use:
+The **macOS** default SQLite unfortunately disables extension loading. Homebrew and conda provide compatible SQLite packages you can install and configure your build system (if applicable) to use.
 
-* **Python:** [Homebrew Python](https://formulae.brew.sh/formula/python) or conda, which provide extension-loading support.
-* **C/C++ & Rust:** [Homebrew's sqlite](https://formulae.brew.sh/formula/sqlite), selected by your build. For Rust's rusqlite dependency, set `SQLITE3_LIB_DIR` and `SQLITE3_INCLUDE_DIR` to its `lib` and `include` directories.
-
-The JVM binding is unaffected because sqlite-jdbc bundles its own SQLite.
-
-On other platforms, if SQLite is too old or lacks extension support, upgrade it with your package manager (e.g. apt, yum, conda, brew), or see [How To Compile SQLite](https://www.sqlite.org/howtocompile.html). Make sure your program uses the replacement build. As a last resort for GNU/Linux, our [GitHub Releases](https://github.com/mlin/GenomicSQLite/releases) include a `libsqlite3.so.0` that should be compatible with modern (2015+) hosts.
+On other platforms, if SQLite is too old or lacks extension support, upgrade it with your package manager or see [How To Compile SQLite](https://www.sqlite.org/howtocompile.html). As a last resort for GNU/Linux, our [GitHub Releases](https://github.com/mlin/GenomicSQLite/releases) attach a widely-compatible `libsqlite3.so.0`.
 
 ## Installation
 
-It's usually easiest to obtain the extension as a pre-compiled shared library (Linux .so or macOS .dylib), either installed with a package manager, or downloaded from [GitHub Releases](https://github.com/mlin/GenomicSQLite/releases).
+It's usually easiest to obtain the extension as a pre-compiled shared library (GNU/Linux .so or macOS .dylib), either installed with a package manager, or downloaded from [GitHub Releases](https://github.com/mlin/GenomicSQLite/releases).
 
 === "Python"
     ``` bash
@@ -79,7 +74,7 @@ It's usually easiest to obtain the extension as a pre-compiled shared library (L
     }
     ```
 
-    Alternatively, download the JAR from [GitHub Releases](https://github.com/mlin/GenomicSQLite/releases) and place it in your classpath, along with [sqlite-jdbc](https://github.com/xerial/sqlite-jdbc)'s JAR which is also required. The package loads a bundled shared library by default. To override the bundled file, set environment variable `LIBGENOMICSQLITE` to a filename.
+    Alternatively, download the JAR from [GitHub Releases](https://github.com/mlin/GenomicSQLite/releases) and place it in your classpath, along with [sqlite-jdbc](https://github.com/xerial/sqlite-jdbc)'s JAR which is also required. The GenomicSQLite JAR loads a bundled shared library by default. To override the bundled file, set environment variable `LIBGENOMICSQLITE` to a filename. sqlite-jdbc similarly bundles a SQLite library.
 
     To bundle GenomicSQLite and sqlite-jdbc inside an "Uber JAR" for your application, you may need to enable the [ServicesResourceTransformer for Maven Shade](https://maven.apache.org/plugins/maven-shade-plugin/examples/resource-transformers.html#ServicesResourceTransformer) or [mergeServiceFiles() for Gradle Shadow](https://stackoverflow.com/questions/32887966/shadow-plugin-gradle-what-does-mergeservicefiles-do), to ensure the JDBC drivers will be registered automatically when the "Uber JAR" loads.
 
@@ -93,14 +88,14 @@ It's usually easiest to obtain the extension as a pre-compiled shared library (L
     version = "^0"
     ```
 
-    Building with the crate will include a platform-appropriate shared library file within your compilation unit, to be extracted & loaded at runtime. To disable this, add `default-features = false` and at runtime, set environment variable `LIBGENOMICSQLITE` to a filename or place the library file somewhere it'll be found by `dlopen("libgenomicsqlite")`.
+    Building with the crate will include a platform-appropriate shared library file within your compilation unit, to be extracted & loaded at runtime. To disable this, add `default-features = false` to the dependencies entry and at runtime, set environment variable `LIBGENOMICSQLITE` to a filename or place the library file somewhere it'll be found by `dlopen("libgenomicsqlite")`.
+
+    To make `rusqlite` use an SQLite library other than the system's default, set `SQLITE3_LIB_DIR` and `SQLITE3_INCLUDE_DIR`.
 
     Recommendation: *also* install the Python package, which includes a useful command-line shell and other tools.
 
 === "C/C++"
     Download zip of shared library and `genomicsqlite.h` from [GitHub Releases](https://github.com/mlin/GenomicSQLite/releases). Build your program with them, and also ensure the dynamic linker will find the shared library at runtime, by either: (1) installing it in a system or user lib directory & refreshing cache, (2) setting `LD_LIBRARY_PATH` environment variable, (3) building with `-rpath`.
-
-    Recommendation: *also* install the Python package, which includes a useful command-line shell and other tools.
 
     GNU/Linux: to link the prebuilt `libgenomicsqlite.so` distributed from our GitHub Releases, you
     may have to compile your source with `CXXFLAGS=-D_GLIBCXX_USE_CXX11_ABI=0`. This is because the
@@ -108,6 +103,8 @@ It's usually easiest to obtain the extension as a pre-compiled shared library (L
     function of this flag is explained in the libstdc++ docs on
     [Dual ABI](https://gcc.gnu.org/onlinedocs/libstdc++/manual/using_dual_abi.html). If you build
     `libgenomicsqlite.so` from source, then the flag will not be needed.
+
+    Recommendation: *also* install the Python package, which includes a useful command-line shell and other tools.
 
 See our [GitHub README](https://github.com/mlin/GenomicSQLite) for the source build procedure, if needed.
 
