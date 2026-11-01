@@ -1,0 +1,65 @@
+#!/bin/bash
+set -euxo pipefail
+
+install -d -m 0755 /usr/local/sbin /etc/systemd/system/docker.service.d \
+    /etc/systemd/system/containerd.service.d /etc/docker /etc/containerd /etc/xdg
+base64 -d > /usr/local/sbin/genomicsqlite-scratch <<'SCRATCH_SCRIPT'
+${scratch_setup}
+SCRATCH_SCRIPT
+chmod 0755 /usr/local/sbin/genomicsqlite-scratch
+
+cat > /etc/systemd/system/genomicsqlite-scratch.service <<'UNIT'
+[Unit]
+Description=Prepare and mount GenomicSQLite instance-store scratch
+After=local-fs.target
+Before=containerd.service docker.service
+
+[Service]
+Type=oneshot
+ExecStartPre=/usr/bin/udevadm settle --timeout=30
+ExecStart=/usr/local/sbin/genomicsqlite-scratch
+RemainAfterExit=yes
+
+[Install]
+WantedBy=multi-user.target
+UNIT
+
+for service in docker containerd; do
+    cat > "/etc/systemd/system/$service.service.d/scratch.conf" <<'UNIT'
+[Unit]
+Requires=genomicsqlite-scratch.service
+After=genomicsqlite-scratch.service
+UNIT
+done
+
+cat > /etc/docker/daemon.json <<'JSON'
+{"data-root":"/scratch/docker"}
+JSON
+cat > /etc/containerd/config.toml <<'TOML'
+version = 2
+root = "/scratch/containerd"
+TOML
+cat > /etc/xdg/miniwdl.cfg <<'CONFIG'
+[file_io]
+mount_tmpdir = true
+
+[download_cache]
+get = true
+put = true
+dir = /scratch/miniwdl/download-cache
+
+[call_cache]
+get = true
+put = true
+dir = /scratch/miniwdl/call-cache
+CONFIG
+
+systemctl daemon-reload
+systemctl enable --now genomicsqlite-scratch.service
+apt-get update
+DEBIAN_FRONTEND=noninteractive apt-get install -y docker.io python3-venv git curl tmux
+usermod -aG docker ubuntu
+python3 -m venv /opt/miniwdl
+/opt/miniwdl/bin/pip install 'miniwdl==1.16.0'
+ln -sf /opt/miniwdl/bin/miniwdl /usr/local/bin/miniwdl
+systemctl enable --now containerd docker
