@@ -116,7 +116,8 @@ resource "aws_instance" "runner" {
   }
 
   user_data = templatefile("${path.module}/user-data.sh.tftpl", {
-    scratch_setup = filebase64("${path.module}/scratch-setup.sh")
+    scratch_setup    = filebase64("${path.module}/scratch-setup.sh")
+    downloader_image = filebase64("${path.module}/miniwdl-tools.Dockerfile")
   })
   user_data_replace_on_change = true
 

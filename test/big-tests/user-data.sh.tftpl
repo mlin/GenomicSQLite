@@ -2,11 +2,15 @@
 set -euxo pipefail
 
 install -d -m 0755 /usr/local/sbin /etc/systemd/system/docker.service.d \
-    /etc/systemd/system/containerd.service.d /etc/docker /etc/containerd /etc/xdg
+    /etc/systemd/system/containerd.service.d /etc/docker /etc/containerd /etc/xdg \
+    /opt/genomicsqlite-downloader
 base64 -d > /usr/local/sbin/genomicsqlite-scratch <<'SCRATCH_SCRIPT'
 ${scratch_setup}
 SCRATCH_SCRIPT
 chmod 0755 /usr/local/sbin/genomicsqlite-scratch
+base64 -d > /opt/genomicsqlite-downloader/Dockerfile <<'DOWNLOADER_DOCKERFILE'
+${downloader_image}
+DOWNLOADER_DOCKERFILE
 
 cat > /etc/systemd/system/genomicsqlite-scratch.service <<'UNIT'
 [Unit]
@@ -39,6 +43,21 @@ cat > /etc/containerd/config.toml <<'TOML'
 version = 2
 root = "/scratch/containerd"
 TOML
+cat > /etc/systemd/system/genomicsqlite-downloader.service <<'UNIT'
+[Unit]
+Description=Build miniwdl's Arm64 downloader image if needed
+Requires=docker.service
+After=docker.service network-online.target
+Wants=network-online.target
+
+[Service]
+Type=oneshot
+ExecStart=/bin/sh -c '/usr/bin/docker image inspect genomicsqlite-miniwdl-tools:arm64 >/dev/null 2>&1 || exec /usr/bin/docker build -t genomicsqlite-miniwdl-tools:arm64 /opt/genomicsqlite-downloader'
+RemainAfterExit=yes
+
+[Install]
+WantedBy=multi-user.target
+UNIT
 cat > /etc/xdg/miniwdl.cfg <<'CONFIG'
 [file_io]
 mount_tmpdir = true
@@ -52,6 +71,15 @@ dir = /scratch/miniwdl/download-cache
 get = true
 put = true
 dir = /scratch/miniwdl/call-cache
+
+[download_aria2c]
+docker = genomicsqlite-miniwdl-tools:arm64
+
+[download_awscli]
+docker = genomicsqlite-miniwdl-tools:arm64
+
+[download_gsutil]
+docker = gcr.io/google.com/cloudsdktool/google-cloud-cli:589.0.0-slim
 CONFIG
 
 systemctl daemon-reload
@@ -63,3 +91,5 @@ python3 -m venv /opt/miniwdl
 /opt/miniwdl/bin/pip install 'miniwdl==1.16.0'
 ln -sf /opt/miniwdl/bin/miniwdl /usr/local/bin/miniwdl
 systemctl enable --now containerd docker
+systemctl daemon-reload
+systemctl enable --now genomicsqlite-downloader.service

@@ -65,6 +65,12 @@ tested source revision matters. The WDL uses miniwdl's `inlineDockerfile`
 extension; bootstrap installs miniwdl 1.16.0 and the Docker backend. Both the
 instance OS and the task images use Ubuntu 26.04.
 
+The default miniwdl downloader image is amd64-only. Bootstrap builds a local
+Arm64 image containing aria2 and AWS CLI and configures both HTTP/FTP and S3
+downloads to use it. An enabled systemd service rebuilds it if the instance
+store is lost after a stop/start; image building requires internet access. For
+Google Storage, miniwdl uses Google's multi-architecture Cloud CLI image.
+
 The system miniwdl configuration enables call and download caching under
 `/scratch/miniwdl`, and places task temporary files on the run filesystem.
 The call cache references files in earlier run directories, so keep those
