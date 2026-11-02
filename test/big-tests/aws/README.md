@@ -10,9 +10,9 @@ has 16 Arm64 vCPUs, 32 GiB RAM, a 950 GB NVMe instance store, and a separate
 50 GiB encrypted gp3 root volume. The default region is `us-west-2`.
 
 Allow several hours and at least 550 GiB of scratch space for the default
-inputs; actual usage can be higher, especially during the SAM QNAME sort. The
-WDL requests 16 CPUs per task, so miniwdl runs one at a time, although a task
-may use fewer CPUs.
+inputs, which occupy about 33 GiB; actual scratch usage can be higher,
+especially during the SAM QNAME sort. The WDL requests 16 CPUs per task, so
+miniwdl runs one at a time, although a task may use fewer CPUs.
 
 ## Deploy and connect
 
