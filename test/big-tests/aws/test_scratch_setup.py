@@ -1,11 +1,10 @@
 """Exercise scratch-disk safety decisions without touching real block devices."""
 
 import os
-from pathlib import Path
 import subprocess
 import tempfile
 import unittest
-
+from pathlib import Path
 
 MOCK_COMMAND = r"""#!/bin/bash
 set -e
@@ -64,7 +63,7 @@ class ScratchSetupTest(unittest.TestCase):
 
     def run_setup(self):
         return subprocess.run(
-            ["bash", str(self.script)], env=self.env, capture_output=True, text=True
+            ["bash", str(self.script)], check=False, env=self.env, capture_output=True, text=True
         )
 
     def test_fresh_disk_and_reboot(self):
