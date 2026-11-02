@@ -9,23 +9,20 @@ with miniwdl on an on-demand `c7gd.4xlarge` in the default VPC. The instance
 has 16 Arm64 vCPUs, 32 GiB RAM, a 950 GB NVMe instance store, and a separate
 50 GiB encrypted gp3 root volume. The default region is `us-west-2`.
 
-A successful trial took about 4 hours 12 minutes. The WDL requests 16 CPUs per
-task, so miniwdl runs one at a time; that is a scheduling reservation, not a
-promise that each task uses every CPU. The previous 474 GB instance store
-filled during the SAM QNAME sort; the larger trial reached at least 547 GiB of
-scratch usage. The inputs alone occupy about 33 GiB. Expect different usage
-when inputs or software change.
+Allow several hours and at least 550 GiB of scratch space for the default
+inputs; actual usage can be higher, especially during the SAM QNAME sort. The
+WDL requests 16 CPUs per task, so miniwdl runs one at a time, although a task
+may use fewer CPUs.
 
 ## Deploy and connect
 
 The configuration uses Canonical's public Ubuntu 26.04 Arm64 AMI, a default
 VPC and subnet, internet access and a public IPv4 address. It creates an
 outbound-only security group and an instance role for Session Manager and
-CloudWatch metrics; it does not
-require SSH keys or account-specific IDs. The caller needs Terraform's EC2 and
-IAM permissions (including `iam:PassRole`), Session Manager permission, and
-the AWS CLI Session Manager plugin. Set `region` or `availability_zone` with
-Terraform variables if the defaults are unsuitable.
+CloudWatch metrics; it does not require SSH keys or account-specific IDs. The
+caller needs Terraform's EC2 and IAM permissions (including `iam:PassRole`),
+Session Manager permission, and the AWS CLI Session Manager plugin. Set
+`region` or `availability_zone` with Terraform variables if needed.
 
 From the repository root:
 
@@ -93,7 +90,7 @@ the WDL's `git_revision` input selects the GenomicSQLite source to build and
 defaults to the moving `main` branch. The build task clones
 `https://github.com/mlin/GenomicSQLite.git`, so the chosen source commit must
 be available there. The following example resolves `main` to a commit; fetch
-the WDL revision from its fork first if it has not been merged.
+the WDL revision from its source if it is not in the clone.
 
 ```sh
 git clone https://github.com/mlin/GenomicSQLite.git
@@ -139,9 +136,9 @@ the CRAM is in `us-east-1`.
 ## Preserve results and clean up
 
 Before teardown, save the workflow and task logs, inputs/outputs, WDL and
-source revisions, timings, system configuration, exported CloudWatch metrics, and a run-directory
-size inventory. The databases and input files are large and can be omitted if
-they are throwaway. A sanitized example is in [runs](../runs/). Check logs
+source revisions, timings, system configuration, exported CloudWatch metrics,
+and a run-directory size inventory. Omit the large databases and inputs if they
+are throwaway. A sanitized example is in [runs](../runs/). Check logs
 and sysstat data for account IDs, hostnames, network details, and other
 identifiers before publishing. The instance role has no S3 upload permissions;
 use a separately authorized transfer or add narrowly scoped permissions.
