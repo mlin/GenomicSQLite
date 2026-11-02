@@ -1,0 +1,28 @@
+{
+  "agent": {
+    "metrics_collection_interval": 10
+  },
+  "metrics": {
+    "namespace": "GenomicSQLite/BigTests",
+    "append_dimensions": {
+      "InstanceId": "${aws:InstanceId}"
+    },
+    "metrics_collected": {
+      "cpu": {
+        "totalcpu": true,
+        "measurement": ["usage_active", "usage_iowait"]
+      },
+      "mem": {
+        "measurement": ["used_percent", "available_percent"]
+      },
+      "disk": {
+        "resources": ["/scratch"],
+        "measurement": ["used_percent", "free"]
+      },
+      "diskio": {
+        "resources": ["*"],
+        "measurement": ["read_bytes", "write_bytes", "io_time"]
+      }
+    }
+  }
+}

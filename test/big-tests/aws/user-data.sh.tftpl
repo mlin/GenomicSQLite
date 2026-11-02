@@ -11,6 +11,9 @@ chmod 0755 /usr/local/sbin/genomicsqlite-scratch
 base64 -d > /opt/genomicsqlite-downloader/Dockerfile <<'DOWNLOADER_DOCKERFILE'
 ${downloader_image}
 DOWNLOADER_DOCKERFILE
+base64 -d > /etc/amazon-cloudwatch-agent-big-tests.json <<'METRICS_CONFIG'
+${metrics_config}
+METRICS_CONFIG
 
 cat > /etc/systemd/system/genomicsqlite-scratch.service <<'UNIT'
 [Unit]
@@ -86,6 +89,9 @@ systemctl daemon-reload
 systemctl enable --now genomicsqlite-scratch.service
 apt-get update
 DEBIAN_FRONTEND=noninteractive apt-get install -y docker.io python3-venv git curl tmux
+curl -fsSL https://amazoncloudwatch-agent.s3.amazonaws.com/ubuntu/arm64/latest/amazon-cloudwatch-agent.deb -o /tmp/amazon-cloudwatch-agent.deb
+DEBIAN_FRONTEND=noninteractive apt-get install -y /tmp/amazon-cloudwatch-agent.deb
+/opt/aws/amazon-cloudwatch-agent/bin/amazon-cloudwatch-agent-ctl -a fetch-config -m ec2 -s -c file:/etc/amazon-cloudwatch-agent-big-tests.json
 usermod -aG docker ubuntu
 python3 -m venv /opt/miniwdl
 /opt/miniwdl/bin/pip install 'miniwdl==1.16.0'

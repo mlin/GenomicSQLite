@@ -77,6 +77,29 @@ resource "aws_iam_role_policy" "session_manager" {
   policy = data.aws_iam_policy_document.session_manager.json
 }
 
+resource "aws_iam_role_policy" "metrics" {
+  name = "publish-metrics"
+  role = aws_iam_role.instance.id
+  policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [
+      {
+        Effect   = "Allow"
+        Action   = "cloudwatch:PutMetricData"
+        Resource = "*"
+        Condition = {
+          StringEquals = { "cloudwatch:namespace" = "GenomicSQLite/BigTests" }
+        }
+      },
+      {
+        Effect   = "Allow"
+        Action   = "ec2:DescribeTags"
+        Resource = "*"
+      }
+    ]
+  })
+}
+
 resource "aws_iam_instance_profile" "instance" {
   name_prefix = "genomicsqlite-big-tests-"
   role        = aws_iam_role.instance.name
@@ -118,6 +141,7 @@ resource "aws_instance" "runner" {
   user_data = templatefile("${path.module}/user-data.sh.tftpl", {
     scratch_setup    = filebase64("${path.module}/scratch-setup.sh")
     downloader_image = filebase64("${path.module}/miniwdl-tools.Dockerfile")
+    metrics_config   = filebase64("${path.module}/cloudwatch-agent.json")
   })
   user_data_replace_on_change = true
 
@@ -125,7 +149,7 @@ resource "aws_instance" "runner" {
     Name = "genomicsqlite-big-tests"
   }
 
-  depends_on = [aws_iam_role_policy.session_manager]
+  depends_on = [aws_iam_role_policy.session_manager, aws_iam_role_policy.metrics]
 }
 
 variable "region" {
