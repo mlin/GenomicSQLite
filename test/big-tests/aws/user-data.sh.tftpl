@@ -1,0 +1,101 @@
+#!/bin/bash
+set -euxo pipefail
+
+install -d -m 0755 /usr/local/sbin /etc/systemd/system/docker.service.d \
+    /etc/systemd/system/containerd.service.d /etc/docker /etc/containerd /etc/xdg \
+    /opt/genomicsqlite-downloader
+base64 -d > /usr/local/sbin/genomicsqlite-scratch <<'SCRATCH_SCRIPT'
+${scratch_setup}
+SCRATCH_SCRIPT
+chmod 0755 /usr/local/sbin/genomicsqlite-scratch
+base64 -d > /opt/genomicsqlite-downloader/Dockerfile <<'DOWNLOADER_DOCKERFILE'
+${downloader_image}
+DOWNLOADER_DOCKERFILE
+base64 -d > /etc/amazon-cloudwatch-agent-big-tests.json <<'METRICS_CONFIG'
+${metrics_config}
+METRICS_CONFIG
+
+cat > /etc/systemd/system/genomicsqlite-scratch.service <<'UNIT'
+[Unit]
+Description=Prepare and mount GenomicSQLite instance-store scratch
+After=local-fs.target
+Before=containerd.service docker.service
+
+[Service]
+Type=oneshot
+ExecStartPre=/usr/bin/udevadm settle --timeout=30
+ExecStart=/usr/local/sbin/genomicsqlite-scratch
+RemainAfterExit=yes
+
+[Install]
+WantedBy=multi-user.target
+UNIT
+
+for service in docker containerd; do
+    cat > "/etc/systemd/system/$service.service.d/scratch.conf" <<'UNIT'
+[Unit]
+Requires=genomicsqlite-scratch.service
+After=genomicsqlite-scratch.service
+UNIT
+done
+
+cat > /etc/docker/daemon.json <<'JSON'
+{"data-root":"/scratch/docker"}
+JSON
+cat > /etc/containerd/config.toml <<'TOML'
+version = 2
+root = "/scratch/containerd"
+TOML
+cat > /etc/systemd/system/genomicsqlite-downloader.service <<'UNIT'
+[Unit]
+Description=Build miniwdl's Arm64 downloader image if needed
+Requires=docker.service
+After=docker.service network-online.target
+Wants=network-online.target
+
+[Service]
+Type=oneshot
+ExecStart=/bin/sh -c '/usr/bin/docker image inspect genomicsqlite-miniwdl-tools:arm64 >/dev/null 2>&1 || exec /usr/bin/docker build -t genomicsqlite-miniwdl-tools:arm64 /opt/genomicsqlite-downloader'
+RemainAfterExit=yes
+
+[Install]
+WantedBy=multi-user.target
+UNIT
+cat > /etc/xdg/miniwdl.cfg <<'CONFIG'
+[file_io]
+mount_tmpdir = true
+
+[download_cache]
+get = true
+put = true
+dir = /scratch/miniwdl/download-cache
+
+[call_cache]
+get = true
+put = true
+dir = /scratch/miniwdl/call-cache
+
+[download_aria2c]
+docker = genomicsqlite-miniwdl-tools:arm64
+
+[download_awscli]
+docker = genomicsqlite-miniwdl-tools:arm64
+
+[download_gsutil]
+docker = gcr.io/google.com/cloudsdktool/google-cloud-cli:589.0.0-slim
+CONFIG
+
+systemctl daemon-reload
+systemctl enable --now genomicsqlite-scratch.service
+apt-get update
+DEBIAN_FRONTEND=noninteractive apt-get install -y docker.io python3-venv git curl tmux
+curl -fsSL https://amazoncloudwatch-agent.s3.amazonaws.com/ubuntu/arm64/latest/amazon-cloudwatch-agent.deb -o /tmp/amazon-cloudwatch-agent.deb
+DEBIAN_FRONTEND=noninteractive apt-get install -y /tmp/amazon-cloudwatch-agent.deb
+/opt/aws/amazon-cloudwatch-agent/bin/amazon-cloudwatch-agent-ctl -a fetch-config -m ec2 -s -c file:/etc/amazon-cloudwatch-agent-big-tests.json
+usermod -aG docker ubuntu
+python3 -m venv /opt/miniwdl
+/opt/miniwdl/bin/pip install 'miniwdl==1.16.0'
+ln -sf /opt/miniwdl/bin/miniwdl /usr/local/bin/miniwdl
+systemctl enable --now containerd docker
+systemctl daemon-reload
+systemctl enable --now genomicsqlite-downloader.service
