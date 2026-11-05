@@ -1,4 +1,5 @@
 name: Release smoke tests
+run-name: Release smoke tests — ${{ inputs.version }}
 
 # Verify a published release (or release candidate) the way users receive it:
 # install each binding from its public package repository and run the
@@ -82,8 +83,10 @@ jobs:
           esac
       - uses: conda-incubator/setup-miniconda@v3
         with:
+          miniforge-variant: Miniforge3
           miniforge-version: latest
-          auto-activate-base: true
+          auto-activate: true
+          conda-remove-defaults: "true"
       - name: Install GenomicSQLite from the mlin channel
         shell: bash -el {0}
         run: |
@@ -145,7 +148,7 @@ jobs:
         run: |
           v="${{ inputs.version }}"
           echo "semver=${v#v}" >> "$GITHUB_OUTPUT"
-      - uses: actions/setup-java@v4
+      - uses: actions/setup-java@v5
         with:
           distribution: temurin
           java-version: "21"
