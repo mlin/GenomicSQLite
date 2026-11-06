@@ -5,6 +5,6 @@ authors = ["Mike Lin <dna@mlin.net>"]
 edition = "2018"
 
 [dependencies]
-genomicsqlite = "{{GENOMICSQLITE_VERSION}}"
+genomicsqlite = "=0.10.0"
 rusqlite = "^0.25"
 json = "^0"
