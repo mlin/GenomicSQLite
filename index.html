@@ -8,8 +8,16 @@
       
       
       
+      
+      
+        <link rel="next" href="guide_db/">
+      
+      
+        
+      
+      
       <link rel="icon" href="assets/images/favicon.png">
-      <meta name="generator" content="mkdocs-1.4.2, mkdocs-material-8.5.10">
+      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.8.0">
     
     
       
@@ -17,15 +25,14 @@
       
     
     
-      <link rel="stylesheet" href="assets/stylesheets/main.975780f9.min.css">
-      
-        
-        <link rel="stylesheet" href="assets/stylesheets/palette.2505c338.min.css">
-        
+      <link rel="stylesheet" href="assets/stylesheets/main.57a0d79d.min.css">
       
       
 
+
     
+    
+      
     
     
       
@@ -37,24 +44,17 @@
       
     
     
-    <script>__md_scope=new URL(".",location),__md_hash=e=>[...e].reduce((e,_)=>(e<<5)-e+_.charCodeAt(0),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
+    <script>__md_scope=new URL(".",location),__md_hash=e=>[...e].reduce(((e,_)=>(e<<5)-e+_.charCodeAt(0)),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
     
       
 
     
     
-    
   </head>
   
   
-    
-    
-    
-    
-    
-    <body dir="ltr" data-md-color-scheme="default" data-md-color-primary="None" data-md-color-accent="None">
+    <body dir="ltr">
   
-    
     
     <input class="md-toggle" data-md-toggle="drawer" type="checkbox" id="__drawer" autocomplete="off">
     <input class="md-toggle" data-md-toggle="search" type="checkbox" id="__search" autocomplete="off">
@@ -74,16 +74,19 @@
     
       
 
-<header class="md-header" data-md-component="header">
+  
+
+<header class="md-header md-header--shadow" data-md-component="header">
   <nav class="md-header__inner md-grid" aria-label="Header">
     <a href="." title="Genomics Extension for SQLite" class="md-header__button md-logo" aria-label="Genomics Extension for SQLite" data-md-component="logo">
       
   
-  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54Z"/></svg>
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"/></svg>
 
     </a>
     <label class="md-header__button md-icon" for="__drawer">
-      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M3 6h18v2H3V6m0 5h18v2H3v-2m0 5h18v2H3v-2Z"/></svg>
+      
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M3 6h18v2H3zm0 5h18v2H3zm0 5h18v2H3z"/></svg>
     </label>
     <div class="md-header__title" data-md-component="header-title">
       <div class="md-header__ellipsis">
@@ -103,39 +106,49 @@
     </div>
     
     
+      <script>var palette=__md_get("__palette");if(palette&&palette.color){if("(prefers-color-scheme)"===palette.color.media){var media=matchMedia("(prefers-color-scheme: light)"),input=document.querySelector(media.matches?"[data-md-color-media='(prefers-color-scheme: light)']":"[data-md-color-media='(prefers-color-scheme: dark)']");palette.color.media=input.getAttribute("data-md-color-media"),palette.color.scheme=input.getAttribute("data-md-color-scheme"),palette.color.primary=input.getAttribute("data-md-color-primary"),palette.color.accent=input.getAttribute("data-md-color-accent")}for(var[key,value]of Object.entries(palette.color))document.body.setAttribute("data-md-color-"+key,value)}</script>
     
-      <label class="md-header__button md-icon" for="__search">
-        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.516 6.516 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5Z"/></svg>
-      </label>
-      <div class="md-search" data-md-component="search" role="dialog">
+    
+    
+      
+      
+        <label class="md-header__button md-icon" for="__search">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        </label>
+        <div class="md-search" data-md-component="search" role="dialog">
   <label class="md-search__overlay" for="__search"></label>
   <div class="md-search__inner" role="search">
     <form class="md-search__form" name="search">
       <input type="text" class="md-search__input" name="query" aria-label="Search" placeholder="Search" autocapitalize="off" autocorrect="off" autocomplete="off" spellcheck="false" data-md-component="search-query" required>
       <label class="md-search__icon md-icon" for="__search">
-        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.516 6.516 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5Z"/></svg>
-        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11h12Z"/></svg>
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11z"/></svg>
       </label>
       <nav class="md-search__options" aria-label="Search">
         
         <button type="reset" class="md-search__icon md-icon" title="Clear" aria-label="Clear" tabindex="-1">
-          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M19 6.41 17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12 19 6.41Z"/></svg>
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M19 6.41 17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg>
         </button>
       </nav>
       
     </form>
     <div class="md-search__output">
-      <div class="md-search__scrollwrap" data-md-scrollfix>
+      <div class="md-search__scrollwrap" tabindex="0" data-md-scrollfix>
         <div class="md-search-result" data-md-component="search-result">
           <div class="md-search-result__meta">
             Initializing search
           </div>
-          <ol class="md-search-result__list"></ol>
+          <ol class="md-search-result__list" role="presentation"></ol>
         </div>
       </div>
     </div>
   </div>
 </div>
+      
     
     
   </nav>
@@ -160,12 +173,13 @@
                     
 
 
+
 <nav class="md-nav md-nav--primary" aria-label="Navigation" data-md-level="0">
   <label class="md-nav__title" for="__drawer">
     <a href="." title="Genomics Extension for SQLite" class="md-nav__button md-logo" aria-label="Genomics Extension for SQLite" data-md-component="logo">
       
   
-  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54Z"/></svg>
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"/></svg>
 
     </a>
     Genomics Extension for SQLite
@@ -175,28 +189,53 @@
     
       
       
-      
-
   
   
     
   
   
+  
     <li class="md-nav__item md-nav__item--active">
       
-      <input class="md-nav__toggle md-toggle" data-md-toggle="toc" type="checkbox" id="__toc">
+      <input class="md-nav__toggle md-toggle" type="checkbox" id="__toc">
       
       
         
       
       
         <label class="md-nav__link md-nav__link--active" for="__toc">
-          Intro & Install
+          
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Intro & Install
+  
+
+    
+  </span>
+  
+  
+
           <span class="md-nav__icon md-icon"></span>
         </label>
       
       <a href="." class="md-nav__link md-nav__link--active">
-        Intro & Install
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Intro & Install
+  
+
+    
+  </span>
+  
+  
+
       </a>
       
         
@@ -216,35 +255,55 @@
       
         <li class="md-nav__item">
   <a href="#genomicsqlite" class="md-nav__link">
-    ("GenomicSQLite")
+    <span class="md-ellipsis">
+      
+        ("GenomicSQLite")
+      
+    </span>
   </a>
   
 </li>
       
         <li class="md-nav__item">
-  <a href="#sqlite-3310-required" class="md-nav__link">
-    SQLite &ge; 3.31.0 required
+  <a href="#sqlite-requirements" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        SQLite requirements
+      
+    </span>
   </a>
   
 </li>
       
         <li class="md-nav__item">
   <a href="#installation" class="md-nav__link">
-    Installation
+    <span class="md-ellipsis">
+      
+        Installation
+      
+    </span>
   </a>
   
 </li>
       
         <li class="md-nav__item">
   <a href="#smoke-test" class="md-nav__link">
-    Smoke test
+    <span class="md-ellipsis">
+      
+        Smoke test
+      
+    </span>
   </a>
   
 </li>
       
         <li class="md-nav__item">
   <a href="#use-cases" class="md-nav__link">
-    Use cases
+    <span class="md-ellipsis">
+      
+        Use cases
+      
+    </span>
   </a>
   
     <nav class="md-nav" aria-label="Use cases">
@@ -252,7 +311,11 @@
         
           <li class="md-nav__item">
   <a href="#contraindications" class="md-nav__link">
-    Contraindications
+    <span class="md-ellipsis">
+      
+        Contraindications
+      
+    </span>
   </a>
   
 </li>
@@ -272,14 +335,26 @@
     
       
       
-      
-
+  
   
   
   
     <li class="md-nav__item">
       <a href="guide_db/" class="md-nav__link">
-        Opening Compressed Databases
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Opening Compressed Databases
+  
+
+    
+  </span>
+  
+  
+
       </a>
     </li>
   
@@ -287,14 +362,26 @@
     
       
       
-      
-
+  
   
   
   
     <li class="md-nav__item">
       <a href="guide_gri/" class="md-nav__link">
-        Genomic Range Indexing
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Genomic Range Indexing
+  
+
+    
+  </span>
+  
+  
+
       </a>
     </li>
   
@@ -302,14 +389,26 @@
     
       
       
-      
-
+  
   
   
   
     <li class="md-nav__item">
       <a href="guide_helpers/" class="md-nav__link">
-        Useful Routines
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Useful Routines
+  
+
+    
+  </span>
+  
+  
+
       </a>
     </li>
   
@@ -317,14 +416,26 @@
     
       
       
-      
-
+  
   
   
   
     <li class="md-nav__item">
       <a href="bindings/" class="md-nav__link">
-        Writing Language Bindings
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Writing Language Bindings
+  
+
+    
+  </span>
+  
+  
+
       </a>
     </li>
   
@@ -332,14 +443,26 @@
     
       
       
-      
-
+  
   
   
   
     <li class="md-nav__item">
       <a href="internals/" class="md-nav__link">
-        Internals
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Internals
+  
+
+    
+  </span>
+  
+  
+
       </a>
     </li>
   
@@ -373,35 +496,55 @@
       
         <li class="md-nav__item">
   <a href="#genomicsqlite" class="md-nav__link">
-    ("GenomicSQLite")
+    <span class="md-ellipsis">
+      
+        ("GenomicSQLite")
+      
+    </span>
   </a>
   
 </li>
       
         <li class="md-nav__item">
-  <a href="#sqlite-3310-required" class="md-nav__link">
-    SQLite &ge; 3.31.0 required
+  <a href="#sqlite-requirements" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        SQLite requirements
+      
+    </span>
   </a>
   
 </li>
       
         <li class="md-nav__item">
   <a href="#installation" class="md-nav__link">
-    Installation
+    <span class="md-ellipsis">
+      
+        Installation
+      
+    </span>
   </a>
   
 </li>
       
         <li class="md-nav__item">
   <a href="#smoke-test" class="md-nav__link">
-    Smoke test
+    <span class="md-ellipsis">
+      
+        Smoke test
+      
+    </span>
   </a>
   
 </li>
       
         <li class="md-nav__item">
   <a href="#use-cases" class="md-nav__link">
-    Use cases
+    <span class="md-ellipsis">
+      
+        Use cases
+      
+    </span>
   </a>
   
     <nav class="md-nav" aria-label="Use cases">
@@ -409,7 +552,11 @@
         
           <li class="md-nav__item">
   <a href="#contraindications" class="md-nav__link">
-    Contraindications
+    <span class="md-ellipsis">
+      
+        Contraindications
+      
+    </span>
   </a>
   
 </li>
@@ -429,9 +576,11 @@
           
           
             <div class="md-content" data-md-component="content">
+              
               <article class="md-content__inner md-typeset">
                 
                   
+
 
 
 <h1 id="genomics-extension-for-sqlite">Genomics Extension for SQLite</h1>
@@ -447,79 +596,74 @@
 </ul>
 <p>This November 2021 poster discusses the context and long-run ambitions:</p>
 <p><a href="GenomeInformatics2021Poster.pdf"><img src="GA4GH_8thPlenary_poster_mlin_v2.thumb.jpeg" width="400" alt="GenomicSQLite Poster"/></a></p>
-<p>Our <strong><a href="https://colab.research.google.com/drive/1OlHPOcRQBhDmEnS1wtOdtUGDkcD7LtKx?usp=sharing">Colab notebook</a></strong> demonstrates key features with Python, one of several language bindings.</p>
+<p>Our <strong><a href="https://colab.research.google.com/drive/1BND1nYHDg9DLsw5buvaB30BpH_GoYbit">Colab notebook</a></strong> demonstrates key features with Python, one of several language bindings.</p>
 <p><strong>USE AT YOUR OWN RISK:</strong> The extension makes fundamental changes to the database storage layer. While designed to preserve ACID transaction safety, it's young and unlikely to have zero bugs. This project is not associated with the SQLite developers.</p>
-<h2 id="sqlite-3310-required">SQLite &ge; 3.31.0 required</h2>
-<p><strong>To use the Genomics Extension you might first need to upgrade SQLite itself.</strong> The host program must link <a href="https://www.sqlite.org/releaselog/3_31_0.html">SQLite version 3.31.0 (2020-01-22)</a> or newer. In your shell, <code>sqlite3 --version</code> displays the version installed with your OS, which is probably what your programs use; if in doubt, cause a program to report the result of <code>SELECT sqlite_version()</code>.</p>
-<p>If this is too old, then upgrade SQLite3 using your preferred binary package manager (e.g. apt, yum, conda, brew), if possible. Otherwise, modify your program's linking step or runtime environment to cause it to use an up-to-date version, for example by setting rpath or <code>LD_LIBRARY_PATH</code> to the location of an up-to-date shared library file. Resources:</p>
-<ul>
-<li><a href="https://www.sqlite.org/howtocompile.html">How To Compile SQLite</a></li>
-<li><a href="https://help.dreamhost.com/hc/en-us/articles/360028047592-Installing-a-custom-version-of-SQLite3">DreamHost Knowledge Base - Installing a custom version of SQLite3</a></li>
-<li><a href="https://rpmfind.net/linux/rpm2html/search.php?query=libsqlite3&amp;submit=Search+...&amp;system=&amp;arch=">Rpmfind: libsqlite3</a></li>
-<li><a href="https://anaconda.org/anaconda/sqlite">Sqlite :: Anaconda Cloud</a></li>
-<li>Homebrew <a href="https://formulae.brew.sh/formula/sqlite">formula/sqlite</a>, <a href="https://formulae.brew.sh/formula-linux/sqlite">formula-linux/sqlite</a></li>
-<li>As a last resort for GNU/Linux, our <a href="https://github.com/mlin/GenomicSQLite/releases">GitHub Releases</a> include a <code>libsqlite3.so.0</code> that should be compatible with modern (2015+) hosts.</li>
-</ul>
-<p>You can always <code>SELECT sqlite_version()</code> to verify the upgrade in your program.</p>
+<h2 id="sqlite-requirements">SQLite requirements</h2>
+<p>The SQLite library linked into your application must be at least version 3.31.0 (2020 vintage) and support <a href="https://www.sqlite.org/loadext.html">loadable extensions</a>. Check the version with <code>SELECT sqlite_version()</code> in your program.</p>
+<p>The <strong>macOS</strong> default SQLite unfortunately disables extension loading. Homebrew and conda provide compatible SQLite packages; install one and configure your build system (if applicable) to use it.</p>
+<p>On other platforms, if SQLite is too old or lacks extension support, upgrade it with your package manager or see <a href="https://www.sqlite.org/howtocompile.html">How To Compile SQLite</a>. As a last resort for GNU/Linux, our <a href="https://github.com/mlin/GenomicSQLite/releases">GitHub Releases</a> attach a widely-compatible <code>libsqlite3.so.0</code>.</p>
 <h2 id="installation">Installation</h2>
-<p>It's usually easiest to obtain the extension as a pre-compiled shared library (Linux .so or macOS .dylib), either installed with a package manager, or downloaded from <a href="https://github.com/mlin/GenomicSQLite/releases">GitHub Releases</a>.</p>
+<p>It's usually easiest to obtain the extension as a pre-compiled shared library (GNU/Linux .so or macOS .dylib), either installed with a package manager, or downloaded from <a href="https://github.com/mlin/GenomicSQLite/releases">GitHub Releases</a>.</p>
 <div class="tabbed-set tabbed-alternate" data-tabs="1:4"><input checked="checked" id="__tabbed_1_1" name="__tabbed_1" type="radio" /><input id="__tabbed_1_2" name="__tabbed_1" type="radio" /><input id="__tabbed_1_3" name="__tabbed_1" type="radio" /><input id="__tabbed_1_4" name="__tabbed_1" type="radio" /><div class="tabbed-labels"><label for="__tabbed_1_1">Python</label><label for="__tabbed_1_2">JVM</label><label for="__tabbed_1_3">Rust</label><label for="__tabbed_1_4">C/C++</label></div>
 <div class="tabbed-content">
 <div class="tabbed-block">
-<p><div class="highlight"><pre><span></span><code>pip3 install <span class="o">[</span>--user<span class="p">|</span>--system<span class="o">]</span> genomicsqlite
+<p><div class="highlight"><pre><span></span><code>pip3<span class="w"> </span>install<span class="w"> </span><span class="o">[</span>--user<span class="p">|</span>--system<span class="o">]</span><span class="w"> </span>genomicsqlite
 <span class="c1"># -or-</span>
-conda install -c mlin genomicsqlite
+conda<span class="w"> </span>install<span class="w"> </span>-c<span class="w"> </span>mlin<span class="w"> </span>genomicsqlite
 </code></pre></div>
-The package loads a bundled shared library by default. To override the bundled file, set environment variable <code>LIBGENOMICSQLITE</code> to a filename.</p>
+On Ubuntu 24.04, the system Python (3.12.3) may emit a harmless <code>DeprecationWarning</code> about <code>?NNN</code> parameter binding. This CPython bug was fixed in 3.12.4.</p>
+<p>The package loads a bundled shared library by default. To override the bundled file, set environment variable <code>LIBGENOMICSQLITE</code> to a filename.</p>
 </div>
 <div class="tabbed-block">
 <p>Add entries like the following to your Maven <code>pom.xml</code>:
 <div class="highlight"><pre><span></span><code><span class="nt">&lt;repositories&gt;</span>
-  <span class="nt">&lt;repository&gt;</span>
-    <span class="nt">&lt;id&gt;</span>genomicsqlite-jdbc<span class="nt">&lt;/id&gt;</span>
-    <span class="nt">&lt;url&gt;</span>https://raw.githubusercontent.com/wiki/mlin/GenomicSQLite/mvn-repo/<span class="nt">&lt;/url&gt;</span>
-  <span class="nt">&lt;/repository&gt;</span>
+<span class="w">  </span><span class="nt">&lt;repository&gt;</span>
+<span class="w">    </span><span class="nt">&lt;id&gt;</span>genomicsqlite-jdbc<span class="nt">&lt;/id&gt;</span>
+<span class="w">    </span><span class="nt">&lt;url&gt;</span>https://raw.githubusercontent.com/wiki/mlin/GenomicSQLite/mvn-repo/<span class="nt">&lt;/url&gt;</span>
+<span class="w">  </span><span class="nt">&lt;/repository&gt;</span>
 <span class="nt">&lt;/repositories&gt;</span>
 
 <span class="nt">&lt;dependencies&gt;</span>
-  <span class="nt">&lt;dependency&gt;</span>
-    <span class="nt">&lt;groupId&gt;</span>net.mlin<span class="nt">&lt;/groupId&gt;</span>
-    <span class="nt">&lt;artifactId&gt;</span>genomicsqlite-jdbc<span class="nt">&lt;/artifactId&gt;</span>
-    <span class="nt">&lt;version&gt;</span>vX.Y.Z<span class="nt">&lt;/version&gt;</span>
-  <span class="nt">&lt;/dependency&gt;</span>
+<span class="w">  </span><span class="nt">&lt;dependency&gt;</span>
+<span class="w">    </span><span class="nt">&lt;groupId&gt;</span>net.mlin<span class="nt">&lt;/groupId&gt;</span>
+<span class="w">    </span><span class="nt">&lt;artifactId&gt;</span>genomicsqlite-jdbc<span class="nt">&lt;/artifactId&gt;</span>
+<span class="w">    </span><span class="nt">&lt;version&gt;</span>vX.Y.Z<span class="nt">&lt;/version&gt;</span>
+<span class="w">  </span><span class="nt">&lt;/dependency&gt;</span>
 <span class="nt">&lt;/dependencies&gt;</span>
 </code></pre></div></p>
 <p>Or to your <code>build.gradle</code>:
-<div class="highlight"><pre><span></span><code><span class="n">repositories</span><span class="w"> </span><span class="o">{</span><span class="w"></span>
-<span class="w">  </span><span class="n">maven</span><span class="w"> </span><span class="o">{</span><span class="w"></span>
-<span class="w">    </span><span class="n">url</span><span class="w"> </span><span class="s1">&#39;https://raw.githubusercontent.com/wiki/mlin/GenomicSQLite/mvn-repo/&#39;</span><span class="w"></span>
-<span class="w">  </span><span class="o">}</span><span class="w"></span>
-<span class="o">}</span><span class="w"></span>
+<div class="highlight"><pre><span></span><code><span class="n">repositories</span><span class="w"> </span><span class="o">{</span>
+<span class="w">  </span><span class="n">maven</span><span class="w"> </span><span class="o">{</span>
+<span class="w">    </span><span class="n">url</span><span class="w"> </span><span class="s1">'https://raw.githubusercontent.com/wiki/mlin/GenomicSQLite/mvn-repo/'</span>
+<span class="w">  </span><span class="o">}</span>
+<span class="o">}</span>
 
-<span class="n">dependencies</span><span class="w"> </span><span class="o">{</span><span class="w"></span>
-<span class="w">  </span><span class="n">compile</span><span class="w"> </span><span class="nl">group:</span><span class="w"> </span><span class="s1">&#39;net.mlin&#39;</span><span class="o">,</span><span class="w"> </span><span class="nl">name:</span><span class="w"> </span><span class="s1">&#39;genomicsqlite-jdbc&#39;</span><span class="o">,</span><span class="w"> </span><span class="nl">version:</span><span class="w"> </span><span class="s1">&#39;vX.Y.Z&#39;</span><span class="w"></span>
-<span class="o">}</span><span class="w"></span>
+<span class="n">dependencies</span><span class="w"> </span><span class="o">{</span>
+<span class="w">  </span><span class="n">compile</span><span class="w"> </span><span class="nl">group:</span><span class="w"> </span><span class="s1">'net.mlin'</span><span class="o">,</span><span class="w"> </span><span class="nl">name:</span><span class="w"> </span><span class="s1">'genomicsqlite-jdbc'</span><span class="o">,</span><span class="w"> </span><span class="nl">version:</span><span class="w"> </span><span class="s1">'vX.Y.Z'</span>
+<span class="o">}</span>
 </code></pre></div></p>
-<p>Alternatively, download the JAR from <a href="https://github.com/mlin/GenomicSQLite/releases">GitHub Releases</a> and place it in your classpath, along with <a href="https://github.com/xerial/sqlite-jdbc">sqlite-jdbc</a>'s JAR which is also required. The package loads a bundled shared library by default. To override the bundled file, set environment variable <code>LIBGENOMICSQLITE</code> to a filename.</p>
+<p>Alternatively, download the JAR from <a href="https://github.com/mlin/GenomicSQLite/releases">GitHub Releases</a> and place it in your classpath, along with <a href="https://github.com/xerial/sqlite-jdbc">sqlite-jdbc</a>'s JAR which is also required. The GenomicSQLite JAR loads a bundled shared library by default. To override the bundled file, set environment variable <code>LIBGENOMICSQLITE</code> to a filename. sqlite-jdbc similarly bundles a SQLite library.</p>
 <p>To bundle GenomicSQLite and sqlite-jdbc inside an "Uber JAR" for your application, you may need to enable the <a href="https://maven.apache.org/plugins/maven-shade-plugin/examples/resource-transformers.html#ServicesResourceTransformer">ServicesResourceTransformer for Maven Shade</a> or <a href="https://stackoverflow.com/questions/32887966/shadow-plugin-gradle-what-does-mergeservicefiles-do">mergeServiceFiles() for Gradle Shadow</a>, to ensure the JDBC drivers will be registered automatically when the "Uber JAR" loads.</p>
-<p>Recommendation: <em>also</em> install the Python package, which includes a useful command-line shell and smoke-test script.</p>
+<p>Recommendation: <em>also</em> install the Python package, which includes a useful command-line shell and other tools.</p>
 </div>
 <div class="tabbed-block">
 <p>Add to your project's <code>Cargo.toml</code>:</p>
-<div class="highlight"><pre><span></span><code><span class="k">[dependencies.genomicsqlite]</span><span class="w"></span>
-<span class="n">version</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s">&quot;^0&quot;</span><span class="w"></span>
+<div class="highlight"><pre><span></span><code><span class="k">[dependencies.genomicsqlite]</span>
+<span class="n">version</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s2">"^0"</span>
 </code></pre></div>
-<p>Building with the crate will include a platform-appropriate shared library file within your compilation unit, to be extracted &amp; loaded at runtime. To disable this, add <code>default-features = false</code> and at runtime, set environment variable <code>LIBGENOMICSQLITE</code> to a filename or place the library file somewhere it'll be found by <code>dlopen("libgenomicsqlite")</code>.</p>
+<p>Building with the crate will include a platform-appropriate shared library file within your compilation unit, to be extracted &amp; loaded at runtime. To disable this, add <code>default-features = false</code> to the dependencies entry and at runtime, set environment variable <code>LIBGENOMICSQLITE</code> to a filename or place the library file somewhere it'll be found by <code>dlopen("libgenomicsqlite")</code>.</p>
+<p>To make <code>rusqlite</code> use an SQLite library other than the system's default, set <code>SQLITE3_LIB_DIR</code> and <code>SQLITE3_INCLUDE_DIR</code> to the <code>lib</code> and <code>include</code> directories where the library is installed.</p>
+<p>Recommendation: <em>also</em> install the Python package, which includes a useful command-line shell and other tools.</p>
 </div>
 <div class="tabbed-block">
 <p>Download zip of shared library and <code>genomicsqlite.h</code> from <a href="https://github.com/mlin/GenomicSQLite/releases">GitHub Releases</a>. Build your program with them, and also ensure the dynamic linker will find the shared library at runtime, by either: (1) installing it in a system or user lib directory &amp; refreshing cache, (2) setting <code>LD_LIBRARY_PATH</code> environment variable, (3) building with <code>-rpath</code>.</p>
-<p>Recommendation: <em>also</em> install the Python package, which includes a useful command-line shell and smoke-test script.</p>
 <p>GNU/Linux: to link the prebuilt <code>libgenomicsqlite.so</code> distributed from our GitHub Releases, you
 may have to compile your source with <code>CXXFLAGS=-D_GLIBCXX_USE_CXX11_ABI=0</code>. This is because the
 library is built against an old libstdc++ version to improve runtime compatibility. The
 function of this flag is explained in the libstdc++ docs on
 <a href="https://gcc.gnu.org/onlinedocs/libstdc++/manual/using_dual_abi.html">Dual ABI</a>. If you build
 <code>libgenomicsqlite.so</code> from source, then the flag will not be needed.</p>
+<p>Recommendation: <em>also</em> install the Python package, which includes a useful command-line shell and other tools.</p>
 </div>
 </div>
 </div>
@@ -527,8 +671,8 @@ function of this flag is explained in the libstdc++ docs on
 <p>We welcome community contributions to the available language bindings; see the <a href="bindings/">Language Bindings Guide</a> if interested.</p>
 <h2 id="smoke-test">Smoke test</h2>
 <p>We recommend trying our "smoke test" script to quickly verify your local system's compatibility. It requires the Python package installed per the instructions above.</p>
-<div class="highlight"><pre><span></span><code>wget -nv -O - https://raw.githubusercontent.com/mlin/GenomicSQLite/release/test/genomicsqlite_smoke_test.py <span class="se">\</span>
-    <span class="p">|</span> python3 -
+<div class="highlight"><pre><span></span><code>wget<span class="w"> </span>-nv<span class="w"> </span>-O<span class="w"> </span>-<span class="w"> </span>https://raw.githubusercontent.com/mlin/GenomicSQLite/release/test/genomicsqlite_smoke_test.py<span class="w"> </span><span class="se">\</span>
+<span class="w">    </span><span class="p">|</span><span class="w"> </span>python3<span class="w"> </span>-
 </code></pre></div>
 <p>Even if you're not planning to use Python, this test's detailed logs may be useful to diagnose general problems loading the extension.</p>
 <h2 id="use-cases">Use cases</h2>
@@ -555,39 +699,26 @@ function of this flag is explained in the libstdc++ docs on
 
 
 
+
+
+
+
+
+
+
                 
               </article>
             </div>
           
           
-  <script>var tabs=__md_get("__tabs");if(Array.isArray(tabs))e:for(var set of document.querySelectorAll(".tabbed-set")){var tab,labels=set.querySelector(".tabbed-labels");for(tab of tabs)for(var label of labels.getElementsByTagName("label"))if(label.innerText.trim()===tab){var input=document.getElementById(label.htmlFor);input.checked=!0;continue e}}</script>
+  <script>var tabs=__md_get("__tabs");if(Array.isArray(tabs))e:for(var set of document.querySelectorAll(".tabbed-set")){var labels=set.querySelector(".tabbed-labels");for(var tab of tabs)for(var label of labels.getElementsByTagName("label"))if(label.innerText.trim()===tab){var input=document.getElementById(label.htmlFor);input.checked=!0;continue e}}</script>
 
+<script>var target=document.getElementById(location.hash.slice(1));target&&target.name&&(target.checked=target.name.startsWith("__tabbed_"))</script>
         </div>
         
       </main>
       
         <footer class="md-footer">
-  
-    
-    <nav class="md-footer__inner md-grid" aria-label="Footer" >
-      
-      
-        
-        <a href="guide_db/" class="md-footer__link md-footer__link--next" aria-label="Next: Opening Compressed Databases" rel="next">
-          <div class="md-footer__title">
-            <div class="md-ellipsis">
-              <span class="md-footer__direction">
-                Next
-              </span>
-              Opening Compressed Databases
-            </div>
-          </div>
-          <div class="md-footer__button md-icon">
-            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M4 11v2h12l-5.5 5.5 1.42 1.42L19.84 12l-7.92-7.92L10.5 5.5 16 11H4Z"/></svg>
-          </div>
-        </a>
-      
-    </nav>
   
   <div class="md-footer-meta md-typeset">
     <div class="md-footer-meta__inner md-grid">
@@ -610,12 +741,15 @@ function of this flag is explained in the libstdc++ docs on
       <div class="md-dialog__inner md-typeset"></div>
     </div>
     
-    <script id="__config" type="application/json">{"base": ".", "features": ["content.tabs.link"], "search": "assets/javascripts/workers/search.16e2a7d4.min.js", "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.config.lang": "en", "search.config.pipeline": "trimmer, stopWordFilter", "search.config.separator": "[\\s\\-]+", "search.placeholder": "Search", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version.title": "Select version"}}</script>
     
     
-      <script src="assets/javascripts/bundle.5a2dcb6a.min.js"></script>
       
+      
+      <script id="__config" type="application/json">{"annotate": null, "base": ".", "features": ["content.tabs.link"], "search": "assets/javascripts/workers/search.a7633da7.min.js", "tags": null, "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}, "version": null}</script>
     
+    
+      <script src="assets/javascripts/bundle.c21346df.min.js"></script>
+      
     
   </body>
 </html>

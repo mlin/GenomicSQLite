@@ -8,8 +8,18 @@
       
       
       
+      
+        <link rel="prev" href="../guide_helpers/">
+      
+      
+        <link rel="next" href="../internals/">
+      
+      
+        
+      
+      
       <link rel="icon" href="../assets/images/favicon.png">
-      <meta name="generator" content="mkdocs-1.4.2, mkdocs-material-8.5.10">
+      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.8.0">
     
     
       
@@ -17,15 +27,14 @@
       
     
     
-      <link rel="stylesheet" href="../assets/stylesheets/main.975780f9.min.css">
-      
-        
-        <link rel="stylesheet" href="../assets/stylesheets/palette.2505c338.min.css">
-        
+      <link rel="stylesheet" href="../assets/stylesheets/main.57a0d79d.min.css">
       
       
 
+
     
+    
+      
     
     
       
@@ -37,24 +46,17 @@
       
     
     
-    <script>__md_scope=new URL("..",location),__md_hash=e=>[...e].reduce((e,_)=>(e<<5)-e+_.charCodeAt(0),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
+    <script>__md_scope=new URL("..",location),__md_hash=e=>[...e].reduce(((e,_)=>(e<<5)-e+_.charCodeAt(0)),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
     
       
 
     
     
-    
   </head>
   
   
-    
-    
-    
-    
-    
-    <body dir="ltr" data-md-color-scheme="default" data-md-color-primary="None" data-md-color-accent="None">
+    <body dir="ltr">
   
-    
     
     <input class="md-toggle" data-md-toggle="drawer" type="checkbox" id="__drawer" autocomplete="off">
     <input class="md-toggle" data-md-toggle="search" type="checkbox" id="__search" autocomplete="off">
@@ -74,16 +76,19 @@
     
       
 
-<header class="md-header" data-md-component="header">
+  
+
+<header class="md-header md-header--shadow" data-md-component="header">
   <nav class="md-header__inner md-grid" aria-label="Header">
     <a href=".." title="Genomics Extension for SQLite" class="md-header__button md-logo" aria-label="Genomics Extension for SQLite" data-md-component="logo">
       
   
-  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54Z"/></svg>
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"/></svg>
 
     </a>
     <label class="md-header__button md-icon" for="__drawer">
-      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M3 6h18v2H3V6m0 5h18v2H3v-2m0 5h18v2H3v-2Z"/></svg>
+      
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M3 6h18v2H3zm0 5h18v2H3zm0 5h18v2H3z"/></svg>
     </label>
     <div class="md-header__title" data-md-component="header-title">
       <div class="md-header__ellipsis">
@@ -103,39 +108,49 @@
     </div>
     
     
+      <script>var palette=__md_get("__palette");if(palette&&palette.color){if("(prefers-color-scheme)"===palette.color.media){var media=matchMedia("(prefers-color-scheme: light)"),input=document.querySelector(media.matches?"[data-md-color-media='(prefers-color-scheme: light)']":"[data-md-color-media='(prefers-color-scheme: dark)']");palette.color.media=input.getAttribute("data-md-color-media"),palette.color.scheme=input.getAttribute("data-md-color-scheme"),palette.color.primary=input.getAttribute("data-md-color-primary"),palette.color.accent=input.getAttribute("data-md-color-accent")}for(var[key,value]of Object.entries(palette.color))document.body.setAttribute("data-md-color-"+key,value)}</script>
     
-      <label class="md-header__button md-icon" for="__search">
-        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.516 6.516 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5Z"/></svg>
-      </label>
-      <div class="md-search" data-md-component="search" role="dialog">
+    
+    
+      
+      
+        <label class="md-header__button md-icon" for="__search">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        </label>
+        <div class="md-search" data-md-component="search" role="dialog">
   <label class="md-search__overlay" for="__search"></label>
   <div class="md-search__inner" role="search">
     <form class="md-search__form" name="search">
       <input type="text" class="md-search__input" name="query" aria-label="Search" placeholder="Search" autocapitalize="off" autocorrect="off" autocomplete="off" spellcheck="false" data-md-component="search-query" required>
       <label class="md-search__icon md-icon" for="__search">
-        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.516 6.516 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5Z"/></svg>
-        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11h12Z"/></svg>
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11z"/></svg>
       </label>
       <nav class="md-search__options" aria-label="Search">
         
         <button type="reset" class="md-search__icon md-icon" title="Clear" aria-label="Clear" tabindex="-1">
-          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M19 6.41 17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12 19 6.41Z"/></svg>
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M19 6.41 17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg>
         </button>
       </nav>
       
     </form>
     <div class="md-search__output">
-      <div class="md-search__scrollwrap" data-md-scrollfix>
+      <div class="md-search__scrollwrap" tabindex="0" data-md-scrollfix>
         <div class="md-search-result" data-md-component="search-result">
           <div class="md-search-result__meta">
             Initializing search
           </div>
-          <ol class="md-search-result__list"></ol>
+          <ol class="md-search-result__list" role="presentation"></ol>
         </div>
       </div>
     </div>
   </div>
 </div>
+      
     
     
   </nav>
@@ -160,12 +175,13 @@
                     
 
 
+
 <nav class="md-nav md-nav--primary" aria-label="Navigation" data-md-level="0">
   <label class="md-nav__title" for="__drawer">
     <a href=".." title="Genomics Extension for SQLite" class="md-nav__button md-logo" aria-label="Genomics Extension for SQLite" data-md-component="logo">
       
   
-  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54Z"/></svg>
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"/></svg>
 
     </a>
     Genomics Extension for SQLite
@@ -175,14 +191,26 @@
     
       
       
-      
-
+  
   
   
   
     <li class="md-nav__item">
       <a href=".." class="md-nav__link">
-        Intro & Install
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Intro & Install
+  
+
+    
+  </span>
+  
+  
+
       </a>
     </li>
   
@@ -190,14 +218,26 @@
     
       
       
-      
-
+  
   
   
   
     <li class="md-nav__item">
       <a href="../guide_db/" class="md-nav__link">
-        Opening Compressed Databases
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Opening Compressed Databases
+  
+
+    
+  </span>
+  
+  
+
       </a>
     </li>
   
@@ -205,14 +245,26 @@
     
       
       
-      
-
+  
   
   
   
     <li class="md-nav__item">
       <a href="../guide_gri/" class="md-nav__link">
-        Genomic Range Indexing
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Genomic Range Indexing
+  
+
+    
+  </span>
+  
+  
+
       </a>
     </li>
   
@@ -220,14 +272,26 @@
     
       
       
-      
-
+  
   
   
   
     <li class="md-nav__item">
       <a href="../guide_helpers/" class="md-nav__link">
-        Useful Routines
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Useful Routines
+  
+
+    
+  </span>
+  
+  
+
       </a>
     </li>
   
@@ -235,28 +299,53 @@
     
       
       
-      
-
   
   
     
   
   
+  
     <li class="md-nav__item md-nav__item--active">
       
-      <input class="md-nav__toggle md-toggle" data-md-toggle="toc" type="checkbox" id="__toc">
+      <input class="md-nav__toggle md-toggle" type="checkbox" id="__toc">
       
       
         
       
       
         <label class="md-nav__link md-nav__link--active" for="__toc">
-          Writing Language Bindings
+          
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Writing Language Bindings
+  
+
+    
+  </span>
+  
+  
+
           <span class="md-nav__icon md-icon"></span>
         </label>
       
       <a href="./" class="md-nav__link md-nav__link--active">
-        Writing Language Bindings
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Writing Language Bindings
+  
+
+    
+  </span>
+  
+  
+
       </a>
       
         
@@ -276,21 +365,33 @@
       
         <li class="md-nav__item">
   <a href="#overview" class="md-nav__link">
-    Overview
+    <span class="md-ellipsis">
+      
+        Overview
+      
+    </span>
   </a>
   
 </li>
       
         <li class="md-nav__item">
   <a href="#locating-loading-the-extension-library" class="md-nav__link">
-    Locating &amp; loading the extension library
+    <span class="md-ellipsis">
+      
+        Locating &amp; loading the extension library
+      
+    </span>
   </a>
   
 </li>
       
         <li class="md-nav__item">
   <a href="#genomicsqlite-open" class="md-nav__link">
-    GenomicSQLite Open
+    <span class="md-ellipsis">
+      
+        GenomicSQLite Open
+      
+    </span>
   </a>
   
     <nav class="md-nav" aria-label="GenomicSQLite Open">
@@ -298,35 +399,55 @@
         
           <li class="md-nav__item">
   <a href="#1-generate-connection-string-with-select-genomicsqlite_uridbfilename-config_json" class="md-nav__link">
-    1. Generate connection string with SELECT genomicsqlite_uri(dbfilename, config_json)
+    <span class="md-ellipsis">
+      
+        1. Generate connection string with SELECT genomicsqlite_uri(dbfilename, config_json)
+      
+    </span>
   </a>
   
 </li>
         
           <li class="md-nav__item">
   <a href="#2-call-sqlite3_open-using-the-connection-string" class="md-nav__link">
-    2. Call sqlite3_open() using the connection string
+    <span class="md-ellipsis">
+      
+        2. Call sqlite3_open() using the connection string
+      
+    </span>
   </a>
   
 </li>
         
           <li class="md-nav__item">
   <a href="#3-generate-tuning-script-with-select-genomicsqlite_tuning_sqlconfig_json" class="md-nav__link">
-    3. Generate tuning script with SELECT genomicsqlite_tuning_sql(config_json)
+    <span class="md-ellipsis">
+      
+        3. Generate tuning script with SELECT genomicsqlite_tuning_sql(config_json)
+      
+    </span>
   </a>
   
 </li>
         
           <li class="md-nav__item">
   <a href="#4-execute-tuning-script-on-the-new-connection" class="md-nav__link">
-    4. Execute tuning script on the new connection
+    <span class="md-ellipsis">
+      
+        4. Execute tuning script on the new connection
+      
+    </span>
   </a>
   
 </li>
         
           <li class="md-nav__item">
   <a href="#5-return-the-connection-object" class="md-nav__link">
-    5. Return the connection object
+    <span class="md-ellipsis">
+      
+        5. Return the connection object
+      
+    </span>
   </a>
   
 </li>
@@ -338,21 +459,50 @@
       
         <li class="md-nav__item">
   <a href="#other-routines" class="md-nav__link">
-    Other routines
+    <span class="md-ellipsis">
+      
+        Other routines
+      
+    </span>
   </a>
   
 </li>
       
         <li class="md-nav__item">
   <a href="#packaging" class="md-nav__link">
-    Packaging
+    <span class="md-ellipsis">
+      
+        Packaging
+      
+    </span>
   </a>
+  
+    <nav class="md-nav" aria-label="Packaging">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#the-bundled-library-scheme" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        The bundled-library scheme
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
   
 </li>
       
         <li class="md-nav__item">
   <a href="#documentation" class="md-nav__link">
-    Documentation
+    <span class="md-ellipsis">
+      
+        Documentation
+      
+    </span>
   </a>
   
 </li>
@@ -367,14 +517,26 @@
     
       
       
-      
-
+  
   
   
   
     <li class="md-nav__item">
       <a href="../internals/" class="md-nav__link">
-        Internals
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Internals
+  
+
+    
+  </span>
+  
+  
+
       </a>
     </li>
   
@@ -408,21 +570,33 @@
       
         <li class="md-nav__item">
   <a href="#overview" class="md-nav__link">
-    Overview
+    <span class="md-ellipsis">
+      
+        Overview
+      
+    </span>
   </a>
   
 </li>
       
         <li class="md-nav__item">
   <a href="#locating-loading-the-extension-library" class="md-nav__link">
-    Locating &amp; loading the extension library
+    <span class="md-ellipsis">
+      
+        Locating &amp; loading the extension library
+      
+    </span>
   </a>
   
 </li>
       
         <li class="md-nav__item">
   <a href="#genomicsqlite-open" class="md-nav__link">
-    GenomicSQLite Open
+    <span class="md-ellipsis">
+      
+        GenomicSQLite Open
+      
+    </span>
   </a>
   
     <nav class="md-nav" aria-label="GenomicSQLite Open">
@@ -430,35 +604,55 @@
         
           <li class="md-nav__item">
   <a href="#1-generate-connection-string-with-select-genomicsqlite_uridbfilename-config_json" class="md-nav__link">
-    1. Generate connection string with SELECT genomicsqlite_uri(dbfilename, config_json)
+    <span class="md-ellipsis">
+      
+        1. Generate connection string with SELECT genomicsqlite_uri(dbfilename, config_json)
+      
+    </span>
   </a>
   
 </li>
         
           <li class="md-nav__item">
   <a href="#2-call-sqlite3_open-using-the-connection-string" class="md-nav__link">
-    2. Call sqlite3_open() using the connection string
+    <span class="md-ellipsis">
+      
+        2. Call sqlite3_open() using the connection string
+      
+    </span>
   </a>
   
 </li>
         
           <li class="md-nav__item">
   <a href="#3-generate-tuning-script-with-select-genomicsqlite_tuning_sqlconfig_json" class="md-nav__link">
-    3. Generate tuning script with SELECT genomicsqlite_tuning_sql(config_json)
+    <span class="md-ellipsis">
+      
+        3. Generate tuning script with SELECT genomicsqlite_tuning_sql(config_json)
+      
+    </span>
   </a>
   
 </li>
         
           <li class="md-nav__item">
   <a href="#4-execute-tuning-script-on-the-new-connection" class="md-nav__link">
-    4. Execute tuning script on the new connection
+    <span class="md-ellipsis">
+      
+        4. Execute tuning script on the new connection
+      
+    </span>
   </a>
   
 </li>
         
           <li class="md-nav__item">
   <a href="#5-return-the-connection-object" class="md-nav__link">
-    5. Return the connection object
+    <span class="md-ellipsis">
+      
+        5. Return the connection object
+      
+    </span>
   </a>
   
 </li>
@@ -470,21 +664,50 @@
       
         <li class="md-nav__item">
   <a href="#other-routines" class="md-nav__link">
-    Other routines
+    <span class="md-ellipsis">
+      
+        Other routines
+      
+    </span>
   </a>
   
 </li>
       
         <li class="md-nav__item">
   <a href="#packaging" class="md-nav__link">
-    Packaging
+    <span class="md-ellipsis">
+      
+        Packaging
+      
+    </span>
   </a>
+  
+    <nav class="md-nav" aria-label="Packaging">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#the-bundled-library-scheme" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        The bundled-library scheme
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
   
 </li>
       
         <li class="md-nav__item">
   <a href="#documentation" class="md-nav__link">
-    Documentation
+    <span class="md-ellipsis">
+      
+        Documentation
+      
+    </span>
   </a>
   
 </li>
@@ -499,9 +722,11 @@
           
           
             <div class="md-content" data-md-component="content">
+              
               <article class="md-content__inner md-typeset">
                 
                   
+
 
 
 <h1 id="writing-language-bindings">Writing Language Bindings</h1>
@@ -567,14 +792,47 @@ FROM [schema.]_gri_refseq [WHERE assembly = ?]
 <p><strong>Bundle nothing:</strong> require the end user to download the right library file (or build it themselves) and place it where the bindings and SQLite3 will be able to find them, as described above.</p>
 </li>
 <li>
-<p><strong>Bundle our binaries:</strong> ship our binaries inside your package and choose the right one to load at runtime. Remember, the only actual ABI linking occurs between the extension library and SQLite3 itself, so there's nothing to worry about compatibility between the library and the host language runtime.</p>
+<p><strong>Bundle our binaries:</strong> ship our binaries inside your package and choose the right one to load at runtime, following <a href="#the-bundled-library-scheme">the bundled-library scheme</a> below. Remember, the only actual ABI linking occurs between the extension library and SQLite3 itself, so there's nothing to worry about compatibility between the library and the host language runtime.</p>
 </li>
 <li>
 <p><strong>Source build:</strong> You can specify the CMake-based source build procedure &amp; its dependencies described in the <a href="https://github.com/mlin/GenomicSQLite">GitHub README</a> however the host language's packaging system does it. </p>
 </li>
 </ol>
+<h3 id="the-bundled-library-scheme">The bundled-library scheme</h3>
+<p>The GitHub release bundle, Python sdist, JDBC JAR, and Rust crate lay out prebuilt libraries the same way; new bindings should follow this scheme. Libraries always use the plain filename <code>libgenomicsqlite.so</code> or <code>libgenomicsqlite.dylib</code>; target variation lives in directories, never the filename. The release ships prebuilt libraries for exactly three targets, and in channels carrying multiple targets each sits in its per-target directory under <code>lib/</code> (musl-based Linux, e.g. Alpine, is not a supported target):</p>
+<table>
+<thead>
+<tr>
+<th>Directory</th>
+<th>Platform</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>lib/x86_64-linux-gnu</code></td>
+<td>Linux x86_64, glibc ≥ 2.28 (manylinux_2_28 baseline)</td>
+</tr>
+<tr>
+<td><code>lib/aarch64-linux-gnu</code></td>
+<td>Linux ARM64, glibc ≥ 2.28</td>
+</tr>
+<tr>
+<td><code>lib/aarch64-darwin</code></td>
+<td>macOS ARM64</td>
+</tr>
+</tbody>
+</table>
+<p>Each binding normalizes the CPU, OS, and target spellings reported by its platform APIs in exactly one step; aliases are input-only and never appear in shipped filenames, documentation, or error messages. A nonempty <code>LIBGENOMICSQLITE</code> value, after trimming, overrides selection and is used literally; empty or whitespace-only values mean unset. Otherwise the binding uses the host target's bundled library if present, and silently falls back to the bare name <code>libgenomicsqlite</code> for system-loader search: selection never fails, and never selects another target's build. Rust instead selects at build time; with bundling enabled, a supported target fails to build if its library is missing.</p>
+<p>Load-failure errors name the attempted file or bare name and its source (the <code>LIBGENOMICSQLITE</code> override, the bundled copy, or the system search), and give both remedies: set <code>LIBGENOMICSQLITE</code> to the library file, or install <code>libgenomicsqlite</code> where the system loader finds it.</p>
 <h2 id="documentation">Documentation</h2>
 <p>The <a href="https://www.mkdocs.org/">MkDocs</a> source Markdown for this documentation site is <a href="https://github.com/mlin/GenomicSQLite/tree/main/docs">in the GitHub repository</a>. Fork it &amp; send us a pull request, adding appropriate examples to all the code tabs in the Installation &amp; Programming Guide.</p>
+
+
+
+
+
+
+
 
 
 
@@ -585,49 +843,14 @@ FROM [schema.]_gri_refseq [WHERE assembly = ?]
             </div>
           
           
-  <script>var tabs=__md_get("__tabs");if(Array.isArray(tabs))e:for(var set of document.querySelectorAll(".tabbed-set")){var tab,labels=set.querySelector(".tabbed-labels");for(tab of tabs)for(var label of labels.getElementsByTagName("label"))if(label.innerText.trim()===tab){var input=document.getElementById(label.htmlFor);input.checked=!0;continue e}}</script>
+  <script>var tabs=__md_get("__tabs");if(Array.isArray(tabs))e:for(var set of document.querySelectorAll(".tabbed-set")){var labels=set.querySelector(".tabbed-labels");for(var tab of tabs)for(var label of labels.getElementsByTagName("label"))if(label.innerText.trim()===tab){var input=document.getElementById(label.htmlFor);input.checked=!0;continue e}}</script>
 
+<script>var target=document.getElementById(location.hash.slice(1));target&&target.name&&(target.checked=target.name.startsWith("__tabbed_"))</script>
         </div>
         
       </main>
       
         <footer class="md-footer">
-  
-    
-    <nav class="md-footer__inner md-grid" aria-label="Footer" >
-      
-        
-        <a href="../guide_helpers/" class="md-footer__link md-footer__link--prev" aria-label="Previous: Useful Routines" rel="prev">
-          <div class="md-footer__button md-icon">
-            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11h12Z"/></svg>
-          </div>
-          <div class="md-footer__title">
-            <div class="md-ellipsis">
-              <span class="md-footer__direction">
-                Previous
-              </span>
-              Useful Routines
-            </div>
-          </div>
-        </a>
-      
-      
-        
-        <a href="../internals/" class="md-footer__link md-footer__link--next" aria-label="Next: Internals" rel="next">
-          <div class="md-footer__title">
-            <div class="md-ellipsis">
-              <span class="md-footer__direction">
-                Next
-              </span>
-              Internals
-            </div>
-          </div>
-          <div class="md-footer__button md-icon">
-            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M4 11v2h12l-5.5 5.5 1.42 1.42L19.84 12l-7.92-7.92L10.5 5.5 16 11H4Z"/></svg>
-          </div>
-        </a>
-      
-    </nav>
   
   <div class="md-footer-meta md-typeset">
     <div class="md-footer-meta__inner md-grid">
@@ -650,12 +873,15 @@ FROM [schema.]_gri_refseq [WHERE assembly = ?]
       <div class="md-dialog__inner md-typeset"></div>
     </div>
     
-    <script id="__config" type="application/json">{"base": "..", "features": ["content.tabs.link"], "search": "../assets/javascripts/workers/search.16e2a7d4.min.js", "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.config.lang": "en", "search.config.pipeline": "trimmer, stopWordFilter", "search.config.separator": "[\\s\\-]+", "search.placeholder": "Search", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version.title": "Select version"}}</script>
     
     
-      <script src="../assets/javascripts/bundle.5a2dcb6a.min.js"></script>
       
+      
+      <script id="__config" type="application/json">{"annotate": null, "base": "..", "features": ["content.tabs.link"], "search": "../assets/javascripts/workers/search.a7633da7.min.js", "tags": null, "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}, "version": null}</script>
     
+    
+      <script src="../assets/javascripts/bundle.c21346df.min.js"></script>
+      
     
   </body>
 </html>
