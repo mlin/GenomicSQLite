@@ -124,15 +124,11 @@ RUN mkdir -p /work/lib
 WORKDIR /work
 COPY --from=builder /usr/local/lib/libsqlite3.so.0 ./lib/
 RUN ln -s libsqlite3.so.0 lib/libsqlite3.so
-ADD ./.git ./.git
 ADD ./bindings/rust ./rust
 COPY --from=builder /work/GenomicSQLite/build/libgenomicsqlite.so ./libgenomicsqlite.so
 # plant the library in the crate's per-target directory for this build's CPU
 RUN mkdir -p ./rust/lib/$(uname -m)-linux-gnu && cp ./libgenomicsqlite.so ./rust/lib/$(uname -m)-linux-gnu/
-# git in the cargo wrapper must accept the context's .git even if the build
-# host checked it out under a different uid than root
-RUN git config --global --add safe.directory /work
-RUN SQLITE_WEB_LOG=99 LD_LIBRARY_PATH=$(pwd)/lib LIBRARY_PATH=$(pwd)/lib rust/cargo test --release
+RUN SQLITE_WEB_LOG=99 LD_LIBRARY_PATH=$(pwd)/lib LIBRARY_PATH=$(pwd)/lib cargo test --release --manifest-path ./rust/Cargo.toml
 
 ###################################################################################################
 # Run-up in ubuntu 20.04 (final stage: the default docker build target, and the

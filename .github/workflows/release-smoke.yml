@@ -122,10 +122,10 @@ jobs:
           brew install sqlite
           echo "SQLITE3_LIB_DIR=$(brew --prefix sqlite)/lib" >> "$GITHUB_ENV"
           echo "SQLITE3_INCLUDE_DIR=$(brew --prefix sqlite)/include" >> "$GITHUB_ENV"
-      - name: Generate the smoke crate manifest for the release version
+      - name: Pin the smoke crate to the release version
         run: |
-          sed 's/{{GENOMICSQLITE_VERSION}}/=${{ steps.v.outputs.semver }}/' \
-            test/cargo_smoke_test/Cargo.toml.in > test/cargo_smoke_test/Cargo.toml
+          sed -i -E 's/^genomicsqlite = .*/genomicsqlite = "=${{ steps.v.outputs.semver }}"/' \
+            test/cargo_smoke_test/Cargo.toml
           grep '^genomicsqlite' test/cargo_smoke_test/Cargo.toml
       - name: Build & run the smoke crate against crates.io
         working-directory: test/cargo_smoke_test

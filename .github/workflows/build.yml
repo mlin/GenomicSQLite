@@ -32,8 +32,8 @@ jobs:
     - name: rust lint
       run: |
         cd bindings/rust
-        ./cargo check --no-default-features --locked
-        ./cargo fmt -- --check
+        cargo check --no-default-features --locked
+        cargo fmt -- --check
 
   test:
     runs-on: ubuntu-24.04
@@ -109,7 +109,7 @@ jobs:
         mkdir -p bindings/rust/lib/x86_64-linux-gnu
         cp build/libgenomicsqlite.so bindings/rust/lib/x86_64-linux-gnu/
         ln -sf libsqlite3.so.0 build/libsqlite3.so
-        env LD_LIBRARY_PATH="$(pwd)/build" LIBRARY_PATH="$(pwd)/build" SQLITE_WEB_LOG=99 bindings/rust/cargo test --release --locked
+        env LD_LIBRARY_PATH="$(pwd)/build" LIBRARY_PATH="$(pwd)/build" SQLITE_WEB_LOG=99 cargo test --release --locked --manifest-path bindings/rust/Cargo.toml
     - name: test
       run: |
         export PATH="$FLOOR_PATH"
@@ -198,8 +198,8 @@ jobs:
         mkdir -p bindings/rust/lib/${{ matrix.target }}
         cp build/libgenomicsqlite.so bindings/rust/lib/${{ matrix.target }}/
         ln -sf libsqlite3.so.0 build/libsqlite3.so  # linker name, scoped to build/ like the Dockerfile rust stage
-        env LD_LIBRARY_PATH="$(pwd)/build" LIBRARY_PATH="$(pwd)/build" SQLITE_WEB_LOG=99 bindings/rust/cargo test --release --locked
-        bindings/rust/cargo package --list | grep lib/${{ matrix.target }}/libgenomicsqlite.so
+        env LD_LIBRARY_PATH="$(pwd)/build" LIBRARY_PATH="$(pwd)/build" SQLITE_WEB_LOG=99 cargo test --release --locked --manifest-path bindings/rust/Cargo.toml
+        cargo package --list --manifest-path bindings/rust/Cargo.toml | grep lib/${{ matrix.target }}/libgenomicsqlite.so
     - name: test rust crate (rusqlite ceiling)
       if: matrix.target == 'x86_64-linux-gnu'
       run: |
@@ -209,8 +209,8 @@ jobs:
         mkdir build/rust-ceiling
         tar -C bindings/rust --exclude=target -cf - . | tar -C build/rust-ceiling -xf -
         cd build/rust-ceiling
-        env LD_LIBRARY_PATH="$(pwd)/.." LIBRARY_PATH="$(pwd)/.." ./cargo update -p rusqlite
-        env LD_LIBRARY_PATH="$(pwd)/.." LIBRARY_PATH="$(pwd)/.." SQLITE_WEB_LOG=99 ./cargo test --release --locked
+        env LD_LIBRARY_PATH="$(pwd)/.." LIBRARY_PATH="$(pwd)/.." cargo update -p rusqlite
+        env LD_LIBRARY_PATH="$(pwd)/.." LIBRARY_PATH="$(pwd)/.." SQLITE_WEB_LOG=99 cargo test --release --locked
     - name: installed-package smoke test
       run: |
         python3 -m pip install -q setuptools wheel
@@ -296,8 +296,8 @@ jobs:
         set -e
         mkdir -p bindings/rust/lib/aarch64-darwin
         cp build/libgenomicsqlite.dylib bindings/rust/lib/aarch64-darwin/
-        SQLITE_WEB_LOG=99 bindings/rust/cargo test --release --locked
-        bindings/rust/cargo package --list | grep lib/aarch64-darwin/libgenomicsqlite.dylib
+        SQLITE_WEB_LOG=99 cargo test --release --locked --manifest-path bindings/rust/Cargo.toml
+        cargo package --list --manifest-path bindings/rust/Cargo.toml | grep lib/aarch64-darwin/libgenomicsqlite.dylib
     - name: installed-package smoke test
       run: |
         python3 -m pip install -q setuptools wheel
