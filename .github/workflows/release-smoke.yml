@@ -126,7 +126,7 @@ jobs:
         run: |
           sed -i -E 's/^genomicsqlite = .*/genomicsqlite = "=${{ steps.v.outputs.semver }}"/' \
             test/cargo_smoke_test/Cargo.toml
-          grep '^genomicsqlite' test/cargo_smoke_test/Cargo.toml
+          grep -Fx 'genomicsqlite = "=${{ steps.v.outputs.semver }}"' test/cargo_smoke_test/Cargo.toml
       - name: Build & run the smoke crate against crates.io
         working-directory: test/cargo_smoke_test
         run: |
