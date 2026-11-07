@@ -199,8 +199,10 @@ jobs:
         cp build/libgenomicsqlite.so bindings/rust/lib/${{ matrix.target }}/
         ln -sf libsqlite3.so.0 build/libsqlite3.so  # linker name, scoped to build/ like the Dockerfile rust stage
         env LD_LIBRARY_PATH="$(pwd)/build" LIBRARY_PATH="$(pwd)/build" SQLITE_WEB_LOG=99 cargo test --release --locked --manifest-path bindings/rust/Cargo.toml
-        # --allow-dirty: the library staged above is git-ignored but named in the manifest's
-        # include list, so cargo's version-control check counts it as an uncommitted change.
+        # --allow-dirty: this crate is packaged from deliberately dirty trees — releases
+        # stamp the version in at publish time rather than committing it, and the library
+        # staged above is git-ignored but manifest-included, so cargo's version-control
+        # check would otherwise refuse.
         cargo package --list --allow-dirty --manifest-path bindings/rust/Cargo.toml | grep lib/${{ matrix.target }}/libgenomicsqlite.so
     - name: test rust crate (rusqlite ceiling)
       if: matrix.target == 'x86_64-linux-gnu'
@@ -299,8 +301,10 @@ jobs:
         mkdir -p bindings/rust/lib/aarch64-darwin
         cp build/libgenomicsqlite.dylib bindings/rust/lib/aarch64-darwin/
         SQLITE_WEB_LOG=99 cargo test --release --locked --manifest-path bindings/rust/Cargo.toml
-        # --allow-dirty: the library staged above is git-ignored but named in the manifest's
-        # include list, so cargo's version-control check counts it as an uncommitted change.
+        # --allow-dirty: this crate is packaged from deliberately dirty trees — releases
+        # stamp the version in at publish time rather than committing it, and the library
+        # staged above is git-ignored but manifest-included, so cargo's version-control
+        # check would otherwise refuse.
         cargo package --list --allow-dirty --manifest-path bindings/rust/Cargo.toml | grep lib/aarch64-darwin/libgenomicsqlite.dylib
     - name: installed-package smoke test
       run: |
