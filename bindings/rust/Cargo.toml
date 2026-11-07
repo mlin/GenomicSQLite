@@ -1,12 +1,9 @@
 [package]
 name = "genomicsqlite"
-# Release versioning: the git tag is the version source of truth.
-# This version is a dummy, never a release version: at publish
-# time the tag's version is stamped into the publish checkout
-# (cargo set-version) and the crate is published from there. No
-# commit bumps it to cut a release. Cargo.lock is committed to
-# pin dependency versions; its root entry follows the stamp in
-# the publish checkout only.
+# Release versioning: the git tag is the version source of truth; this
+# 0.0.0 is a dummy. At publish time the tag's version is stamped into the
+# publish checkout (cargo set-version), never committed. Cargo.lock pins
+# dependency versions; its root entry follows the stamp there only.
 version = "0.0.0"
 description = "Genomics Extension for SQLite"
 authors = ["Mike Lin <dna@mlin.net>"]
