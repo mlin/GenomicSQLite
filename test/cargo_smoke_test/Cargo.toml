@@ -5,7 +5,7 @@ authors = ["Mike Lin <dna@mlin.net>"]
 edition = "2018"
 
 [dependencies]
-# The release-smoke workflow rewrites this pin to the version under test.
-genomicsqlite = "=0.10.0"
+# Dummy pin — the release-smoke workflow rewrites it to the version under test.
+genomicsqlite = "=0.0.0"
 rusqlite = "^0.25"
 json = "^0"
