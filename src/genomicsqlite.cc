@@ -620,6 +620,90 @@ static pair<int, int> DetectLevelRange(sqlite3 *dbconn, const string &schema_tab
     return std::pair<int, int>(min_lvl, max_lvl);
 }
 
+/*
+ * Check the catalog for a table or view using sqlite3_stricmp(), SQLite's own
+ * identifier comparison. SQL collations are connection-local and applications
+ * can replace them, so they cannot reliably reproduce identifier matching.
+ *
+ * Throw on catalog errors: treating a failed probe as "not found" could make
+ * resolution incorrectly continue to a lower-priority schema.
+ *
+ * Example: main.T has levels (4, 4), temp.t has (1, 1). With a case-sensitive
+ * NOCASE override, a SQL catalog probe for 'T' misses temp.t and finds main.T.
+ * SQLite still resolves levels('T') to temp.t; caching that result under main.T
+ * makes levels('main.T') return (1, 1) instead of (4, 4).
+ */
+static bool CatalogHasTableOrView(sqlite3 *dbconn, const char *catalog, const string &table) {
+    string sql = string("SELECT name FROM ") + catalog + " WHERE type IN ('table','view')";
+    sqlite3_stmt *stmt = nullptr;
+    if (sqlite3_prepare_v2(dbconn, sql.c_str(), -1, &stmt, nullptr) != SQLITE_OK) {
+        throw runtime_error(sqlite3_errmsg(dbconn));
+    }
+    shared_ptr<sqlite3_stmt> stmtp(stmt, sqlite3_finalize);
+    int rc;
+    while ((rc = sqlite3_step(stmt)) == SQLITE_ROW) {
+        const unsigned char *name = sqlite3_column_text(stmt, 0);
+        if (name && sqlite3_stricmp((const char *)name, table.c_str()) == 0) {
+            return true;
+        }
+    }
+    if (rc != SQLITE_DONE) {
+        throw runtime_error(sqlite3_errmsg(dbconn));
+    }
+    return false;
+}
+
+/*
+ * SQLite resolves unqualified names by searching temp, then main, then attached
+ * schemas. Only main-resolved names qualify for caching, so checking temp and
+ * main is sufficient; no attached-schema probe is needed.
+ *
+ * Example: main.t has levels (3, 0), temp.t has (0, 0). Calling levels('t')
+ * first reads temp.t. Filing that result under main's key makes the next
+ * levels('main.t') return (0, 0). A range query using those bounds then skips
+ * main's level-3 rows.
+ *
+ * An attached database can be detached and a different file attached under the
+ * same schema name between calls. Cached levels could then silently belong to
+ * the previous file. Main cannot be detached and rebound this way, so its
+ * database identity has no such ambiguity.
+ *
+ * Example: main has no t. Cache levels('t') from file A attached as aux, then
+ * detach aux and attach file B as aux. Reusing that entry serves A's bounds
+ * for B's t, even if the two tables have different levels.
+ */
+static bool UnqualifiedNameResolvesToMain(sqlite3 *dbconn, const string &table) {
+    return !CatalogHasTableOrView(dbconn, "sqlite_temp_master", table) &&
+           CatalogHasTableOrView(dbconn, "sqlite_master", table);
+}
+
+/*
+ * A levels query inside a writable statement, such as an AFTER DELETE trigger,
+ * can see the statement's uncommitted changes. In autocommit mode,
+ * sqlite3_get_autocommit() remains 1 during execution, so the autocommit store
+ * gate does not exclude this snapshot.
+ *
+ * A statement rollback, such as RAISE(ABORT), can restore the rows without
+ * advancing either cache validity counter. Storing those levels could therefore
+ * serve bounds for rolled-back changes later. Existing cached bounds can also
+ * predate the ongoing writes, so bypass both lookup and storage while any
+ * writable statement is active.
+ *
+ * Example: an autocommit DELETE removes t's only level-3 row, leaving a level-0
+ * row. Its AFTER DELETE trigger reads levels('t') = (0, 0), then calls
+ * RAISE(ABORT, 'boom'). The deleted row returns without advancing either counter,
+ * so a stored (0, 0) would still pass validation after the statement rolls back.
+ */
+static bool HasActiveWritableStatement(sqlite3 *dbconn) {
+    sqlite3_stmt *stmt = nullptr;
+    while ((stmt = sqlite3_next_stmt(dbconn, stmt)) != nullptr) {
+        if (sqlite3_stmt_busy(stmt) && !sqlite3_stmt_readonly(stmt)) {
+            return true;
+        }
+    }
+    return false;
+}
+
 string GenomicRangeRowidsSQL(sqlite3 *dbconn, const string &indexed_table, const string &qrid,
                              const string &qbeg, const string &qend, int ceiling, int floor) {
     if (ceiling < 0) {
@@ -896,12 +980,24 @@ class GenomicRangeIndexLevelsCursor : public SQLiteVirtualTableCursor {
 
             uint32_t data_version = UINT32_MAX;
             int db_total_changes = INT_MAX;
-            bool main = schema.empty() || schema == "main.";
+            // Use a main-qualified key so bare and explicitly qualified calls share an entry.
+            string cache_key;
+            if (schema == "main.") {
+                cache_key = "main." + schema_table.second;
+            } else if (schema.empty()) {
+                try {
+                    if (UnqualifiedNameResolvesToMain(db_, schema_table.second)) {
+                        cache_key = "main." + schema_table.second;
+                    }
+                } catch (std::exception &) {
+                    // A failed catalog probe disables caching; DetectLevelRange still runs and
+                    // reports any error in the levels query.
+                }
+            }
+            bool main = !cache_key.empty() && !HasActiveWritableStatement(db_);
             if (main) {
-                // cache levels for tables of the main database, invalidated when database changes
-                // are indicated by SQLITE_FCNTL_DATA_VERSION and/or sqlite3_total_changes().
-                // Exclude attached databases because we can't know if a schema name could have
-                // been reattached to a different file between invocations.
+                // Invalidate on changes reported by SQLITE_FCNTL_DATA_VERSION or
+                // sqlite3_total_changes().
                 int rc =
                     sqlite3_file_control(db_, nullptr, SQLITE_FCNTL_DATA_VERSION, &data_version);
                 if (rc != SQLITE_OK) {
@@ -909,7 +1005,7 @@ class GenomicRangeIndexLevelsCursor : public SQLiteVirtualTableCursor {
                     return rc;
                 }
                 db_total_changes = sqlite3_total_changes(db_);
-                auto cached = cache_.find(schema_table.second);
+                auto cached = cache_.find(cache_key);
                 if (cached != cache_.end() && data_version == cached->second.data_version &&
                     db_total_changes == cached->second.db_total_changes) {
                     floor_ = cached->second.floor;
@@ -930,11 +1026,19 @@ class GenomicRangeIndexLevelsCursor : public SQLiteVirtualTableCursor {
             }
             assert(floor_ >= 0 && ceiling_ >= floor_ && ceiling_ <= 15);
 
-            if (main) {
-                auto cached = cache_.find(schema_table.second);
+            if (main && sqlite3_get_autocommit(db_)) {
+                // Never memoize levels computed over uncommitted writes. Neither a full rollback
+                // nor ROLLBACK TO a savepoint advances these counters, so bounds from undone
+                // writes could still pass cache validation.
+                //
+                // Example: t has one level-3 row at beg=0 and one level-0 row.
+                // BEGIN; SAVEPOINT s; DELETE FROM t WHERE beg=0; leaves levels('t') = (0, 0).
+                // ROLLBACK TO s restores levels (3, 0) without advancing either counter, so a
+                // cached (0, 0) would still pass validation after the rollback.
+                auto cached = cache_.find(cache_key);
                 if (cached == cache_.end()) {
-                    cache_[schema_table.second] = cached_levels();
-                    cached = cache_.find(schema_table.second);
+                    cache_[cache_key] = cached_levels();
+                    cached = cache_.find(cache_key);
                     assert(cached != cache_.end());
                 }
                 cached->second.data_version = data_version;
