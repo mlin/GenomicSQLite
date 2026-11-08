@@ -5,6 +5,7 @@ authors = ["Mike Lin <dna@mlin.net>"]
 edition = "2018"
 
 [dependencies]
-genomicsqlite = "{{GENOMICSQLITE_VERSION}}"
+# Dummy pin — the release-smoke workflow rewrites it to the version under test.
+genomicsqlite = "=0.0.0"
 rusqlite = "^0.25"
 json = "^0"
