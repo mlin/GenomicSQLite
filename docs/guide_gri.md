@@ -118,6 +118,8 @@ The three arguments following the table name tell the indexing procedure how to 
 2. The begin and end positions are read from named integer columns, or by computing simple arithmetic expressions thereof.
 3. For example, if the table happens to have `beginPosition` and `featureLength` columns, the end position may be formulated `'beginPosition+featureLength'`.
 
+**Note on text sequence names:** in the GRI, text names that spell the same number -- `'1'`, `'01'`, `'1.0'` -- are the same key, so a query for one spelling also returns rows filed under the others. Distinct sequences need names that are distinct as numbers too (the usual `'chr1'`-style names, or one consistent numeric spelling). Very long digit strings can likewise collide through floating-point rounding. Integer rid columns are unaffected: the column itself already stores such values as numbers.
+
 **❗ The table name and expressions are textually pasted into a template SQL script. Take care to prevent SQL injection, if they're in any way determined by external input.**
 
 A last optional integer argument `floor` can be omitted or left at -1. <small>GRI performance may be improved slightly by setting `floor` to a positive integer *F* if the following is true: the lengths of the indexed features are almost all &gt;16<sup>*F*-1</sup>, with only very few outlier lengths &le;16<sup>*F*-1</sup>. For example, human exons are almost all &gt;16nt; one may therefore set `floor=2` as a modest optimization for such data. YMMV</small>
